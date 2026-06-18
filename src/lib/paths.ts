@@ -1,0 +1,18 @@
+export const paths = {
+  home: '/',
+  fleet: '/fleet',
+  fleetSearch: (from: string, to: string) => `/fleet?from=${from}&to=${to}`,
+  checkout: (carId: string) => `/checkout/${carId}`,
+  confirm: '/booking/confirm',
+  verifyId: '/booking/verify/id',
+  verifyInsurance: '/booking/verify/insurance',
+  booking: (id: string) => `/booking/${id}`,
+  paymentPending: (id: string) => `/booking/${id}/payment-pending`,
+  modify: (id: string) => `/booking/${id}/modify`,
+  swap: (id: string) => `/booking/${id}/swap`,
+  cancel: (id: string) => `/booking/${id}/cancel`,
+  terms: '/terms',
+  manage: '/manage',
+  signIn: '/sign-in',
+  register: '/register',
+} as const;

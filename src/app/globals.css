@@ -1,0 +1,90 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans:
+    'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+
+  --color-primary: #ed2324;
+  --color-secondary: #000000;
+  --color-primary-hover: #d11f20;
+  --color-primary-disabled: #f4a6a6;
+  --color-primary-soft: color-mix(in srgb, var(--color-primary) 8%, #ffffff);
+  --color-primary-border: color-mix(in srgb, var(--color-primary) 28%, #ffffff);
+  --color-accent: #e0921a;
+
+  --color-success: #3e7d1e;
+  --color-green-bg: #f4faef;
+  --color-green-bg-2: #f1f8ea;
+  --color-green-border: #cfe8bb;
+  --color-green-border-2: #e0efd2;
+  --color-green-line: #dcebce;
+  --color-footer-hover: #ffffff;
+
+  --color-amber-bg: #fef6e7;
+  --color-amber-border: #f6e0b8;
+  --color-amber-text: #8a5200;
+  --color-amber-text-2: #b26a00;
+
+  --color-danger-bg: #fef2f2;
+  --color-danger-border: #fbd5d5;
+  --color-danger: #ed1c24;
+  --color-danger-text: #b02a2a;
+  --color-danger-soft: #c0584f;
+  --color-signout: #c8201b;
+  --color-signout-bg: #fdecec;
+
+  --color-ink: #131314;
+  --color-ink-2: #1a1a1a;
+  --color-label: #3c3c3c;
+  --color-muted: #637083;
+  --color-faint: #919191;
+  --color-glyph: #5b6470;
+  --color-placeholder: #b7b7b7;
+  --color-control: #c0c4c9;
+  --color-card-border: #ececec;
+  --color-line: #e4e7ec;
+  --color-hairline: #f0f0f0;
+  --color-dash: #d8dce0;
+  --color-edit-border: #d5ddcc;
+  --color-track: #eef0f2;
+  --color-chip: #f4f5f6;
+  --color-chip-2: #f1f5ee;
+  --color-hover: #f7f8f9;
+  --color-subtle: #fbfbfb;
+  --color-subtle-2: #fbfcfb;
+  --color-locked: #d4d8dd;
+
+  --color-star: #fbc02d;
+  --color-visa: #1a1f71;
+  --color-mastercard: #eb6b1f;
+
+  --shadow-pop: 0 14px 32px rgba(19, 19, 20, 0.14);
+  --shadow-menu: 0 14px 40px rgba(19, 19, 20, 0.12);
+  --shadow-card: 0 6px 24px rgba(19, 19, 20, 0.05);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: #fff;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-placeholder);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
