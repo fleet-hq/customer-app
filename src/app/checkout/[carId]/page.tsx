@@ -1,23 +1,26 @@
 'use client';
 
-import { use, useEffect, useRef, useState } from 'react';
+import { use, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { BackLink } from '@/components/ui/back-link';
 import { TextInput, FieldError } from '@/components/ui/field';
+import { PhoneInput } from '@/components/ui/phone-input';
 import { DateTimeField } from '@/components/search/date-time-field';
-import { Check, Info, Pencil, ImageIcon, Close, ChevronLeft } from '@/components/ui/icons';
-import { VALID_PROMOS, PROMO_DISCOUNT_PCT, DEFAULT_TRIP } from '@/lib/mock-data';
-import { useFleet, useInsuranceOptions, useStartBookingCheckout, useCompanyLocations } from '@/hooks';
+import { Check, Info, Pencil, ImageIcon, Close, ChevronLeft, ChevronDown, ShieldCheck } from '@/components/ui/icons';
+import { DEFAULT_TRIP } from '@/lib/mock-data';
+import { useFleet, useInsuranceOptions, useStartBookingCheckout, useCompanyLocations, useFleetUnavailableRanges } from '@/hooks';
+import { useBookingVerificationPolicy, useStartVerificationFirstBooking } from '@/hooks/useBookingPolicy';
+import { getBookingVerificationPolicy } from '@/services/bookingPolicyServices';
 import { useDefaultLocation } from '@/contexts';
+import { checkFleetAvailability, validatePromoCode } from '@/services/bookingServices';
 import type { InsuranceOption } from '@/services/bookingServices';
 import { toUtcIso } from '@/utils/datetime';
 import { todayISO } from '@/lib/time-slots';
 import { cn, money, rentalDays } from '@/lib/utils';
 import { paths } from '@/lib/paths';
-import { useAgreementSigned } from '@/lib/booking-state';
 
 const PLACEHOLDER_IMAGE = '/images/vehicles/car_placeholder.png';
 
@@ -79,32 +82,79 @@ const EXTRA_ICON = (
 
 type Fields = { name: string; email: string; phone: string; license: string };
 
+const MIN_PER_DAY = 24 * 60;
+
+function dayKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function computeUnavailableDates(ranges: { start: string; end: string }[]): string[] {
+  const byDate = new Map<string, { startMin: number; endMin: number }[]>();
+  for (const r of ranges) {
+    let cur = new Date(r.start);
+    const end = new Date(r.end);
+    if (Number.isNaN(cur.getTime()) || Number.isNaN(end.getTime())) continue;
+    while (cur < end) {
+      const dayStart = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate(), 0, 0, 0, 0);
+      const nextDay = new Date(dayStart.getTime() + MIN_PER_DAY * 60000);
+      const segEnd = end < nextDay ? end : nextDay;
+      const startMin = Math.floor((cur.getTime() - dayStart.getTime()) / 60000);
+      const endMin = Math.ceil((segEnd.getTime() - dayStart.getTime()) / 60000);
+      const key = dayKey(dayStart);
+      const arr = byDate.get(key) ?? [];
+      arr.push({ startMin, endMin });
+      byDate.set(key, arr);
+      cur = nextDay;
+    }
+  }
+  const out: string[] = [];
+  for (const [date, intervals] of byDate) {
+    const sorted = [...intervals].sort((a, b) => a.startMin - b.startMin);
+    let covered = 0;
+    let cursor = 0;
+    for (const i of sorted) {
+      if (i.startMin > cursor) break;
+      if (i.endMin > cursor) {
+        covered += i.endMin - cursor;
+        cursor = i.endMin;
+      }
+      if (cursor >= MIN_PER_DAY) break;
+    }
+    if (covered >= MIN_PER_DAY) out.push(date);
+  }
+  return out;
+}
+
 export default function Page({ params }: { params: Promise<{ carId: string }> }) {
   const { carId } = use(params);
   const router = useRouter();
-  const agreed = useAgreementSigned();
 
   const { data: vehicle, isLoading } = useFleet(carId);
   const { data: insuranceOptions } = useInsuranceOptions();
   const { data: companyLocations } = useCompanyLocations();
   const defaultLoc = useDefaultLocation();
   const startCheckout = useStartBookingCheckout();
+  const { data: verificationPolicy } = useBookingVerificationPolicy();
+  const startVerification = useStartVerificationFirstBooking();
+  const { data: unavailableRanges = [] } = useFleetUnavailableRanges(carId);
+  const unavailableDates = useMemo(() => computeUnavailableDates(unavailableRanges), [unavailableRanges]);
   const protectionRef = useRef<HTMLHeadingElement>(null);
 
-  const [plan, setPlan] = useState<string | null>(null);
+  const [selectedInsurance, setSelectedInsurance] = useState<Set<string>>(new Set());
   const [extras, setExtras] = useState<Record<string, number>>({});
-  const [promoApplied, setPromoApplied] = useState(true);
-  const [promoCode, setPromoCode] = useState(VALID_PROMOS[0]);
+  const [promoApplied, setPromoApplied] = useState(false);
+  const [promoCode, setPromoCode] = useState('');
+  const [promoDiscount, setPromoDiscount] = useState(0);
   const [promoInput, setPromoInput] = useState('');
   const [promoError, setPromoError] = useState('');
   const [fields, setFields] = useState<Fields>({ name: '', email: '', phone: '', license: '' });
   const [errors, setErrors] = useState<Partial<Record<keyof Fields, string>>>({});
   const [checkoutError, setCheckoutError] = useState('');
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
-  const [coverOpen, setCoverOpen] = useState(false);
-  const [coverPlan, setCoverPlan] = useState('standard');
+  const [detailId, setDetailId] = useState<string | null>(null);
   const [tripOpen, setTripOpen] = useState(false);
   const [pickupLoc, setPickupLoc] = useState('');
   const [pickupDate, setPickupDate] = useState(DEFAULT_TRIP.pickupDate);
@@ -120,9 +170,9 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
 
   if (isLoading) {
     return (
-      <div className="bg-white text-ink">
+      <div className="flex min-h-screen flex-col bg-white text-ink">
         <Header active="Fleet" />
-        <div className="mx-auto max-w-[1180px] px-6 py-24 text-center text-muted">Loading vehicle…</div>
+        <div className="mx-auto flex w-full max-w-[1180px] flex-1 items-center justify-center px-6 py-24 text-center text-muted">Loading vehicle…</div>
         <Footer />
       </div>
     );
@@ -130,9 +180,9 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
 
   if (!vehicle) {
     return (
-      <div className="bg-white text-ink">
+      <div className="flex min-h-screen flex-col bg-white text-ink">
         <Header active="Fleet" />
-        <div className="mx-auto max-w-[1180px] px-6 py-24 text-center text-muted">
+        <div className="mx-auto flex w-full max-w-[1180px] flex-1 flex-col items-center justify-center px-6 py-24 text-center text-muted">
           <div className="mb-4">
             <BackLink href={paths.fleet}>Back to fleet</BackLink>
           </div>
@@ -146,21 +196,43 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   const days = rentalDays(pickupDate, returnDate, pickupTime, returnTime);
 
   const plans: InsuranceOption[] = insuranceOptions ?? [];
-  const selectedPlanId = plan ?? plans[0]?.id ?? null;
-  const selectedPlan = plans.find((p) => p.id === selectedPlanId) ?? plans[0] ?? null;
   const recommendedPlanId = (plans.find((p) => p.price > 0) ?? plans[0])?.id ?? null;
+  const selectedPlans = plans.filter((p) => selectedInsurance.has(p.id) && p.id !== 'own');
+  const ownSelected = selectedInsurance.has('own');
 
   const galleryImages = vehicle.images.length > 0 ? vehicle.images : ['/images/car-cherokee.png'];
 
   const rental = vehicle.pricePerDay * days;
-  const planPerDay = selectedPlan?.price ?? 0;
-  const planTotal = planPerDay * days;
+  const insuranceTotal = selectedPlans.reduce((s, p) => s + (p.totalPrice ?? p.price * days), 0);
   const extrasTotal = vehicle.extras.reduce(
     (s, x) => s + x.price * (extras[x.id] || 0) * (x.priceUnit === '/day' ? days : 1),
     0,
   );
-  const discount = promoApplied ? Math.round(rental * PROMO_DISCOUNT_PCT) / 100 : 0;
-  const total = rental + planTotal + extrasTotal - discount;
+  const discount = promoApplied ? promoDiscount : 0;
+  const total = rental + insuranceTotal + extrasTotal - discount;
+
+  const isInsuranceDisabled = (id: string) => id === 'sli' && !selectedInsurance.has('rcli');
+  const toggleInsurance = (id: string) => {
+    setSelectedInsurance((prev) => {
+      const next = new Set(prev);
+      if (id === 'own') {
+        if (next.has('own')) next.delete('own');
+        else {
+          next.clear();
+          next.add('own');
+        }
+        return next;
+      }
+      next.delete('own');
+      if (next.has(id)) {
+        next.delete(id);
+        if (id === 'rcli') next.delete('sli');
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
 
   const gallery = galleryImages;
   const photoCount = galleryImages.length;
@@ -174,8 +246,24 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
     });
   };
 
+  const blurField = (key: keyof Fields) => {
+    const f = fields;
+    let msg = '';
+    if (key === 'email') {
+      if (f.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.email)) msg = 'Please enter a valid email address.';
+    } else if (key === 'phone') {
+      if (f.phone && f.phone.replace(/\D/g, '').length < 7) msg = 'Phone number must have at least 7 digits.';
+    }
+    if (msg) setErrors((e) => ({ ...e, [key]: msg }));
+  };
+
   const setExtra = (id: string, delta: number) => {
     setExtras((s) => ({ ...s, [id]: Math.max(0, (s[id] || 0) + delta) }));
+  };
+
+  const handlePickupDate = (d: string) => {
+    setPickupDate(d);
+    if (!returnDate || d > returnDate) setReturnDate(d);
   };
 
   const activeExtras = vehicle.extras
@@ -208,8 +296,33 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
     if (Object.keys(e).length > 0) return;
     setCheckoutError('');
 
+    if (!pickupDate || !pickupTime || !returnDate || !returnTime) {
+      setCheckoutError('Please select a pick-up date, pick-up time, return date, and return time.');
+      return;
+    }
+
+    const hasLocations = (companyLocations?.length ?? 0) > 0;
+    if (hasLocations && !pickupLoc) {
+      setCheckoutError('Please select a pickup location for your rental.');
+      return;
+    }
+
     const tz = defaultLoc?.timezone ?? null;
-    const toIso = (d: string, t: string) => (tz ? toUtcIso(d, t, tz) : `${d}T${t}:00`);
+    if (!tz) {
+      setCheckoutError("Couldn't determine the rental location's timezone, please refresh.");
+      return;
+    }
+
+    const toIso = (d: string, t: string) => toUtcIso(d, t, tz);
+    const pickupDatetime = toIso(pickupDate, pickupTime);
+    const dropoffDatetime = toIso(returnDate, returnTime);
+
+    const isAvailable = await checkFleetAvailability(vehicle.id, pickupDatetime, dropoffDatetime);
+    if (!isAvailable) {
+      setCheckoutError('This vehicle was just booked for those dates. Please choose a different time slot or vehicle.');
+      return;
+    }
+
     const locationId = Number(companyLocations?.find((l) => l.name === pickupLoc)?.id ?? defaultLoc?.id ?? 0);
     const nameParts = fields.name.trim().split(/\s+/);
     const firstName = nameParts[0] ?? '';
@@ -218,8 +331,50 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
       .filter((x) => (extras[x.id] || 0) > 0)
       .map((x) => ({ id: Number(x.id), quantity: extras[x.id] }))
       .filter((x) => !Number.isNaN(x.id));
-    const insuranceSelected = !!selectedPlan && selectedPlan.id !== 'own';
+    const insuranceSelected = !selectedInsurance.has('own') && selectedInsurance.size > 0;
     const origin = window.location.origin;
+
+    let freshPolicyMode = verificationPolicy?.mode;
+    try {
+      const fresh = await getBookingVerificationPolicy();
+      freshPolicyMode = fresh.mode;
+    } catch {
+      void 0;
+    }
+
+    if (freshPolicyMode === 'before') {
+      const sharedPayload = {
+        first_name: firstName,
+        last_name: lastName,
+        email: fields.email.trim(),
+        phone: fields.phone.trim().slice(0, 15),
+        fleet_id: Number(vehicle.id),
+        pickup_location_id: locationId,
+        dropoff_location_id: locationId,
+        pickup_datetime: pickupDatetime,
+        dropoff_datetime: dropoffDatetime,
+        insurance_selected: insuranceSelected,
+        cdw_cover: selectedInsurance.has('cdw'),
+        rcli_cover: selectedInsurance.has('rcli'),
+        sli_cover: selectedInsurance.has('sli'),
+        pai_cover: selectedInsurance.has('pai'),
+        extras: activeExtraItems.length > 0 ? activeExtraItems : [],
+        fuel_pre_purchase: false,
+        return_car_to_different_branch: false,
+        additional_drivers: 0,
+        notes: '',
+        ...(promoApplied && promoCode ? { promo_code: promoCode } : {}),
+      };
+      startVerification.mutate(sharedPayload as Record<string, unknown>, {
+        onSuccess: (data) => {
+          window.location.href = `/booking/${data.booking_id}?token=${encodeURIComponent(data.access_token)}`;
+        },
+        onError: () => {
+          setCheckoutError('Could not start verification. Please try again.');
+        },
+      });
+      return;
+    }
 
     try {
       const data = await startCheckout.mutateAsync({
@@ -230,15 +385,15 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
           email: fields.email.trim(),
           phone_no: fields.phone.trim().slice(0, 15),
         },
-        pickup_datetime: toIso(pickupDate, pickupTime),
-        dropoff_datetime: toIso(returnDate, returnTime),
+        pickup_datetime: pickupDatetime,
+        dropoff_datetime: dropoffDatetime,
         pickup_location_id: locationId,
         dropoff_location_id: locationId,
         insurance_selected: insuranceSelected,
-        cdw_cover: selectedPlan?.id === 'cdw',
-        rcli_cover: selectedPlan?.id === 'rcli',
-        sli_cover: selectedPlan?.id === 'sli',
-        pai_cover: selectedPlan?.id === 'pai',
+        cdw_cover: selectedInsurance.has('cdw'),
+        rcli_cover: selectedInsurance.has('rcli'),
+        sli_cover: selectedInsurance.has('sli'),
+        pai_cover: selectedInsurance.has('pai'),
         extras: activeExtraItems.length > 0 ? activeExtraItems : undefined,
         ...(promoApplied && promoCode ? { discount_code: promoCode, promo_code: promoCode } : {}),
         success_url: `${origin}/booking/success?session_id={CHECKOUT_SESSION_ID}`,
@@ -250,20 +405,35 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
     }
   };
 
-  const applyPromo = () => {
+  const applyPromo = async () => {
     const c = promoInput.trim().toUpperCase();
     if (!c) {
       setPromoError('Enter a promo code');
       return;
     }
-    if (!VALID_PROMOS.includes(c)) {
-      setPromoError(`“${c}” is not a valid code`);
-      return;
+    try {
+      const result = await validatePromoCode({
+        code: c,
+        base_price: rental,
+        extras_price: insuranceTotal + extrasTotal,
+        fees: 0,
+        location_charges: 0,
+      });
+      if (result.valid && result.discount_amount) {
+        setPromoApplied(true);
+        setPromoCode(c);
+        setPromoDiscount(parseFloat(result.discount_amount));
+        setPromoInput('');
+        setPromoError('');
+      } else {
+        setPromoError(result.error || `“${c}” is not a valid code`);
+      }
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
+        `“${c}” is not a valid code`;
+      setPromoError(message);
     }
-    setPromoApplied(true);
-    setPromoCode(c);
-    setPromoInput('');
-    setPromoError('');
   };
 
   const scrollProtection = () => {
@@ -272,8 +442,6 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   };
 
   const hasErrors = Object.keys(errors).length > 0;
-  const planRowName = selectedPlan ? selectedPlan.title : 'Protection';
-  const planSub = planPerDay === 0 ? 'No charge' : `${money(planPerDay)} × ${days} days`;
   const pickupCity = pickupLoc.split(',')[0];
 
   return (
@@ -378,28 +546,44 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
             </h3>
             <div className="mb-[26px] grid grid-cols-2 gap-[10px]">
               {plans.map((p) => {
-                const sel = selectedPlanId === p.id;
+                const sel = selectedInsurance.has(p.id);
+                const disabled = isInsuranceDisabled(p.id);
+                const hasDetail = !!INSURANCE_DETAILS[p.id];
                 return (
                   <div
                     key={p.id}
-                    onClick={() => setPlan(p.id)}
+                    onClick={() => {
+                      if (disabled) return;
+                      if (hasDetail) setDetailId(p.id);
+                      else toggleInsurance(p.id);
+                    }}
                     className={cn(
-                      'relative flex cursor-pointer flex-col rounded-[12px] p-[14px] transition-colors',
-                      sel ? 'border-[1.5px] border-primary bg-primary-soft' : 'border border-line bg-white',
+                      'relative flex flex-col rounded-[12px] p-[14px] transition-colors',
+                      disabled
+                        ? 'cursor-not-allowed border border-line bg-subtle opacity-70'
+                        : sel
+                          ? 'cursor-pointer border-[1.5px] border-primary bg-primary-soft'
+                          : 'cursor-pointer border border-line bg-white',
                     )}
                   >
-                    {recommendedPlanId === p.id && (
+                    {recommendedPlanId === p.id && !disabled && (
                       <span className="absolute right-3 top-3 rounded-[5px] bg-primary px-[7px] py-[3px] text-[8.5px] font-bold uppercase tracking-[0.03em] text-white">
                         Recommended
                       </span>
                     )}
                     <div className="flex items-center gap-[9px]">
                       <span
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!disabled) toggleInsurance(p.id);
+                        }}
                         className={cn(
-                          'h-[17px] w-[17px] flex-shrink-0 rounded-full bg-white',
-                          sel ? 'border-[5px] border-primary' : 'border-[1.5px] border-control',
+                          'flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-[5px] border-[1.5px]',
+                          sel ? 'border-primary bg-primary' : 'border-control bg-white',
                         )}
-                      />
+                      >
+                        {sel && <Check size={12} strokeWidth={3} className="text-white" />}
+                      </span>
                       <span className="text-[13.5px] font-semibold text-ink">{p.title}</span>
                     </div>
                     <div className="mt-[9px] flex-1 text-[12px] leading-[1.5] text-muted">{p.description}</div>
@@ -407,19 +591,26 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                       {p.price === 0 ? '$0.00' : money(p.price)}
                       <span className="text-[11px] font-normal text-muted">{p.price === 0 ? '' : '/day'}</span>
                     </div>
-                    <div className={cn('mt-3 border-t pt-[10px]', sel ? 'border-primary-border' : 'border-hairline')}>
-                      <span
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setCoverPlan(p.id);
-                          setCoverOpen(true);
-                        }}
-                        className="inline-flex cursor-pointer items-center gap-[5px] text-[11.5px] font-semibold text-primary"
-                      >
-                        <Info size={13} strokeWidth={2} />
-                        See what&apos;s covered
-                      </span>
-                    </div>
+                    {disabled ? (
+                      <div className="mt-3 border-t border-hairline pt-[10px]">
+                        <span className="inline-flex items-center rounded bg-amber-bg border border-amber-border px-[7px] py-[3px] text-[10px] font-semibold text-amber-text-2">
+                          Requires RCLI
+                        </span>
+                      </div>
+                    ) : hasDetail ? (
+                      <div className={cn('mt-3 border-t pt-[10px]', sel ? 'border-primary-border' : 'border-hairline')}>
+                        <span
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDetailId(p.id);
+                          }}
+                          className="inline-flex cursor-pointer items-center gap-[5px] text-[11.5px] font-semibold text-primary"
+                        >
+                          <Info size={13} strokeWidth={2} />
+                          See what&apos;s covered
+                        </span>
+                      </div>
+                    ) : null}
                   </div>
                 );
               })}
@@ -487,11 +678,11 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                 {errors.name && <FieldError>{errors.name}</FieldError>}
               </div>
               <div>
-                <TextInput value={fields.email} onChange={(e) => setField('email', e.target.value)} placeholder="Email address" error={!!errors.email} />
+                <TextInput type="email" value={fields.email} onChange={(e) => setField('email', e.target.value)} onBlur={() => blurField('email')} placeholder="Email address" error={!!errors.email} />
                 {errors.email && <FieldError>{errors.email}</FieldError>}
               </div>
               <div>
-                <TextInput value={fields.phone} onChange={(e) => setField('phone', e.target.value)} placeholder="Phone number" error={!!errors.phone} />
+                <PhoneInput value={fields.phone} onChange={(v) => setField('phone', v)} onBlur={() => blurField('phone')} error={!!errors.phone} placeholder="Phone number" />
                 {errors.phone && <FieldError>{errors.phone}</FieldError>}
               </div>
               <div>
@@ -537,6 +728,17 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               <span className="rounded-full border border-line bg-white px-[10px] py-[3px] text-[11px] font-medium text-muted">{days} days</span>
             </div>
 
+            {vehicle.isPeakPricing && (
+              <div className="mb-4 rounded-[9px] border border-amber-border bg-amber-bg px-3 py-[9px] text-[11.5px] font-medium text-amber-text-2">
+                Peak-day pricing is in effect for the selected dates.
+              </div>
+            )}
+            {vehicle.isPromoPricing && (
+              <div className="mb-4 rounded-[9px] border border-green-border-2 bg-green-bg px-3 py-[9px] text-[11.5px] font-medium text-success">
+                Promo pricing is in effect for the selected dates.
+              </div>
+            )}
+
             <div className="mb-[11px] text-[11px] font-semibold uppercase tracking-[0.05em] text-muted">Rental</div>
             <div className="flex items-start justify-between text-[13px]">
               <div>
@@ -551,13 +753,24 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               <span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-muted">Insurance</span>
               <span onClick={scrollProtection} className="cursor-pointer text-[11px] font-semibold text-primary">Change</span>
             </div>
-            <div className="flex items-start justify-between text-[13px]">
-              <div>
-                <div className="font-medium text-ink">{planRowName}</div>
-                <div className="mt-px text-[11.5px] text-muted">{planSub}</div>
+            {selectedPlans.length > 0 ? (
+              <div className="flex flex-col gap-[10px]">
+                {selectedPlans.map((p) => (
+                  <div key={p.id} className="flex items-start justify-between text-[13px]">
+                    <div>
+                      <div className="font-medium text-ink">{p.title}</div>
+                      <div className="mt-px text-[11.5px] text-muted">{money(p.price)} × {days} days</div>
+                    </div>
+                    <span className="font-medium text-ink">{money(p.totalPrice ?? p.price * days)}</span>
+                  </div>
+                ))}
               </div>
-              <span className="font-medium text-ink">{money(planTotal)}</span>
-            </div>
+            ) : (
+              <div className="flex items-start justify-between text-[13px]">
+                <div className="font-medium text-ink">{ownSelected ? 'Own insurance' : 'No protection selected'}</div>
+                <span className="font-medium text-ink">{money(0)}</span>
+              </div>
+            )}
             <div className="my-[14px] h-px bg-card-border" />
 
             <div className="mb-[11px] text-[11px] font-semibold uppercase tracking-[0.05em] text-muted">Add-ons</div>
@@ -654,31 +867,44 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
 
             <button
               onClick={reserve}
-              disabled={startCheckout.isPending}
+              disabled={startCheckout.isPending || startVerification.isPending || !termsAccepted}
               className="mt-[14px] block w-full cursor-pointer rounded-[10px] bg-primary py-[13px] text-center text-sm font-bold text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {startCheckout.isPending ? 'Starting checkout…' : 'Reserve Now'}
+              {startCheckout.isPending || startVerification.isPending ? 'Starting checkout…' : 'Reserve Now'}
             </button>
 
-            <Link href={paths.terms} className="mt-[13px] flex cursor-pointer items-start gap-[10px] no-underline">
+            <label className="mt-[13px] flex cursor-pointer items-center gap-[10px]">
+              <input
+                type="checkbox"
+                checked={termsAccepted}
+                onChange={(e) => setTermsAccepted(e.target.checked)}
+                className="sr-only"
+              />
               <span
                 className={cn(
-                  'mt-px inline-flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-[5px] border-[1.5px]',
-                  agreed ? 'border-primary bg-primary' : 'border-control bg-white',
+                  'inline-flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-[5px] border-[1.5px]',
+                  termsAccepted ? 'border-primary bg-primary' : 'border-control bg-white',
                 )}
               >
-                {agreed && (
+                {termsAccepted && (
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={3.2} strokeLinecap="round" strokeLinejoin="round">
                     <path d="M20 6 9 17l-5-5" />
                   </svg>
                 )}
               </span>
               <span className="text-[11.5px] leading-[1.5] text-muted">
-                I have read and agree to the <span className="font-semibold text-secondary">Terms of Service</span> &amp;{' '}
-                <span className="font-semibold text-primary underline">Rental Agreement</span>
-                {agreed ? ' — signed.' : ' — tap to review & sign.'}
+                I have read and agree to the{' '}
+                <Link
+                  href={paths.terms}
+                  target="_blank"
+                  onClick={(e) => e.stopPropagation()}
+                  className="font-semibold text-primary underline"
+                >
+                  Terms &amp; Conditions
+                </Link>
+                .
               </span>
-            </Link>
+            </label>
 
             <div className="mt-4 flex flex-col gap-[9px]">
               {['Free cancellation up to 48h', 'No hidden fees — price you see is final', 'Encrypted, secure payment'].map((t) => (
@@ -746,8 +972,14 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
         </div>
       )}
 
-      {coverOpen && (
-        <CoverModal plans={plans} planId={coverPlan} onClose={() => setCoverOpen(false)} />
+      {detailId && (
+        <InsuranceDetailModal
+          option={plans.find((x) => x.id === detailId) ?? null}
+          selected={selectedInsurance.has(detailId)}
+          disabled={isInsuranceDisabled(detailId)}
+          onToggle={() => toggleInsurance(detailId)}
+          onClose={() => setDetailId(null)}
+        />
       )}
 
       {tripOpen && (
@@ -784,9 +1016,10 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                   <DateTimeField
                     date={pickupDate}
                     time={pickupTime}
-                    onDate={setPickupDate}
+                    onDate={handlePickupDate}
                     onTime={setPickupTime}
                     minDate={todayISO()}
+                    unavailableDates={unavailableDates}
                     label="Pick-up"
                   />
                 </div>
@@ -801,6 +1034,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                     onTime={setReturnTime}
                     minDate={pickupDate || todayISO()}
                     highlightDate={pickupDate}
+                    unavailableDates={unavailableDates}
                     label="Return"
                   />
                 </div>
@@ -816,34 +1050,205 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   );
 }
 
-function CoverModal({ plans, planId, onClose }: { plans: InsuranceOption[]; planId: string; onClose: () => void }) {
-  const p = plans.find((x) => x.id === planId) ?? plans[0] ?? null;
-  if (!p) return null;
-  const title = `${p.title} — what’s covered`;
-  const price = p.price === 0 ? '$0.00' : `${money(p.price)}/day`;
+interface InsuranceDetailContent {
+  fullTitle: string;
+  description: string;
+  whyBuyTitle: string;
+  whyBuyPoints: string[];
+  coverageTitle: string;
+  coverageFeatures: string[];
+  brochureUrl: string;
+}
+
+const INSURANCE_DETAILS: Record<string, InsuranceDetailContent> = {
+  cdw: {
+    fullTitle: 'Collision Damage Warranty (CDW)',
+    description: 'Covers physical damages to the rental vehicle when there is an accident with another vehicle.',
+    whyBuyTitle: 'Why buy primary damage?',
+    whyBuyPoints: [
+      'If you have an auto policy, though prefer not to risk a premium increase in case you damage the rental car. Or..',
+      "If you don't have an auto and/or normally use a credit card that only provides secondary damage insurance. Or..",
+      'If you normally drive a commercial vehicle, which has insurance that does not cover you for damage to the rental car.',
+    ],
+    coverageTitle: 'Affordable Rental Vehicle Damage Insurance',
+    coverageFeatures: [
+      'Up to $35,000 Damage',
+      '$1,000 Deductible',
+      'Primary Insurance for accidents between vehicles',
+      'Does not cover non-rental vehicle damage',
+      'Excludes comprehensive coverage, such as mechanical issues caused by misuse, theft, vandalism, single car accident',
+      'Not for commercial use. Not compatible with cars for hire and delivery services such as Uber, Lyft, DoorDash.',
+    ],
+    brochureUrl: '/bonzah/bonzah-cdw-brochure.pdf',
+  },
+  rcli: {
+    fullTitle: "Renter's Contingent Liability Insurance (RCLI)",
+    description: "Covers damage to 3rd parties' property and injury when renter is at fault in accident. Does not cover rental vehicle.",
+    whyBuyTitle: 'Why buy primary liability?',
+    whyBuyPoints: [
+      'If you have an auto policy, though prefer not to risk a premium increase in case of a liability claim up to the state minimum requirement. Or..',
+      "If you don't have an auto policy and don't want to be financially responsible for injuries to persons and property up to the state minimum requirement. Or..",
+      'If you normally drive a commercial vehicle, which has insurance that does not cover you for liability to other persons or property while driving a rented vehicle.',
+    ],
+    coverageTitle: 'Primary State Minimum Liability Insurance',
+    coverageFeatures: [
+      'Bodily Injury - Per Person',
+      'Bodily Injury - Aggregate',
+      'Property Damage',
+    ],
+    brochureUrl: '/bonzah/bonzah-rcli-brochure.pdf',
+  },
+  sli: {
+    fullTitle: 'Supplemental Liability Insurance (SLI)',
+    description: 'Supplements RCLI coverage to enhanced levels of coverage. Not a standalone or primary policy, must be purchased with RCLI.',
+    whyBuyTitle: 'Why buy supplemental liability?',
+    whyBuyPoints: [
+      'If you have an auto policy with low liability coverage, and want to increase it up to an aggregate of $500,000. Or..',
+      'If you have selected the above primary liability insurance (RCLI), and want to increase your coverage beyond the state minimum for injuries to persons and property up to an aggregate of $500,000.',
+    ],
+    coverageTitle: 'Coverage is in Excess of Any Primary Liability Coverage',
+    coverageFeatures: [
+      'Bodily Injury - Per Person - Up to $100,000 in total',
+      'Bodily Injury - Aggregate - Up to $500,000 in total',
+      'Property Damage - $10,000 additional coverage',
+    ],
+    brochureUrl: '/bonzah/bonzah-sli-brochure.pdf',
+  },
+  pai: {
+    fullTitle: 'Personal Accident / Personal Effects Insurance',
+    description: 'Covers life, medical expenses, and lost or damaged items. Not rental vehicle coverage.',
+    whyBuyTitle: 'Why buy personal accident & effects coverage?',
+    whyBuyPoints: [
+      'If there is an accidental death or accidental medical expense, these insurances protect the specified losses.',
+      'If you do not have death protection this coverage protects the primary Renter or Sharer and their immediate family for a death while traveling.',
+      'Personal Effects Coverage protects Your personal belongings as the primary Renter or Sharer and those of Your immediate family traveling with You.',
+    ],
+    coverageTitle: 'Accident, Medical & Personal Effects Insurance',
+    coverageFeatures: [
+      'Renter Loss of Life - $50,000',
+      'Passenger Loss of Life - $5,000',
+      'Accidental Medical Expense - $1,000',
+      'Personal Effects Coverage - $500 with up to $25 deductible will be applied',
+    ],
+    brochureUrl: '/bonzah/bonzah-pai-brochure.pdf',
+  },
+};
+
+function InsuranceDetailModal({
+  option,
+  selected,
+  disabled,
+  onToggle,
+  onClose,
+}: {
+  option: InsuranceOption | null;
+  selected: boolean;
+  disabled: boolean;
+  onToggle: () => void;
+  onClose: () => void;
+}) {
+  const [whyBuyOpen, setWhyBuyOpen] = useState(false);
+  if (!option) return null;
+  const detail = INSURANCE_DETAILS[option.id];
+  if (!detail) return null;
   return (
-    <div onClick={onClose} className="fixed inset-0 z-[200] flex items-center justify-center bg-[rgba(12,14,12,0.55)] p-6">
-      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-[460px] rounded-2xl bg-white p-[26px] shadow-[var(--shadow-pop)]">
-        <div className="mb-[6px] flex items-start justify-between gap-4">
-          <h3 className="text-[18px] font-semibold text-secondary">{title}</h3>
-          <span onClick={onClose} className="flex-shrink-0 cursor-pointer text-muted">
-            <Close size={20} strokeWidth={2} />
-          </span>
-        </div>
-        <div className="mb-[18px] text-[13px] text-muted">{price}</div>
-        <div className="flex flex-col gap-3">
-          {p.features.map((text, i) => (
-            <div key={i} className="flex items-start gap-[10px]">
-              <span className="mt-px inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-green-bg-2 text-[12px] font-bold text-success">
-                ✓
+    <div onClick={onClose} className="fixed inset-0 z-[200] flex items-end justify-center bg-[rgba(12,14,12,0.55)] p-0 sm:items-center sm:p-6">
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="relative max-h-[90vh] w-full max-w-[560px] overflow-y-auto rounded-t-2xl bg-white shadow-[var(--shadow-pop)] sm:rounded-2xl"
+      >
+        <div className="sticky top-0 z-10 border-b border-hairline bg-white px-[26px] pb-4 pt-[22px]">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-[10px]">
+              <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary-soft">
+                <ShieldCheck size={15} className="text-primary" />
               </span>
-              <span className="text-[13px] leading-[1.5] text-label">{text}</span>
+              <h3 className="text-[17px] font-semibold leading-tight text-secondary">{detail.fullTitle}</h3>
             </div>
-          ))}
+            <span onClick={onClose} className="flex-shrink-0 cursor-pointer text-muted">
+              <Close size={20} strokeWidth={2} />
+            </span>
+          </div>
+          <div className="mt-[10px] flex items-baseline gap-1">
+            <span className="text-[24px] font-bold text-primary">{money(option.price)}</span>
+            <span className="text-[13px] text-muted">/ 24 hours</span>
+          </div>
         </div>
-        <button onClick={onClose} className="mt-[22px] w-full rounded-[9px] bg-secondary py-3 text-center text-sm font-semibold text-white">
-          Got it
-        </button>
+
+        <div className="flex flex-col gap-5 px-[26px] py-5">
+          <p className="text-[13.5px] leading-[1.6] text-muted">{detail.description}</p>
+
+          <div className="overflow-hidden rounded-[10px] border border-line">
+            <button
+              type="button"
+              onClick={() => setWhyBuyOpen((o) => !o)}
+              className="flex w-full items-center justify-between px-4 py-3 text-left"
+            >
+              <span className="text-[13.5px] font-semibold text-primary">{detail.whyBuyTitle}</span>
+              <ChevronDown size={16} className={cn('text-primary transition-transform', whyBuyOpen && 'rotate-180')} />
+            </button>
+            {whyBuyOpen && (
+              <div className="border-t border-hairline px-4 pb-4">
+                <ul className="mt-3 flex flex-col gap-3">
+                  {detail.whyBuyPoints.map((point, i) => (
+                    <li key={i} className="flex gap-2 text-[13px] leading-[1.55] text-muted">
+                      <span className="mt-[7px] h-[5px] w-[5px] flex-shrink-0 rounded-full bg-faint" />
+                      <span>{point}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+
+          <div>
+            <h4 className="mb-3 text-[13.5px] font-semibold text-ink">{detail.coverageTitle}</h4>
+            <ul className="flex flex-col gap-[10px]">
+              {detail.coverageFeatures.map((feature, i) => (
+                <li key={i} className="flex items-start gap-[10px]">
+                  <span className="mt-px inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-green-bg-2">
+                    <Check size={12} strokeWidth={3} className="text-success" />
+                  </span>
+                  <span className="text-[13px] leading-[1.5] text-label">{feature}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <a
+            href={detail.brochureUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-[6px] text-[13px] font-semibold text-primary"
+          >
+            Description of Coverage
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+              <path d="M15 3h6v6M10 14 21 3" />
+            </svg>
+          </a>
+        </div>
+
+        <div className="sticky bottom-0 border-t border-hairline bg-white px-[26px] py-4">
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => {
+              onToggle();
+              onClose();
+            }}
+            className={cn(
+              'w-full rounded-[10px] py-3 text-sm font-semibold transition-colors',
+              disabled
+                ? 'cursor-not-allowed bg-subtle text-faint'
+                : selected
+                  ? 'bg-subtle text-ink hover:bg-chip'
+                  : 'bg-primary text-white hover:bg-primary-hover',
+            )}
+          >
+            {disabled ? 'Requires RCLI' : selected ? 'Remove Coverage' : 'Add Coverage'}
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -52,6 +52,11 @@ export function SearchBar({ variant = 'hero' }: SearchBarProps) {
   const minTime = selectedPickup && !selectedPickup.is247 ? selectedPickup.openingTime : null;
   const maxTime = selectedPickup && !selectedPickup.is247 ? selectedPickup.closingTime : null;
 
+  const handlePickupDate = (d: string) => {
+    setPickupDate(d);
+    if (!returnDate || d > returnDate) setReturnDate(d);
+  };
+
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
       if (openLoc && rootRef.current && !rootRef.current.contains(e.target as Node)) setOpenLoc(null);
@@ -145,10 +150,10 @@ export function SearchBar({ variant = 'hero' }: SearchBarProps) {
             <div
               aria-hidden={!diffLocation}
               className={cn(
-                'flex items-center overflow-hidden transition-all duration-300 ease-out',
+                'flex items-center transition-all duration-300 ease-out',
                 diffLocation
-                  ? 'w-full gap-2 opacity-100 md:w-auto md:max-w-[360px] md:flex-[1.1]'
-                  : 'hidden opacity-0 md:flex md:max-w-0 md:flex-[0_0_0px] md:gap-0 md:opacity-0 pointer-events-none',
+                  ? 'w-full gap-2 overflow-visible opacity-100 md:w-auto md:max-w-[360px] md:flex-[1.1]'
+                  : 'hidden overflow-hidden opacity-0 md:flex md:max-w-0 md:flex-[0_0_0px] md:gap-0 md:opacity-0 pointer-events-none',
               )}
             >
               <div
@@ -169,7 +174,7 @@ export function SearchBar({ variant = 'hero' }: SearchBarProps) {
               <DateTimeField
                 date={pickupDate}
                 time={pickupTime}
-                onDate={setPickupDate}
+                onDate={handlePickupDate}
                 onTime={setPickupTime}
                 minTime={minTime}
                 maxTime={maxTime}
@@ -232,10 +237,10 @@ export function SearchBar({ variant = 'hero' }: SearchBarProps) {
           <div
             aria-hidden={!diffLocation}
             className={cn(
-              'flex items-center overflow-hidden transition-all duration-300 ease-out',
+              'flex items-center transition-all duration-300 ease-out',
               diffLocation
-                ? 'w-full gap-2 opacity-100 md:w-auto md:max-w-[460px] md:flex-[1.6]'
-                : 'hidden opacity-0 md:flex md:max-w-0 md:flex-[0_0_0px] md:gap-0 md:opacity-0 pointer-events-none',
+                ? 'w-full gap-2 overflow-visible opacity-100 md:w-auto md:max-w-[460px] md:flex-[1.6]'
+                : 'hidden overflow-hidden opacity-0 md:flex md:max-w-0 md:flex-[0_0_0px] md:gap-0 md:opacity-0 pointer-events-none',
             )}
           >
             <div
@@ -256,7 +261,7 @@ export function SearchBar({ variant = 'hero' }: SearchBarProps) {
             <DateTimeField
               date={pickupDate}
               time={pickupTime}
-              onDate={setPickupDate}
+              onDate={handlePickupDate}
               onTime={setPickupTime}
                 minTime={minTime}
                 maxTime={maxTime}

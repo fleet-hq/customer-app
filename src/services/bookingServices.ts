@@ -36,6 +36,7 @@ export interface ApiInsuranceOption {
   name: string;
   description: string;
   price: number;
+  total_price?: number;
   recommended: boolean;
 }
 
@@ -50,6 +51,7 @@ export interface InsuranceOption {
   id: string;
   title: string;
   price: number;
+  totalPrice?: number;
   description?: string;
   features: string[];
 }
@@ -59,6 +61,7 @@ function transformInsuranceOption(api: ApiInsuranceOption): InsuranceOption {
     id: api.type.toLowerCase(),
     title: api.name,
     price: Number(api.price),
+    totalPrice: api.total_price !== undefined ? Number(api.total_price) : undefined,
     description: api.description,
     features: [api.description],
   };

@@ -3,7 +3,6 @@ export const paths = {
   fleet: '/fleet',
   fleetSearch: (from: string, to: string) => `/fleet?from=${from}&to=${to}`,
   checkout: (carId: string) => `/checkout/${carId}`,
-  confirm: '/booking/confirm',
   verifyId: '/booking/verify/id',
   verifyInsurance: '/booking/verify/insurance',
   booking: (id: string) => `/booking/${id}`,

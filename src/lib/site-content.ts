@@ -91,6 +91,10 @@ export interface SiteContent {
     signIntro: string;
     sections: { heading: string; paras: string[] }[];
   };
+  fleet: {
+    heading: string;
+    searchPlaceholder: string;
+  };
 }
 
 const FLEET_HQ_CONTENT: SiteContent = {
@@ -327,6 +331,10 @@ const FLEET_HQ_CONTENT: SiteContent = {
         ],
       },
     ],
+  },
+  fleet: {
+    heading: 'Pick your next ride from our fleet.',
+    searchPlaceholder: 'Search',
   },
 };
 

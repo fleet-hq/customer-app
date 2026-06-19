@@ -129,7 +129,7 @@ export function useBookingInvoice({
     if (selectedInsurance.size > 0 && !selectedInsurance.has('own')) {
       selectedInsurance.forEach((id) => {
         const option = insuranceOptions.find((opt) => opt.id === id);
-        if (option) insuranceCost += option.price * rentalDays;
+        if (option) insuranceCost += option.totalPrice ?? option.price * rentalDays;
       });
     }
 

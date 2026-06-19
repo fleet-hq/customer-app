@@ -2,21 +2,28 @@ import Link from 'next/link';
 import { Check, Download, Info, Pencil, Swap, Close } from '@/components/ui/icons';
 import { paths } from '@/lib/paths';
 
-export function BookingActions({ bookingId }: { bookingId: string }) {
+function withToken(href: string, token: string | null): string {
+  return token ? `${href}?token=${encodeURIComponent(token)}` : href;
+}
+
+export function BookingActions({ bookingId, token = null }: { bookingId: string; token?: string | null }) {
   const ghost =
     'inline-flex min-w-[118px] items-center justify-center gap-[7px] rounded-[9px] border border-line bg-white px-[14px] py-[9px] text-[13px] font-medium text-ink';
   return (
     <div className="flex flex-wrap items-center gap-[9px]">
-      <Link href={paths.modify(bookingId)} className={ghost}>
+      <Link href={withToken(paths.modify(bookingId), token)} className={ghost}>
         <Pencil size={14} className="text-primary" /> Modify
       </Link>
-      <Link href={paths.swap(bookingId)} className={ghost}>
+      <Link href={withToken(paths.swap(bookingId), token)} className={ghost}>
         <Swap size={14} className="text-primary" /> Change
       </Link>
-      <Link href={paths.cancel(bookingId)} className={ghost}>
+      <Link href={withToken(paths.cancel(bookingId), token)} className={ghost}>
         <Close size={14} strokeWidth={2} className="text-danger" /> Cancel
       </Link>
-      <button className="inline-flex min-w-[118px] items-center justify-center gap-[7px] rounded-[9px] border border-primary bg-primary px-[14px] py-[9px] text-[13px] font-semibold text-white">
+      <button
+        onClick={() => window.print()}
+        className="inline-flex min-w-[118px] items-center justify-center gap-[7px] rounded-[9px] border border-primary bg-primary px-[14px] py-[9px] text-[13px] font-semibold text-white"
+      >
         <Download size={14} /> Download
       </button>
     </div>
@@ -39,7 +46,7 @@ export function ConfirmedBanner({ email }: { email: string }) {
   );
 }
 
-export function PaymentDueBanner({ amount }: { amount: string }) {
+export function PaymentDueBanner({ amount, onPay, payLoading = false }: { amount: string; onPay?: () => void; payLoading?: boolean }) {
   return (
     <div className="mt-4 flex flex-wrap items-center gap-[14px] rounded-[14px] border border-amber-border bg-amber-bg px-5 py-4">
       <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-white">
@@ -51,8 +58,12 @@ export function PaymentDueBanner({ amount }: { amount: string }) {
           Your trip changes added <span className="font-semibold">{amount}</span>. Complete payment to confirm.
         </div>
       </div>
-      <button className="rounded-lg bg-accent px-[18px] py-[9px] text-[13px] font-semibold whitespace-nowrap text-white">
-        Pay {amount}
+      <button
+        onClick={onPay}
+        disabled={payLoading || !onPay}
+        className="rounded-lg bg-accent px-[18px] py-[9px] text-[13px] font-semibold whitespace-nowrap text-white disabled:opacity-50"
+      >
+        {payLoading ? 'Redirecting…' : `Pay ${amount}`}
       </button>
     </div>
   );

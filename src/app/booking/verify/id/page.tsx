@@ -1,34 +1,106 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { BackLink } from '@/components/ui/back-link';
 import { Field, TextInput } from '@/components/ui/field';
 import { IdCard } from '@/components/ui/icons';
 import { Dropzone, ReassuranceStrip } from '@/components/booking/verify-bits';
+import { useBookingDetails } from '@/hooks/useBooking';
+import { useCreateIdentityVerification } from '@/hooks/useVerification';
+import { setBookingToken } from '@/utils/booking-token';
 import { paths } from '@/lib/paths';
-import { setIdVerified } from '@/lib/booking-state';
 
 export default function VerifyIdPage() {
-  const router = useRouter();
+  const bookingId = useSearchParams().get('bookingId');
+  const token = useSearchParams().get('token');
+  const [tokenReady, setTokenReady] = useState(!token);
+
+  useEffect(() => {
+    if (token) {
+      setBookingToken(token);
+      setTokenReady(true);
+    }
+  }, [token]);
+
+  const fetchId = tokenReady ? bookingId ?? undefined : undefined;
+  const { data: booking, isLoading, isError } = useBookingDetails(fetchId);
+  const createVerification = useCreateIdentityVerification();
+
   const [license, setLicense] = useState('');
   const [dob, setDob] = useState('');
   const [issuingState, setIssuingState] = useState('');
   const [front, setFront] = useState(false);
   const [back, setBack] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [redirecting, setRedirecting] = useState(false);
+
+  const bookingHref = `/booking/${bookingId}${token ? `?token=${token}` : ''}`;
 
   const submit = () => {
-    setIdVerified();
-    router.push(paths.confirm);
+    if (!booking) return;
+    setError(null);
+    createVerification.mutate(
+      { customerId: booking.customerId },
+      {
+        onSuccess: (data) => {
+          if (data.url) {
+            setRedirecting(true);
+            window.location.href = data.url;
+          } else {
+            setError('Failed to create verification session. Please try again.');
+          }
+        },
+        onError: (err: unknown) => {
+          const message =
+            (err as { response?: { data?: { errors?: { non_field_errors?: string[] } } } })?.response?.data?.errors
+              ?.non_field_errors?.[0] || 'Failed to create verification session. Please try again.';
+          setError(message);
+        },
+      },
+    );
   };
+
+  if (!tokenReady || isLoading) {
+    return (
+      <div className="flex min-h-screen flex-col bg-white text-ink">
+        <Header />
+        <div className="mx-auto flex w-full max-w-[600px] flex-1 flex-col items-center justify-center gap-4 px-6 py-32">
+          <span className="h-9 w-9 animate-spin rounded-full border-[3px] border-card-border border-t-primary" />
+          <p className="text-sm text-muted">Loading booking…</p>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (isError || !booking) {
+    return (
+      <div className="flex min-h-screen flex-col bg-white text-ink">
+        <Header />
+        <section className="mx-auto w-full max-w-[600px] flex-1 px-6 pt-7 pb-[72px]">
+          <BackLink href={paths.home}>Back to home</BackLink>
+          <div className="mt-16 text-center">
+            <h1 className="text-2xl font-semibold text-ink">Booking not found</h1>
+            <p className="mt-3 text-sm text-muted">
+              We couldn’t load this booking. Please use the link from your confirmation email.
+            </p>
+          </div>
+        </section>
+        <Footer />
+      </div>
+    );
+  }
+
+  const pending = createVerification.isPending || redirecting;
 
   return (
     <div className="flex min-h-screen flex-col bg-white text-ink">
       <Header />
       <section className="mx-auto w-full max-w-[600px] flex-1 px-6 pt-7 pb-[72px]">
-        <BackLink href={paths.confirm}>Back to confirmation</BackLink>
+        <BackLink href={bookingHref}>Back to booking</BackLink>
 
         <div className="mt-4 flex items-center gap-[13px]">
           <span className="flex h-[46px] w-[46px] flex-shrink-0 items-center justify-center rounded-xl bg-primary-soft">
@@ -64,15 +136,23 @@ export default function VerifyIdPage() {
           <ReassuranceStrip text="Your documents are encrypted and used only to verify your booking." />
         </div>
 
+        {error && (
+          <p className="mt-4 rounded-[10px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
+        )}
+
         <div className="mt-[22px] flex items-center gap-3">
-          <button
-            onClick={() => router.push(paths.confirm)}
+          <a
+            href={bookingHref}
             className="flex-shrink-0 rounded-[10px] border border-line bg-white px-[26px] py-[13px] text-sm font-semibold text-ink"
           >
             Cancel
-          </button>
-          <button onClick={submit} className="flex-1 rounded-[10px] bg-primary py-[13px] text-sm font-bold text-white">
-            Submit for verification
+          </a>
+          <button
+            onClick={submit}
+            disabled={pending}
+            className="flex-1 rounded-[10px] bg-primary py-[13px] text-sm font-bold text-white disabled:opacity-60"
+          >
+            {pending ? 'Redirecting…' : 'Submit for verification'}
           </button>
         </div>
       </section>

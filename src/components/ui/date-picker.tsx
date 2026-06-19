@@ -11,6 +11,7 @@ export interface DatePickerProps {
   minDate?: string;
   maxDate?: string;
   highlightDate?: string;
+  unavailableDates?: string[];
   icon?: ReactNode;
   className?: string;
   'aria-label'?: string;
@@ -48,10 +49,12 @@ export function DatePicker({
   minDate,
   maxDate,
   highlightDate,
+  unavailableDates,
   icon,
   className,
   'aria-label': ariaLabel,
 }: DatePickerProps) {
+  const unavailableSet = useMemo(() => new Set(unavailableDates ?? []), [unavailableDates]);
   const [isOpen, setIsOpen] = useState(false);
   const [viewDate, setViewDate] = useState<Date>(() => (value ? new Date(value + 'T00:00:00') : new Date()));
   const [dropdownStyle, setDropdownStyle] = useState<CSSProperties>({ position: 'fixed' });
@@ -215,8 +218,9 @@ export function DatePicker({
             const selected = dateStr === value;
             const isToday = isSameDay(year, month, day, today);
             const isHighlighted = highlightDate !== undefined && dateStr === highlightDate;
+            const isBlocked = unavailableSet.has(dateStr);
             const disabled =
-              (minDate !== undefined && dateStr < minDate) || (maxDate !== undefined && dateStr > maxDate);
+              (minDate !== undefined && dateStr < minDate) || (maxDate !== undefined && dateStr > maxDate) || isBlocked;
 
             return (
               <button
@@ -225,14 +229,16 @@ export function DatePicker({
                 role="gridcell"
                 aria-selected={selected}
                 disabled={disabled}
+                title={isBlocked ? 'Unavailable' : undefined}
                 onClick={() => handleSelect(dateStr)}
                 className={cn(
                   'flex h-8 w-8 items-center justify-center rounded-md text-sm transition-colors',
                   selected && 'bg-primary font-medium text-white',
                   !selected && isHighlighted && 'bg-primary/10 font-medium text-primary ring-1 ring-primary/30',
-                  !selected && !isHighlighted && isToday && 'border border-primary font-medium text-primary',
+                  !selected && !isHighlighted && isToday && !isBlocked && 'border border-primary font-medium text-primary',
                   !selected && !isHighlighted && !isToday && !disabled && 'text-ink hover:bg-hover',
-                  disabled && 'cursor-not-allowed text-placeholder',
+                  disabled && !isBlocked && 'cursor-not-allowed text-placeholder',
+                  isBlocked && 'cursor-not-allowed text-placeholder line-through',
                 )}
               >
                 {day}

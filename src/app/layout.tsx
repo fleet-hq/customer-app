@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Inter, Manrope } from 'next/font/google';
 import './globals.css';
 import { getCurrentTenant } from '@/lib/get-tenant';
 import { TenantProvider } from '@/lib/tenant-context';
@@ -10,6 +10,13 @@ const inter = Inter({
   subsets: ['latin'],
   weight: ['300', '400', '500', '600', '700'],
   variable: '--font-inter',
+  display: 'swap',
+});
+
+const manrope = Manrope({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-manrope-src',
   display: 'swap',
 });
 
@@ -34,7 +41,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   } as React.CSSProperties;
 
   return (
-    <html lang="en" data-tenant={tenant.slug} style={brandVars} className={inter.variable}>
+    <html lang="en" data-tenant={tenant.slug} style={brandVars} className={`${inter.variable} ${manrope.variable}`}>
       <body>
         <Providers>
           <CompanyProvider>

@@ -11,6 +11,7 @@ interface DateTimeFieldProps {
   onTime: (v: string) => void;
   minDate?: string;
   highlightDate?: string;
+  unavailableDates?: string[];
   minTime?: string | null;
   maxTime?: string | null;
   compact?: boolean;
@@ -24,6 +25,7 @@ export function DateTimeField({
   onTime,
   minDate,
   highlightDate,
+  unavailableDates,
   minTime,
   maxTime,
   compact,
@@ -37,6 +39,7 @@ export function DateTimeField({
         onChange={onDate}
         minDate={minDate}
         highlightDate={highlightDate}
+        unavailableDates={unavailableDates}
         className="min-w-0 flex-1"
         aria-label={label ? `${label} date` : 'Date'}
         icon={<Calendar size={iconSize} className="flex-shrink-0 text-primary" />}

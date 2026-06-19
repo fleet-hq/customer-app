@@ -1,42 +1,211 @@
 'use client';
 
-import { use, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { use, useEffect, useMemo, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import axios from 'axios';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { BackLink } from '@/components/ui/back-link';
-import { Field, TextInput } from '@/components/ui/field';
+import { Field } from '@/components/ui/field';
 import { DateTimeField } from '@/components/search/date-time-field';
 import { Calendar, Info } from '@/components/ui/icons';
-import { SAMPLE_BOOKING, bookingQuoteInput, DEFAULT_TRIP } from '@/lib/mock-data';
 import { todayISO } from '@/lib/time-slots';
-import { buildQuote } from '@/lib/pricing';
 import { paths } from '@/lib/paths';
-import { money, rentalDays } from '@/lib/utils';
+import { money } from '@/lib/utils';
+import { useBookingDetails, useFleetUnavailableRanges } from '@/hooks';
+import { useDefaultLocation } from '@/contexts';
+import { setBookingToken, getBookingTokenHeaders } from '@/utils/booking-token';
+import { toUtcIso, utcIsoToFormValues } from '@/utils/datetime';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 export default function ModifyTripPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const token = searchParams.get('token');
 
-  const currentTotal = buildQuote(bookingQuoteInput(SAMPLE_BOOKING)).total;
+  const defaultTz = useDefaultLocation()?.timezone ?? null;
 
-  const [location, setLocation] = useState(SAMPLE_BOOKING.pickup.location);
-  const [pickupDate, setPickupDate] = useState(DEFAULT_TRIP.pickupDate);
-  const [pickupTime, setPickupTime] = useState(DEFAULT_TRIP.pickupTime);
-  const [returnDate, setReturnDate] = useState(DEFAULT_TRIP.returnDate);
-  const [returnTime, setReturnTime] = useState(DEFAULT_TRIP.returnTime);
+  useEffect(() => {
+    if (token) setBookingToken(token);
+  }, [token]);
 
-  const newDays = rentalDays(pickupDate, returnDate, pickupTime, returnTime);
-  const flat = currentTotal - SAMPLE_BOOKING.pricePerDay * SAMPLE_BOOKING.days;
-  const newTotal = SAMPLE_BOOKING.pricePerDay * newDays + flat;
-  const diff = newTotal - currentTotal;
-  const changed = Math.abs(diff) > 0.001;
+  const { data: booking, isLoading, isError } = useBookingDetails(id);
+  const tz = booking?.timezone ?? defaultTz ?? undefined;
+
+  const [pickupDate, setPickupDate] = useState('');
+  const [pickupTime, setPickupTime] = useState('');
+  const [returnDate, setReturnDate] = useState('');
+  const [returnTime, setReturnTime] = useState('');
+  const [seeded, setSeeded] = useState(false);
+
+  const [preview, setPreview] = useState<any>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!booking || seeded) return;
+    if (tz && booking.pickUp.rawDatetime) {
+      const p = utcIsoToFormValues(booking.pickUp.rawDatetime, tz);
+      setPickupDate(p.date);
+      setPickupTime(p.time);
+    }
+    if (tz && booking.dropOff.rawDatetime) {
+      const d = utcIsoToFormValues(booking.dropOff.rawDatetime, tz);
+      setReturnDate(d.date);
+      setReturnTime(d.time);
+    }
+    setSeeded(true);
+  }, [booking, tz, seeded]);
+
+  const isOngoing = !!booking?.pickUp.rawDatetime
+    && new Date(booking.pickUp.rawDatetime).getTime() <= Date.now();
+
+  const handlePickupDate = (d: string) => {
+    setPickupDate(d);
+    if (!returnDate || d > returnDate) setReturnDate(d);
+  };
+
+  const { data: unavailableRanges = [] } = useFleetUnavailableRanges(
+    booking?.fleetId,
+    booking ? { excludeBookingId: booking.id } : undefined,
+  );
+  const unavailableDates = useMemo(() => {
+    const out = new Set<string>();
+    for (const r of unavailableRanges) {
+      const start = new Date(r.start);
+      const end = new Date(r.end);
+      const d = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()));
+      const stop = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate()));
+      while (d <= stop) {
+        const yyyy = d.getUTCFullYear();
+        const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+        const dd = String(d.getUTCDate()).padStart(2, '0');
+        out.add(`${yyyy}-${mm}-${dd}`);
+        d.setUTCDate(d.getUTCDate() + 1);
+      }
+    }
+    return Array.from(out);
+  }, [unavailableRanges]);
+
+  useEffect(() => {
+    if (!pickupDate || !pickupTime || !returnDate || !returnTime || !booking || !tz) return;
+
+    const newPickup = toUtcIso(pickupDate, pickupTime, tz);
+    const newDropoff = toUtcIso(returnDate, returnTime, tz);
+
+    const origPickup = booking.pickUp.rawDatetime || '';
+    const origDropoff = booking.dropOff.rawDatetime || '';
+    if (
+      new Date(newPickup).getTime() === new Date(origPickup).getTime() &&
+      new Date(newDropoff).getTime() === new Date(origDropoff).getTime()
+    ) {
+      setPreview(null);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setPreviewLoading(true);
+      try {
+        const res = await axios.get(`${API_URL}/api/bookings/public/modify/`, {
+          headers: getBookingTokenHeaders(),
+          params: {
+            type: newDropoff > origDropoff ? 'extend' : 'reduce',
+            new_pickup_datetime: newPickup,
+            new_dropoff_datetime: newDropoff,
+          },
+        });
+        setPreview(res.data);
+      } catch {
+        setPreview(null);
+      } finally {
+        setPreviewLoading(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [pickupDate, pickupTime, returnDate, returnTime, booking, tz]);
+
+  const handleConfirm = async () => {
+    if (!booking || !tz) return;
+    if (!pickupDate || !returnDate) {
+      setError('Please select both pick-up and return dates.');
+      return;
+    }
+    setSaving(true);
+    setError('');
+
+    const newPickup = toUtcIso(pickupDate, pickupTime || '00:00', tz);
+    const newDropoff = toUtcIso(returnDate, returnTime || '00:00', tz);
+    const isExtension =
+      new Date(newDropoff).getTime() > new Date(booking.dropOff.rawDatetime).getTime();
+
+    try {
+      const successUrl = `${window.location.origin}/booking/${id}?token=${token || ''}`;
+      const cancelUrl = `${window.location.origin}/booking/${id}/modify?token=${token || ''}`;
+
+      const res = await axios.post(
+        `${API_URL}/api/bookings/public/modify/`,
+        {
+          type: isExtension ? 'extend' : 'reduce',
+          new_pickup_datetime: newPickup,
+          new_dropoff_datetime: newDropoff,
+          success_url: successUrl,
+          cancel_url: cancelUrl,
+        },
+        { headers: getBookingTokenHeaders() },
+      );
+
+      if (res.data.status === 'checkout_required' && res.data.checkout_url) {
+        window.location.href = res.data.checkout_url;
+      } else {
+        router.push(`/booking/${id}?token=${token || ''}`);
+      }
+    } catch (err: any) {
+      setError(err?.response?.data?.detail || 'Failed to modify trip.');
+      setSaving(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen flex-col bg-white text-ink">
+        <Header />
+        <section className="mx-auto w-full max-w-[760px] flex-1 px-6 pt-20 text-center">
+          <p className="text-muted">Loading...</p>
+        </section>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (isError || !booking) {
+    return (
+      <div className="flex min-h-screen flex-col bg-white text-ink">
+        <Header />
+        <section className="mx-auto w-full max-w-[760px] flex-1 px-6 pt-20 text-center">
+          <h1 className="text-2xl font-semibold text-ink">Booking not found</h1>
+          <p className="mt-2 text-muted">The booking you are looking for does not exist.</p>
+        </section>
+        <Footer />
+      </div>
+    );
+  }
+
+  const priceDiff = preview?.price_difference ? parseFloat(preview.price_difference) : 0;
+  const modificationFee = preview?.modification_fee ? parseFloat(preview.modification_fee) : 0;
+  const newTotal = preview?.new_total != null ? parseFloat(preview.new_total) : null;
+  const currentTotal = parseFloat(booking.totalPrice || '0') || booking.invoice.total;
+  const notAllowed = preview?.allowed === false;
+  const changed = newTotal !== null && !notAllowed;
 
   return (
     <div className="flex min-h-screen flex-col bg-white text-ink">
       <Header />
       <section className="mx-auto w-full max-w-[760px] flex-1 px-6 pt-[22px] pb-16">
-        <BackLink href={paths.booking(id)}>Back to booking</BackLink>
+        <BackLink href={`${paths.booking(id)}?token=${token || ''}`}>Back to booking</BackLink>
 
         <h1 className="mt-[14px] text-2xl font-semibold tracking-[-0.01em] text-ink">Modify your trip</h1>
         <p className="mt-[7px] text-[13.5px] leading-[1.55] text-muted">
@@ -45,19 +214,16 @@ export default function ModifyTripPage({ params }: { params: Promise<{ id: strin
 
         <div className="mt-[22px] rounded-2xl border border-card-border bg-white p-6">
           <div className="grid grid-cols-1 gap-x-4 gap-y-[18px]">
-            <Field label="Pick-up location">
-              <TextInput value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Pick-up location" />
-            </Field>
-
             <div className="grid grid-cols-1 gap-x-4 gap-y-[18px] min-[560px]:grid-cols-2">
-              <Field label="Pick-up date & time">
-                <div className="rounded-[10px] border border-line px-[14px] py-3">
+              <Field label={`Pick-up date & time${isOngoing ? ' (locked — trip has started)' : ''}`}>
+                <div className={`rounded-[10px] border border-line px-[14px] py-3 ${isOngoing ? 'opacity-75' : ''}`}>
                   <DateTimeField
                     date={pickupDate}
                     time={pickupTime}
-                    onDate={setPickupDate}
-                    onTime={setPickupTime}
+                    onDate={isOngoing ? () => {} : handlePickupDate}
+                    onTime={isOngoing ? () => {} : setPickupTime}
                     minDate={todayISO()}
+                    unavailableDates={unavailableDates}
                     label="Pick-up"
                   />
                 </div>
@@ -71,6 +237,7 @@ export default function ModifyTripPage({ params }: { params: Promise<{ id: strin
                     onTime={setReturnTime}
                     minDate={pickupDate || todayISO()}
                     highlightDate={pickupDate}
+                    unavailableDates={unavailableDates}
                     label="Return"
                   />
                 </div>
@@ -81,7 +248,7 @@ export default function ModifyTripPage({ params }: { params: Promise<{ id: strin
           <div className="mt-5 flex items-start gap-[10px] rounded-[10px] border border-primary-border bg-primary-soft px-[14px] py-[12px]">
             <Info size={15} strokeWidth={2} className="mt-px flex-shrink-0 text-primary" />
             <span className="text-[11.5px] leading-[1.5] text-secondary">
-              Changes are free up to 48 hours before pick-up. Any price difference is settled when you confirm.
+              Any price difference is settled when you confirm. Dates already booked are not available.
             </span>
           </div>
         </div>
@@ -98,43 +265,72 @@ export default function ModifyTripPage({ params }: { params: Promise<{ id: strin
           <div className="mt-[10px] flex items-center justify-between text-[13px]">
             <div>
               <span className="text-muted">New total</span>
-              <span className="ml-2 text-[11.5px] text-faint">{money(SAMPLE_BOOKING.pricePerDay)} × {newDays} days</span>
+              {newTotal !== null && (
+                <span className="ml-2 text-[11.5px] text-faint">
+                  {money(newTotal)}
+                  {modificationFee > 0 ? ` · incl. ${money(modificationFee)} fee` : ''}
+                </span>
+              )}
             </div>
-            <span className="font-semibold text-secondary">{money(newTotal)}</span>
+            <span className="font-semibold text-secondary">{newTotal !== null ? money(newTotal) : '—'}</span>
           </div>
 
           <div className="my-4 h-px bg-card-border" />
 
-          {!changed ? (
+          {previewLoading ? (
+            <div className="flex items-center gap-2 text-[12.5px] text-faint">
+              <Info size={14} strokeWidth={2} className="flex-shrink-0" />
+              Calculating...
+            </div>
+          ) : notAllowed ? (
+            <div className="flex items-center gap-2 text-[12.5px] text-red-600">
+              <Info size={14} strokeWidth={2} className="flex-shrink-0" />
+              {preview.reason || 'These dates are not available for this change.'}
+            </div>
+          ) : !changed ? (
             <div className="flex items-center gap-2 text-[12.5px] text-faint">
               <Info size={14} strokeWidth={2} className="flex-shrink-0" />
               No price change yet — adjust your dates to see the difference.
             </div>
-          ) : diff > 0 ? (
+          ) : priceDiff > 0 ? (
             <div className="flex items-center justify-between rounded-[10px] border border-amber-border bg-amber-bg px-4 py-[13px]">
               <span className="text-[13px] font-semibold text-amber-text">Additional payment due</span>
-              <span className="text-[15px] font-bold text-amber-text-2">{money(diff)}</span>
+              <span className="text-[15px] font-bold text-amber-text-2">{money(priceDiff)}</span>
             </div>
-          ) : (
+          ) : priceDiff < 0 ? (
             <div className="flex items-center justify-between rounded-[10px] border border-green-border-2 bg-green-bg px-4 py-[13px]">
               <span className="text-[13px] font-semibold text-success">Refund due</span>
-              <span className="text-[15px] font-bold text-success">{money(Math.abs(diff))}</span>
+              <span className="text-[15px] font-bold text-success">{money(Math.abs(priceDiff))}</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 text-[12.5px] text-faint">
+              <Info size={14} strokeWidth={2} className="flex-shrink-0" />
+              No additional charge for this change.
             </div>
           )}
         </div>
 
+        {error && <p className="mt-[14px] text-[13px] text-red-600">{error}</p>}
+
         <div className="mt-[22px] flex items-center gap-3">
           <button
-            onClick={() => router.push(paths.booking(id))}
+            onClick={() => router.push(`${paths.booking(id)}?token=${token || ''}`)}
             className="flex-shrink-0 rounded-[10px] border border-line bg-white px-[26px] py-[13px] text-sm font-semibold text-ink"
           >
             Cancel
           </button>
           <button
-            onClick={() => router.push(paths.paymentPending(id))}
-            className="flex-1 rounded-[10px] bg-primary py-[13px] text-sm font-bold text-white hover:bg-primary-hover"
+            onClick={handleConfirm}
+            disabled={saving || previewLoading || notAllowed}
+            className="flex-1 rounded-[10px] bg-primary py-[13px] text-sm font-bold text-white hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Review changes
+            {saving
+              ? 'Processing...'
+              : priceDiff < 0
+                ? 'Confirm refund'
+                : priceDiff > 0
+                  ? 'Review & pay'
+                  : 'Confirm changes'}
           </button>
         </div>
       </section>
