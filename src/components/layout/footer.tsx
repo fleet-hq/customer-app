@@ -9,32 +9,48 @@ import { Mail, MapPin, Phone } from '@/components/ui/icons';
 
 export function Footer() {
   const tenant = useTenant();
+  const { brand, footer } = tenant;
+  // Prefer admin-supplied footer copy, fall back to the brand descriptor.
+  const description = footer.description || brand.description;
+  // Render only the socials the operator added — no placeholder icons.
+  const socials = footer.socials;
 
   return (
     <footer className="w-full bg-secondary text-white">
       <div className="mx-auto max-w-[1200px] px-6 pt-[60px] pb-[26px]">
         <div className="grid grid-cols-1 gap-12 md:grid-cols-[2fr_1fr_1.4fr]">
           <div className="max-w-[340px]">
-            <Image
-              src={tenant.logoMono ?? tenant.logo}
-              alt={tenant.name}
-              width={412}
-              height={412}
-              className={cn('mb-4 h-12 w-auto', !tenant.logoMono && 'brightness-0 invert')}
-            />
-            <p className="mb-5 text-[11px] leading-[1.65] font-light text-white/60">{tenant.brandDesc}</p>
-            <div className="flex gap-[10px]">
-              {['X', 'Facebook', 'Instagram'].map((label) => (
-                <a
-                  key={label}
-                  href="#"
-                  aria-label={label}
-                  className="flex h-8 w-8 items-center justify-center rounded-full border border-white/20 text-white transition-colors hover:border-primary hover:bg-primary"
-                >
-                  <SocialGlyph label={label} />
-                </a>
-              ))}
-            </div>
+            {brand.logoMono || brand.logo ? (
+              <Image
+                src={(brand.logoMono || brand.logo) as string}
+                alt={tenant.name}
+                width={412}
+                height={412}
+                className={cn('mb-4 h-12 w-auto', !brand.logoMono && 'brightness-0 invert')}
+                unoptimized
+              />
+            ) : (
+              <p className="mb-4 text-[20px] font-semibold tracking-[-0.01em] text-white">{tenant.name}</p>
+            )}
+            {description ? (
+              <p className="mb-5 text-[11px] leading-[1.65] font-light text-white/60">{description}</p>
+            ) : null}
+            {socials.length > 0 ? (
+              <div className="flex gap-[10px]">
+                {socials.map((s) => (
+                  <a
+                    key={`${s.platform}-${s.url}`}
+                    href={s.url || '#'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={s.platform}
+                    className="flex h-8 w-8 items-center justify-center rounded-full border border-white/20 text-white transition-colors hover:border-primary hover:bg-primary"
+                  >
+                    <SocialGlyph label={s.platform} />
+                  </a>
+                ))}
+              </div>
+            ) : null}
           </div>
 
           <div>
@@ -51,6 +67,9 @@ export function Footer() {
               <Link href={`${paths.home}#faqs`} className="text-[13px] text-white/80 transition-colors hover:text-footer-hover">
                 FAQs
               </Link>
+              <Link href={paths.privacy} className="text-[13px] text-white/80 transition-colors hover:text-footer-hover">
+                Privacy
+              </Link>
             </nav>
           </div>
 
@@ -59,25 +78,31 @@ export function Footer() {
               Get in Touch
             </h4>
             <div className="flex flex-col gap-[13px]">
-              <a href={`tel:${tenant.phone}`} className="flex items-center gap-[10px] text-[13px] text-white/80">
-                <Phone size={15} className="flex-shrink-0 text-primary" />
-                <span>{tenant.phone}</span>
-              </a>
-              <a href={`mailto:${tenant.email}`} className="flex items-center gap-[10px] text-[13px] break-all text-white/80">
-                <Mail size={15} className="flex-shrink-0 text-primary" />
-                <span>{tenant.email}</span>
-              </a>
-              <div className="flex items-start gap-[10px] text-[13px] text-white/80">
-                <MapPin size={15} className="mt-0.5 flex-shrink-0 text-primary" />
-                <span className="leading-[1.5]">{tenant.address}</span>
-              </div>
+              {footer.contact.phone ? (
+                <a href={`tel:${footer.contact.phone}`} className="flex items-center gap-[10px] text-[13px] text-white/80">
+                  <Phone size={15} className="flex-shrink-0 text-primary" />
+                  <span>{footer.contact.phone}</span>
+                </a>
+              ) : null}
+              {footer.contact.email ? (
+                <a href={`mailto:${footer.contact.email}`} className="flex items-center gap-[10px] text-[13px] break-all text-white/80">
+                  <Mail size={15} className="flex-shrink-0 text-primary" />
+                  <span>{footer.contact.email}</span>
+                </a>
+              ) : null}
+              {footer.contact.address ? (
+                <div className="flex items-start gap-[10px] text-[13px] text-white/80">
+                  <MapPin size={15} className="mt-0.5 flex-shrink-0 text-primary" />
+                  <span className="leading-[1.5]">{footer.contact.address}</span>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
 
         <div className="my-[18px] mt-10 h-px bg-white/15" />
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <p className="text-[12.5px] text-white/55">{tenant.copyright}</p>
+          <p className="text-[12.5px] text-white/55">{brand.copyright}</p>
           <p className="text-[12.5px] text-white/55">
             Powered by <span className="font-semibold text-white">FleetHQ</span>
           </p>
@@ -88,14 +113,15 @@ export function Footer() {
 }
 
 function SocialGlyph({ label }: { label: string }) {
-  if (label === 'X') {
+  const key = label.toLowerCase();
+  if (key === 'x' || key === 'twitter') {
     return (
       <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
         <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
       </svg>
     );
   }
-  if (label === 'Facebook') {
+  if (key === 'facebook') {
     return (
       <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
         <path d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.79-4.69 4.53-4.69 1.31 0 2.68.24 2.68.24v2.97h-1.51c-1.49 0-1.96.93-1.96 1.89v2.25h3.33l-.53 3.49h-2.8V24C19.61 23.1 24 18.1 24 12.07z" />

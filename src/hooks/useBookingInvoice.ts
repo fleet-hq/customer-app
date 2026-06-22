@@ -38,6 +38,17 @@ export interface BookingPricing {
   extrasCost: number;
   locationCharges: number;
   discount: number;
+  /** Duration-based fleet discount (daily / hourly / weekly tier).
+   *  Surfaced separately so the invoice can render its own line. */
+  fleetDiscount: number;
+  /** Highest matching fleet-discount tier — used to label the
+   *  invoice row (e.g. "Weekly discount (20%)"). ``null`` when no
+   *  fleet discount applies. */
+  fleetDiscountTier: {
+    unitType: 'day' | 'hour' | 'week';
+    units: number;
+    percentage: number;
+  } | null;
   tax: number;
   total: number;
   deposit: number;
@@ -118,7 +129,8 @@ export function useBookingInvoice({
     if (!vehicleData || !basePrice) {
       return {
         subtotal: 0, insuranceCost: 0, extrasCost: 0, locationCharges: 0,
-        discount: 0, tax: 0, total: 0, deposit: 0, bookingFee: 0,
+        discount: 0, fleetDiscount: 0, fleetDiscountTier: null,
+        tax: 0, total: 0, deposit: 0, bookingFee: 0,
         rateUnit: 'day',
       };
     }
@@ -155,17 +167,37 @@ export function useBookingInvoice({
       : (companyLocations.find((loc) => loc.id === dropoffLocationId)?.price || 0);
     const locationCharges = pickupPrice + dropoffPrice;
 
-    // Fleet discount based on duration (mirrors backend DiscountCalculator)
+    // Fleet discount based on duration (mirrors backend
+    // ``DiscountCalculator``): hourly bookings only consider hour
+    // tiers; daily bookings consider day AND week tiers and apply
+    // whichever tier yields the largest percentage.
     let fleetDiscount = 0;
+    let fleetDiscountTier: BookingPricing['fleetDiscountTier'] = null;
     if (vehicleData.discounts && vehicleData.discounts.length > 0) {
       const isHourly = basePrice.unit === 'hour';
       const quantity = basePrice.quantity;
-      const matching = vehicleData.discounts
-        .filter((d) => d.unitType === (isHourly ? 'hour' : 'day') && d.units <= quantity)
-        .sort((a, b) => b.units - a.units);
-      const best = matching[0];
+      const weeks = Math.floor(quantity / 7);
+      let best: { unitType: 'day' | 'hour' | 'week'; units: number; percentage: number } | null = null;
+      for (const d of vehicleData.discounts) {
+        let qualifies = false;
+        if (isHourly) {
+          qualifies = d.unitType === 'hour' && d.units <= quantity;
+        } else if (d.unitType === 'day') {
+          qualifies = d.units <= quantity;
+        } else if (d.unitType === 'week') {
+          qualifies = weeks > 0 && d.units <= weeks;
+        }
+        if (qualifies && (!best || d.percentage > best.percentage)) {
+          best = {
+            unitType: d.unitType as 'day' | 'hour' | 'week',
+            units: d.units,
+            percentage: d.percentage,
+          };
+        }
+      }
       if (best) {
         fleetDiscount = baseSubtotal * (best.percentage / 100);
+        fleetDiscountTier = best;
       }
     }
 
@@ -193,7 +225,8 @@ export function useBookingInvoice({
 
     return {
       subtotal, insuranceCost, extrasCost, locationCharges,
-      discount, tax, total, deposit, bookingFee,
+      discount, fleetDiscount, fleetDiscountTier,
+      tax, total, deposit, bookingFee,
       rateUnit: basePrice.unit,
     };
   }, [vehicleData, rentalDays, basePrice, appliedDiscount, selectedInsurance, insuranceOptions, selectedExtras, extras, companyLocations, pickupLocationId, dropoffLocationId, defaultTaxProfile]);

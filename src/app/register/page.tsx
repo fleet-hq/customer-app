@@ -4,8 +4,6 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Header } from '@/components/layout/header';
-import { Footer } from '@/components/layout/footer';
 import { Field, TextInput } from '@/components/ui/field';
 import { Check } from '@/components/ui/icons';
 import { useTenant } from '@/lib/tenant-context';
@@ -24,10 +22,13 @@ export default function RegisterPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-white text-ink">
-      <Header />
       <section className="mx-auto flex w-full max-w-[460px] flex-1 flex-col justify-center px-6 py-14">
         <div className="rounded-2xl border border-card-border bg-white p-8 shadow-[var(--shadow-card)]">
-          <Image src={tenant.logo} alt={tenant.name} width={412} height={412} className="h-12 w-auto" />
+          {tenant.brand.logo ? (
+            <Image src={tenant.brand.logo} alt={tenant.name} width={412} height={412} className="h-12 w-auto" unoptimized />
+          ) : (
+            <span className="block text-[20px] font-semibold tracking-[-0.01em] text-ink">{tenant.name}</span>
+          )}
 
           <h1 className="mt-7 text-2xl font-semibold tracking-[-0.01em] text-ink">Create your account</h1>
           <p className="mt-[6px] text-[13.5px] text-muted">Book faster and manage every reservation in one place.</p>
@@ -77,7 +78,6 @@ export default function RegisterPage() {
           </p>
         </div>
       </section>
-      <Footer />
     </div>
   );
 }

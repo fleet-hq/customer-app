@@ -3,18 +3,19 @@
 import { use, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import axios from 'axios';
-import { Header } from '@/components/layout/header';
-import { Footer } from '@/components/layout/footer';
 import { BackLink } from '@/components/ui/back-link';
 import { ArrowRight, Check, Swap } from '@/components/ui/icons';
 import { getBookingById, type BookingDetails } from '@/services/bookingServices';
 import { listFleets } from '@/services/fleetServices';
+import { useFleet } from '@/hooks';
+import { FleetPagination } from '@/components/fleet/fleet-pagination';
 import { setBookingToken, getBookingTokenHeaders } from '@/utils/booking-token';
 import type { Vehicle } from '@/types/vehicle';
 import { paths } from '@/lib/paths';
 import { cn, money } from '@/lib/utils';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+const PAGE_SIZE = 9;
 
 export default function SwapVehiclePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -25,6 +26,8 @@ export default function SwapVehiclePage({ params }: { params: Promise<{ id: stri
   const [booking, setBooking] = useState<BookingDetails | null>(null);
   const [bookingError, setBookingError] = useState(false);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<string | null>(null);
   const [preview, setPreview] = useState<any>(null);
@@ -55,8 +58,8 @@ export default function SwapVehiclePage({ params }: { params: Promise<{ id: stri
       setError('');
       try {
         const res = await listFleets({
-          page: 1,
-          page_size: 50,
+          page,
+          page_size: PAGE_SIZE,
           pickup_datetime: booking!.pickUp.rawDatetime,
           dropoff_datetime: booking!.dropOff.rawDatetime,
           exclude_booking: id,
@@ -65,6 +68,7 @@ export default function SwapVehiclePage({ params }: { params: Promise<{ id: stri
           (v) => String(v.id) !== String(booking!.fleetId),
         );
         setVehicles(filtered);
+        setTotalCount(res.count - (res.results.length - filtered.length));
       } catch {
         setError('Could not load vehicles.');
       } finally {
@@ -72,7 +76,9 @@ export default function SwapVehiclePage({ params }: { params: Promise<{ id: stri
       }
     }
     loadFleets();
-  }, [booking, id]);
+  }, [booking, id, page]);
+
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   useEffect(() => {
     if (!selected || !booking) {
@@ -97,12 +103,29 @@ export default function SwapVehiclePage({ params }: { params: Promise<{ id: stri
   }, [selected, booking]);
 
   const selectedVehicle = vehicles.find((v) => String(v.id) === selected) ?? null;
+  const { data: newFleet } = useFleet(selected ?? undefined, !!selected);
 
-  const priceDiff = preview?.price_difference ? parseFloat(preview.price_difference) : 0;
-  const swapFee = preview?.modification_fee ? parseFloat(preview.modification_fee) : 0;
-  const refundAmount = preview?.refund_amount ? parseFloat(preview.refund_amount) : 0;
-  const additionalCharge = preview?.additional_charge ? parseFloat(preview.additional_charge) : 0;
+  const num = (v: any) => (v != null ? parseFloat(v) || 0 : 0);
+  const swapFee = num(preview?.modification_fee);
+  const refundAmount = num(preview?.refund_amount);
+  const additionalCharge = num(preview?.additional_charge);
+  const newTotal = preview?.new_total != null ? num(preview.new_total) : null;
   const allowed = preview ? preview.allowed !== false : true;
+
+  const nb = preview?.new_breakdown ?? null;
+  const nbBase = nb ? num(nb.base_price) : 0;
+  const nbFees = nb ? num(nb.fees) : 0;
+  const nbLocation = nb ? num(nb.location_charges) : 0;
+  const nbTax = nb ? num(nb.tax) : 0;
+  const nbInsurance = nb ? num(nb.insurance) : 0;
+  const insuranceRefund = num(preview?.insurance_refund);
+  const currentTotal = preview?.original_breakdown?.total != null
+    ? num(preview.original_breakdown.total)
+    : (booking ? (parseFloat(booking.totalPrice || '0') || booking.invoice.total) : 0);
+  const unitLabel = booking?.invoice.items[0]?.unit || 'day';
+  const newVehiclePrice = newFleet?.pricePerDay || newFleet?.pricePerHour || selectedVehicle?.pricePerDay || selectedVehicle?.pricePerHour || 0;
+  const newVehicleName = newFleet?.name || selectedVehicle?.name || 'New vehicle';
+  const newVehicleImage = newFleet?.image || selectedVehicle?.image || '/images/vehicles/car_placeholder.png';
 
   const handleConfirm = async () => {
     if (!selected || !booking) return;
@@ -141,19 +164,16 @@ export default function SwapVehiclePage({ params }: { params: Promise<{ id: stri
   if (bookingError) {
     return (
       <div className="flex min-h-screen flex-col bg-white text-ink">
-        <Header />
         <section className="mx-auto w-full max-w-[1000px] flex-1 px-6 pt-[80px] pb-[120px] text-center">
           <p className="text-[15px] font-semibold text-ink">Booking not found.</p>
           <BackLink href={paths.booking(id)}>Back to booking</BackLink>
         </section>
-        <Footer />
       </div>
     );
   }
 
   return (
     <div className="flex min-h-screen flex-col bg-white text-ink">
-      <Header />
       <section className="mx-auto w-full max-w-[1000px] flex-1 px-6 pt-[22px] pb-[120px]">
         <BackLink href={cancelHref}>Back to booking</BackLink>
 
@@ -242,6 +262,131 @@ export default function SwapVehiclePage({ params }: { params: Promise<{ id: stri
             })}
           </div>
         )}
+
+        {!loading && totalPages > 1 && (
+          <div className="mt-7 flex justify-center">
+            <FleetPagination
+              page={page}
+              totalPages={totalPages}
+              onPage={(p) => {
+                setPage(p);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            />
+          </div>
+        )}
+
+        {selectedVehicle && (
+          <div className="mt-8 rounded-2xl border border-card-border bg-subtle p-6">
+            <div className="mb-[14px] text-sm font-semibold text-ink">Review your change</div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
+              <div className="flex items-center gap-3">
+                <div
+                  className="h-[58px] w-[84px] flex-shrink-0 rounded-[10px] bg-cover bg-center"
+                  style={{ backgroundImage: `url('${booking?.vehicle.image}')` }}
+                />
+                <div>
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.06em] text-faint">Current</div>
+                  <div className="text-[14px] font-semibold text-secondary">{booking?.vehicle.name}</div>
+                  <div className="text-[12px] text-muted">{money(currentTotal)}</div>
+                </div>
+              </div>
+
+              <span className="hidden h-9 w-9 items-center justify-center justify-self-center rounded-full bg-white sm:flex">
+                <ArrowRight size={16} className="text-primary" />
+              </span>
+
+              <div className="flex items-center gap-3">
+                <div
+                  className="h-[58px] w-[84px] flex-shrink-0 rounded-[10px] bg-cover bg-center"
+                  style={{ backgroundImage: `url('${newVehicleImage}')` }}
+                />
+                <div>
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.06em] text-primary">New</div>
+                  <div className="text-[14px] font-semibold text-secondary">{newVehicleName}</div>
+                  <div className="text-[12px] text-muted">
+                    {newVehiclePrice ? `${money(newVehiclePrice)}/${newFleet?.pricePerDay || selectedVehicle?.pricePerDay ? 'day' : 'hour'}` : ''}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {previewLoading ? (
+              <p className="mt-5 text-[12.5px] text-faint">Calculating new price...</p>
+            ) : preview && !allowed ? (
+              <p className="mt-5 text-[12.5px] font-medium text-red-600">{preview.reason || 'This swap is not allowed.'}</p>
+            ) : preview && allowed ? (
+              <div className="mt-5 space-y-[10px]">
+                {nb && (
+                  <>
+                    <div className="text-[11px] font-medium uppercase tracking-[0.04em] text-faint">New vehicle breakdown</div>
+                    <div className="flex items-center justify-between text-[13px]">
+                      <span className="text-secondary">Base price</span>
+                      <span className="font-medium text-ink">{money(nbBase)}</span>
+                    </div>
+                    {nbLocation > 0 && (
+                      <div className="flex items-center justify-between text-[13px]">
+                        <span className="text-secondary">Location charges</span>
+                        <span className="font-medium text-ink">{money(nbLocation)}</span>
+                      </div>
+                    )}
+                    {nbFees > 0 && (
+                      <div className="flex items-center justify-between text-[13px]">
+                        <span className="text-secondary">Fees</span>
+                        <span className="font-medium text-ink">{money(nbFees)}</span>
+                      </div>
+                    )}
+                    {nbInsurance > 0 && insuranceRefund > 0 && (
+                      <div className="flex items-center justify-between text-[13px]">
+                        <span className="text-secondary">Insurance (refundable)</span>
+                        <span className="font-medium text-ink">{money(insuranceRefund)}</span>
+                      </div>
+                    )}
+                    {nbTax > 0 && (
+                      <div className="flex items-center justify-between text-[13px]">
+                        <span className="text-secondary">Tax</span>
+                        <span className="font-medium text-ink">{money(nbTax)}</span>
+                      </div>
+                    )}
+                    {swapFee > 0 && (
+                      <div className="flex items-center justify-between text-[13px]">
+                        <span className="text-secondary">Swap fee</span>
+                        <span className="font-medium text-ink">+{money(swapFee)}</span>
+                      </div>
+                    )}
+                    {newTotal !== null && (
+                      <>
+                        <div className="my-1 h-px bg-card-border" />
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-semibold text-ink">New total ({unitLabel}s)</span>
+                          <span className="text-[17px] font-bold text-ink">{money(newTotal)}</span>
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
+
+                <div className="my-1 h-px bg-card-border" />
+                {additionalCharge > 0 ? (
+                  <div className="flex items-center justify-between rounded-[10px] border border-amber-border bg-amber-bg px-4 py-[13px]">
+                    <span className="text-[13px] font-semibold text-amber-text">Additional charge{swapFee > 0 ? ` (incl. ${money(swapFee)} fee)` : ''}</span>
+                    <span className="text-[15px] font-bold text-amber-text-2">{money(additionalCharge)}</span>
+                  </div>
+                ) : refundAmount > 0 ? (
+                  <div className="flex items-center justify-between rounded-[10px] border border-green-border-2 bg-green-bg px-4 py-[13px]">
+                    <span className="text-[13px] font-semibold text-success">Refund due{swapFee > 0 ? ` (incl. ${money(swapFee)} fee)` : ''}</span>
+                    <span className="text-[15px] font-bold text-success">{money(refundAmount)}</span>
+                  </div>
+                ) : (
+                  <div className="text-[12.5px] text-faint">No additional charge for this swap.</div>
+                )}
+              </div>
+            ) : (
+              <p className="mt-5 text-[12.5px] text-faint">Calculating new price...</p>
+            )}
+          </div>
+        )}
       </section>
 
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-card-border bg-white/95 backdrop-blur-md">
@@ -300,7 +445,6 @@ export default function SwapVehiclePage({ params }: { params: Promise<{ id: stri
           </div>
         </div>
       </div>
-      <Footer />
     </div>
   );
 }

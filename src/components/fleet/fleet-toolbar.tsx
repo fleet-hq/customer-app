@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Search, Close, Check } from '@/components/ui/icons';
 import { useClickOutside } from '@/lib/use-click-outside';
 import { cn } from '@/lib/utils';
+import { FleetFilters, type FilterState, type FilterOptions } from '@/components/fleet/fleet-filters';
 
 interface FleetToolbarProps {
   heading: string;
@@ -17,6 +18,10 @@ interface FleetToolbarProps {
   sort: string;
   sorts: readonly string[];
   onSort: (value: string) => void;
+  filters: FilterState;
+  filterOptions: FilterOptions;
+  onFilters: (filters: FilterState) => void;
+  activeFilterCount: number;
 }
 
 export function FleetToolbar({
@@ -30,10 +35,14 @@ export function FleetToolbar({
   sort,
   sorts,
   onSort,
+  filters,
+  filterOptions,
+  onFilters,
+  activeFilterCount,
 }: FleetToolbarProps) {
   const [open, setOpen] = useState(false);
-  const sortRef = useRef<HTMLDivElement>(null);
-  useClickOutside(sortRef, () => setOpen(false), open);
+  const panelRef = useRef<HTMLDivElement>(null);
+  useClickOutside(panelRef, () => setOpen(false), open);
 
   return (
     <div className="mb-8 flex flex-col items-start justify-between gap-5 md:flex-row md:items-start">
@@ -65,35 +74,44 @@ export function FleetToolbar({
             className="w-full border-none bg-transparent text-sm text-ink outline-none placeholder:text-faint"
           />
         </div>
-        <div ref={sortRef} className="relative flex-shrink-0">
+        <div ref={panelRef} className="relative flex-shrink-0">
           <button
             onClick={() => setOpen((o) => !o)}
             aria-label="Sort & filter"
-            className="flex h-[44px] w-[44px] items-center justify-center rounded-[9px] border border-line bg-white text-ink"
+            className={cn(
+              'relative flex h-[44px] w-[44px] items-center justify-center rounded-[9px] border bg-white text-ink',
+              activeFilterCount > 0 ? 'border-primary text-primary' : 'border-line',
+            )}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
               <path d="M4 6h16M7 12h10M10 18h4" />
             </svg>
+            {activeFilterCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[10.5px] font-semibold text-white">
+                {activeFilterCount}
+              </span>
+            )}
           </button>
           {open && (
-            <div className="absolute top-[calc(100%+8px)] right-0 z-40 w-[210px] rounded-[11px] border border-line bg-white p-[6px] shadow-[var(--shadow-pop)]">
-              <div className="px-[11px] pt-1 pb-[6px] text-[10px] font-semibold tracking-[0.05em] text-faint uppercase">Sort by</div>
-              {sorts.map((s) => (
-                <div
-                  key={s}
-                  onClick={() => {
-                    onSort(s);
-                    setOpen(false);
-                  }}
-                  className={cn(
-                    'flex cursor-pointer items-center justify-between rounded-lg px-[11px] py-[9px] text-[13px]',
-                    s === sort ? 'bg-primary-soft font-semibold text-secondary' : 'text-label hover:bg-primary-soft hover:text-secondary',
-                  )}
-                >
-                  {s}
-                  {s === sort && <Check size={14} className="text-primary" />}
-                </div>
-              ))}
+            <div className="absolute top-[calc(100%+8px)] right-0 z-40 w-[300px] rounded-[14px] border border-line bg-white p-4 shadow-[var(--shadow-pop)]">
+              <div className="mb-2 px-[3px] text-[10px] font-semibold tracking-[0.05em] text-faint uppercase">Sort by</div>
+              <div className="-mx-1">
+                {sorts.map((s) => (
+                  <div
+                    key={s}
+                    onClick={() => onSort(s)}
+                    className={cn(
+                      'flex cursor-pointer items-center justify-between rounded-lg px-[11px] py-[9px] text-[13px]',
+                      s === sort ? 'bg-primary-soft font-semibold text-secondary' : 'text-label hover:bg-primary-soft hover:text-secondary',
+                    )}
+                  >
+                    {s}
+                    {s === sort && <Check size={14} className="text-primary" />}
+                  </div>
+                ))}
+              </div>
+              <div className="my-4 h-px bg-line" />
+              <FleetFilters filters={filters} options={filterOptions} onChange={onFilters} />
             </div>
           )}
         </div>

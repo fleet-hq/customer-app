@@ -10,8 +10,11 @@ export const paths = {
   modify: (id: string) => `/booking/${id}/modify`,
   swap: (id: string) => `/booking/${id}/swap`,
   cancel: (id: string) => `/booking/${id}/cancel`,
+  agreement: (id: string | number) => `/rental-agreement/${id}`,
   terms: '/terms',
+  privacy: '/privacy',
   manage: '/manage',
+  bookings: '/bookings',
   signIn: '/sign-in',
   register: '/register',
 } as const;

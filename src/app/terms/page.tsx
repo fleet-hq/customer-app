@@ -3,12 +3,10 @@
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import DOMPurify from 'dompurify';
-import { Header } from '@/components/layout/header';
-import { Footer } from '@/components/layout/footer';
 import { BackLink } from '@/components/ui/back-link';
 import { Download, Check } from '@/components/ui/icons';
 import { useTenant } from '@/lib/tenant-context';
-import { getSiteContent, withCompany } from '@/lib/site-content';
+import { withCompany } from '@/lib/tenant';
 import { cn } from '@/lib/utils';
 import { paths } from '@/lib/paths';
 import {
@@ -70,7 +68,6 @@ function TermsContent() {
   }, [urlToken]);
 
   const isBound = !!bookingId;
-  const content = getSiteContent(tenant.slug);
 
   const ready = isBound && tokenReady;
   const { data: bookingData, isLoading: bookingLoading, isError: bookingError } = useBookingDetails(
@@ -176,11 +173,9 @@ function TermsContent() {
     if (!tokenReady || bookingLoading) {
       return (
         <div className="flex min-h-screen flex-col bg-white text-ink">
-          <Header />
           <section className="mx-auto flex w-full max-w-[1000px] flex-1 items-center justify-center px-6 py-24">
             <p className="text-sm text-faint">Loading agreement&hellip;</p>
           </section>
-          <Footer />
         </div>
       );
     }
@@ -188,7 +183,6 @@ function TermsContent() {
     if (bookingError || !agreement) {
       return (
         <div className="flex min-h-screen flex-col bg-white text-ink">
-          <Header />
           <section className="mx-auto w-full max-w-[1000px] flex-1 px-6 pt-8 pb-16">
             <BackLink href={backHref}>Go Back</BackLink>
             <div className="mt-12 text-center">
@@ -198,14 +192,12 @@ function TermsContent() {
               </p>
             </div>
           </section>
-          <Footer />
         </div>
       );
     }
 
     return (
       <div className="flex min-h-screen flex-col bg-white text-ink">
-        <Header />
         <section className="mx-auto w-full max-w-[1000px] flex-1 px-6 pt-8 pb-16">
           <BackLink href={backHref}>Go Back</BackLink>
 
@@ -257,24 +249,24 @@ function TermsContent() {
             </div>
           )}
         </section>
-        <Footer />
       </div>
     );
   }
 
   const title = 'Terms and Conditions';
-  const intro = template?.description || content.terms.intro;
+  const intro =
+    template?.description ||
+    'Our fleet is clean, reliable, and ready for the road. Please review the agreement below before confirming your reservation — no surprises, no hidden fees.';
   const sections: Section[] =
     template && template.clauses.length > 0
       ? template.clauses.map((c) => ({ heading: c.title, html: c.content }))
-      : content.terms.sections.map((sec) => ({
+      : DEFAULT_TERMS_SECTIONS.map((sec) => ({
           heading: sec.heading,
           paras: sec.paras.map((p) => withCompany(p, tenant.name)),
         }));
 
   return (
     <div className="flex min-h-screen flex-col bg-white text-ink">
-      <Header />
       <section className="mx-auto w-full max-w-[1000px] flex-1 px-6 pt-8 pb-16">
         <BackLink href={paths.home}>Go Back</BackLink>
 
@@ -296,7 +288,6 @@ function TermsContent() {
           ))}
         </div>
       </section>
-      <Footer />
     </div>
   );
 }
@@ -308,3 +299,43 @@ export default function TermsPage() {
     </Suspense>
   );
 }
+
+/** Fallback terms used when a tenant has no rental-agreement template
+ *  configured. Until per-tenant terms editing ships in the super-admin
+ *  dashboard this gives every site a sensible baseline. */
+const DEFAULT_TERMS_SECTIONS: { heading: string; paras: string[] }[] = [
+  {
+    heading: '1. Eligibility & Driver Requirements',
+    paras: [
+      "To rent a vehicle from {company}, the primary driver must be at least 21 years of age and hold a valid, unexpired driver's license. Drivers between 21 and 24 may be subject to a standard Young Driver surcharge, which will be disclosed clearly at the time of booking.",
+      "All drivers must provide proof of active automobile insurance and a valid form of payment in the renter's name.",
+    ],
+  },
+  {
+    heading: '2. Reservations & Payment',
+    paras: [
+      'A reservation is confirmed once a deposit has been authorized against the payment method provided. The renter must be the cardholder and may be asked to present the physical card at pickup.',
+      'Rates quoted include the base daily rate and any extras you select. Applicable taxes and fees, where they apply, are itemized on your invoice before you confirm.',
+    ],
+  },
+  {
+    heading: '3. Insurance, Protection & Liability',
+    paras: [
+      'Renters may provide their own qualifying insurance or select one of our protection plans at checkout. The renter is responsible for the vehicle for the full duration of the rental.',
+      'Any incident, accident, or mechanical issue must be reported to {company} immediately.',
+    ],
+  },
+  {
+    heading: '4. Fuel, Mileage & Returns',
+    paras: [
+      'Vehicles are supplied with a full tank of fuel and must be returned full unless the Prepaid Fuel option was purchased.',
+      "Vehicles must be returned to the agreed drop-off location at the scheduled time. Late returns may incur an additional day's charge.",
+    ],
+  },
+  {
+    heading: '5. Cancellations & Modifications',
+    paras: [
+      'Reservations may be cancelled or modified through your booking dashboard. Cancellations made within the free-cancellation window are fully refundable.',
+    ],
+  },
+];

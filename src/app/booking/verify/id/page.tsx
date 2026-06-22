@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Header } from '@/components/layout/header';
-import { Footer } from '@/components/layout/footer';
 import { BackLink } from '@/components/ui/back-link';
 import { Field, TextInput } from '@/components/ui/field';
 import { IdCard } from '@/components/ui/icons';
@@ -66,12 +64,10 @@ export default function VerifyIdPage() {
   if (!tokenReady || isLoading) {
     return (
       <div className="flex min-h-screen flex-col bg-white text-ink">
-        <Header />
         <div className="mx-auto flex w-full max-w-[600px] flex-1 flex-col items-center justify-center gap-4 px-6 py-32">
           <span className="h-9 w-9 animate-spin rounded-full border-[3px] border-card-border border-t-primary" />
           <p className="text-sm text-muted">Loading booking…</p>
         </div>
-        <Footer />
       </div>
     );
   }
@@ -79,7 +75,6 @@ export default function VerifyIdPage() {
   if (isError || !booking) {
     return (
       <div className="flex min-h-screen flex-col bg-white text-ink">
-        <Header />
         <section className="mx-auto w-full max-w-[600px] flex-1 px-6 pt-7 pb-[72px]">
           <BackLink href={paths.home}>Back to home</BackLink>
           <div className="mt-16 text-center">
@@ -89,7 +84,6 @@ export default function VerifyIdPage() {
             </p>
           </div>
         </section>
-        <Footer />
       </div>
     );
   }
@@ -98,7 +92,6 @@ export default function VerifyIdPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-white text-ink">
-      <Header />
       <section className="mx-auto w-full max-w-[600px] flex-1 px-6 pt-7 pb-[72px]">
         <BackLink href={bookingHref}>Back to booking</BackLink>
 
@@ -156,7 +149,6 @@ export default function VerifyIdPage() {
           </button>
         </div>
       </section>
-      <Footer />
     </div>
   );
 }

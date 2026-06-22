@@ -1,9 +1,36 @@
+import type {
+  BrandTheme,
+  CategoriesSection,
+  ContentSections,
+  CopyBlockSection,
+  DiscountBannerSection,
+  FooterPayload,
+  HeroSection,
+  ImagesPayload,
+  NavLink,
+  PromoSection,
+  TestimonialsSection,
+  FaqsSection,
+  FeatureColumnsSection,
+} from '@/services/companyContentServices';
+import { DEFAULT_NAV_LINKS, DEFAULT_THEME } from './tenant-defaults';
 
-export interface TenantTheme {
-  primary: string;
-  secondary: string;
-  primaryHover: string;
-  accent: string;
+/** Sections shape used by the FE. Mirrors ``ContentSections`` from
+ *  the API but normalises ``undefined`` → ``null`` so each consumer
+ *  can do a single truthy check without remembering which fields the
+ *  serializer emits as missing. A null section means "operator hasn't
+ *  configured it" → component should not render. */
+export interface TenantSections {
+  hero: HeroSection | null;
+  promo: PromoSection | null;
+  discount_banner: DiscountBannerSection | null;
+  feature_columns: FeatureColumnsSection | null;
+  fleet_section: CopyBlockSection | null;
+  why_choose: CopyBlockSection | null;
+  categories: CategoriesSection | null;
+  testimonials: TestimonialsSection | null;
+  faqs: FaqsSection | null;
+  cta: CopyBlockSection | null;
 }
 
 export interface TenantLocation {
@@ -11,115 +38,143 @@ export interface TenantLocation {
   name: string;
 }
 
+/** Tenant view consumed by every server/client component. Any field
+ *  that can legitimately be "not configured yet" is nullable — the
+ *  FE never invents marketing copy, image fallbacks, or fake content
+ *  in its place. */
 export interface Tenant {
   id: string;
   slug: string;
   name: string;
-  logo: string;
-  logoMono?: string;
-  brandDesc: string;
-  phone: string;
-  email: string;
-  address: string;
-  copyright: string;
-  theme: TenantTheme;
+  domain: string;
   locations: TenantLocation[];
   defaultLocationId: string;
-  navLinks: { label: string; href: string }[];
+
+  brand: {
+    /** ``null`` when no logo has been uploaded — header renders the
+     *  tenant name as a text wordmark instead of a broken image. */
+    logo: string | null;
+    logoMono: string | null;
+    description: string;
+    copyright: string;
+    theme: BrandTheme;
+    navLinks: NavLink[];
+  };
+  footer: FooterPayload;
+  images: ImagesPayload;
+  sections: TenantSections;
 }
 
-export function defaultLocation(tenant: Tenant): TenantLocation {
+export function defaultLocation(tenant: Tenant): TenantLocation | undefined {
+  if (!tenant.locations.length) return undefined;
   return tenant.locations.find((l) => l.id === tenant.defaultLocationId) ?? tenant.locations[0];
 }
 
-const DEFAULT_NAV: Tenant['navLinks'] = [
-  { label: 'About', href: '/#about' },
-  { label: 'Fleet', href: '/fleet' },
-  { label: 'FAQs', href: '/#faqs' },
-  { label: 'Contact', href: '/#contact' },
-];
-
-const CT_LOCATIONS: TenantLocation[] = [
-  { id: 'bdl', name: 'Bradley Intl Airport (BDL)' },
-  { id: 'hartford', name: 'Downtown Hartford, CT' },
-  { id: 'farmington', name: 'Farmington, CT 06034' },
-  { id: 'newhaven', name: 'New Haven, CT' },
-  { id: 'stamford', name: 'Stamford, CT' },
-];
-
-export const FLEET_HQ: Tenant = {
-  id: '1',
-  slug: 'fleet-hq',
-  name: 'FleetHQ',
-  logo: '/images/fleethq-logo-mark.png',
-  logoMono: '/images/fleethq-logo-white-mark.png',
-  brandDesc:
-    'FleetHQ makes renting effortless — a clean, modern fleet, transparent pricing, and friendly local service, all bookable online in minutes.',
-  phone: '+1 (307) 269-6561',
-  email: 'hello@fleethq.io',
-  address: '30 N Gould St, Sheridan, WY 82801',
-  copyright: '© 2026 FleetHQ. All rights reserved.',
-  theme: {
-    primary: '#ED2324',
-    secondary: '#000000',
-    primaryHover: '#D11F20',
-    accent: '#E0921A',
-  },
-  locations: CT_LOCATIONS,
-  defaultLocationId: 'farmington',
-  navLinks: DEFAULT_NAV,
-};
-
-const HARBOR_DRIVE: Tenant = {
-  id: '2',
-  slug: 'harbor-drive',
-  name: 'Harbor Drive Rentals',
-  logo: '/images/logo-mark.png',
-  brandDesc:
-    'Coastal car rentals done right — clean vehicles, honest pricing, and a local team that treats every trip like our own.',
-  phone: '+1 (305) 555-0192',
-  email: 'hello@harbordrive.com',
-  address: '410 Ocean Ave, Miami Beach, FL 33139',
-  copyright: '© 2026 Harbor Drive Rentals. All rights reserved.',
-  theme: {
-    primary: '#0E7CC4',
-    secondary: '#0B3A57',
-    primaryHover: '#0C6FAF',
-    accent: '#E0921A',
-  },
-  locations: [
-    { id: 'mia', name: 'Miami Intl Airport (MIA)' },
-    { id: 'sobe', name: 'South Beach, FL' },
-    { id: 'brickell', name: 'Brickell, Miami, FL' },
-  ],
-  defaultLocationId: 'mia',
-  navLinks: DEFAULT_NAV,
-};
-
-const TENANTS: Tenant[] = [FLEET_HQ, HARBOR_DRIVE];
-
-const DOMAIN_MAP: Record<string, string> = {
-  'fleethq.io': 'fleet-hq',
-  'fleet-hq.localhost': 'fleet-hq',
-  'harbordrive.com': 'harbor-drive',
-  'harbor-drive.localhost': 'harbor-drive',
-};
-
-function bySlug(slug: string): Tenant {
-  return TENANTS.find((t) => t.slug === slug) ?? FLEET_HQ;
+/** Replace ``{company}`` placeholders in admin-supplied copy with the
+ *  tenant's display name. */
+export function withCompany(text: string, company: string): string {
+  return text.replaceAll('{company}', company);
 }
 
-export function getTenantByHost(host: string | null | undefined): Tenant {
-  if (!host) return FLEET_HQ;
-  const clean = host.split(':')[0].toLowerCase().replace(/^www\./, '');
+/* ── API → Tenant mapping ─────────────────────────────────────────── */
 
-  if (DOMAIN_MAP[clean]) return bySlug(DOMAIN_MAP[clean]);
-
-  const label = clean.split('.')[0];
-  const bySubdomain = TENANTS.find((t) => t.slug === label);
-  if (bySubdomain) return bySubdomain;
-
-  return FLEET_HQ;
+interface ApiCompanyDetail {
+  id: number;
+  name: string;
+  email: string | null;
+  phone_no: string | null;
+  company_picture: string | null;
+  domain: string | null;
+  address: string;
+  city: string;
+  state: string;
+  zip_code: string;
+  default_location: { id: number; name: string } | null;
+  content: {
+    brand?: {
+      logo?: string | null;
+      logo_mono?: string | null;
+      brand_description?: string;
+      copyright_text?: string;
+      theme?: Partial<BrandTheme>;
+      nav_links?: NavLink[];
+    };
+    footer?: Partial<FooterPayload>;
+    images?: Partial<ImagesPayload>;
+    sections?: ContentSections;
+  };
 }
 
-export { TENANTS };
+interface ApiLocation {
+  id: number;
+  name: string;
+}
+
+function deriveSlugFromDomain(domain: string | null): string {
+  if (!domain) return 'unknown';
+  const clean = domain.toLowerCase().replace(/^www\./, '');
+  return clean.split('.')[0] || clean;
+}
+
+function nonEmpty(value: string | null | undefined): string {
+  return value ?? '';
+}
+
+export function tenantFromApi(detail: ApiCompanyDetail, locations: ApiLocation[]): Tenant {
+  const content = detail.content ?? {};
+  const brand = content.brand ?? {};
+  const footer = content.footer ?? {};
+  const images = content.images ?? {};
+  const sections = content.sections ?? {};
+
+  return {
+    id: String(detail.id),
+    slug: deriveSlugFromDomain(detail.domain),
+    name: detail.name,
+    domain: detail.domain ?? '',
+    locations: locations.map((l) => ({ id: String(l.id), name: l.name })),
+    defaultLocationId: detail.default_location ? String(detail.default_location.id) : '',
+    brand: {
+      logo: brand.logo ?? detail.company_picture ?? null,
+      logoMono: brand.logo_mono ?? null,
+      description: nonEmpty(brand.brand_description),
+      copyright: nonEmpty(brand.copyright_text),
+      theme: { ...DEFAULT_THEME, ...(brand.theme ?? {}) },
+      navLinks:
+        brand.nav_links && brand.nav_links.length > 0 ? brand.nav_links : DEFAULT_NAV_LINKS,
+    },
+    footer: {
+      description: nonEmpty(footer.description),
+      socials: footer.socials ?? [],
+      contact: {
+        phone: nonEmpty(footer.contact?.phone) || nonEmpty(detail.phone_no),
+        email: nonEmpty(footer.contact?.email) || nonEmpty(detail.email),
+        address:
+          nonEmpty(footer.contact?.address) ||
+          [detail.address, detail.city, detail.state, detail.zip_code]
+            .filter((p) => p && p.trim().length > 0)
+            .join(', '),
+      },
+    },
+    images: {
+      hero: images.hero ?? null,
+      why_choose: images.why_choose ?? null,
+      cta_background: images.cta_background ?? null,
+      feature_banners: (images.feature_banners ?? []).slice(0, 2),
+    },
+    sections: {
+      hero: sections.hero ?? null,
+      promo: sections.promo ?? null,
+      discount_banner: sections.discount_banner ?? null,
+      feature_columns: sections.feature_columns ?? null,
+      fleet_section: sections.fleet_section ?? null,
+      why_choose: sections.why_choose ?? null,
+      categories: sections.categories ?? null,
+      testimonials: sections.testimonials ?? null,
+      faqs: sections.faqs ?? null,
+      cta: sections.cta ?? null,
+    },
+  };
+}
+
+export type { ApiCompanyDetail, ApiLocation };

@@ -4,8 +4,6 @@ import { use, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import axios from 'axios';
-import { Header } from '@/components/layout/header';
-import { Footer } from '@/components/layout/footer';
 import { BackLink } from '@/components/ui/back-link';
 import { ArrowRight, Check, Close, Info } from '@/components/ui/icons';
 import { getBookingById, type BookingDetails } from '@/services/bookingServices';
@@ -89,11 +87,9 @@ export default function CancelBookingPage({ params }: { params: Promise<{ id: st
   if (loading) {
     return (
       <div className="flex min-h-screen flex-col bg-white text-ink">
-        <Header />
         <section className="mx-auto flex w-full max-w-[640px] flex-1 items-center justify-center px-6 pt-[22px] pb-16">
           <p className="text-muted">Loading...</p>
         </section>
-        <Footer />
       </div>
     );
   }
@@ -101,19 +97,16 @@ export default function CancelBookingPage({ params }: { params: Promise<{ id: st
   if (!booking) {
     return (
       <div className="flex min-h-screen flex-col bg-white text-ink">
-        <Header />
         <section className="mx-auto w-full max-w-[640px] flex-1 px-6 pt-[22px] pb-16">
           <BackLink href={bookingLink}>Back to booking</BackLink>
           <p className="mt-6 text-[13.5px] text-danger">{error || 'Booking not found.'}</p>
         </section>
-        <Footer />
       </div>
     );
   }
 
   return (
     <div className="flex min-h-screen flex-col bg-white text-ink">
-      <Header />
       <section className="mx-auto w-full max-w-[640px] flex-1 px-6 pt-[22px] pb-16">
         <BackLink href={bookingLink}>Back to booking</BackLink>
 
@@ -249,7 +242,6 @@ export default function CancelBookingPage({ params }: { params: Promise<{ id: st
           </div>
         )}
       </section>
-      <Footer />
     </div>
   );
 }

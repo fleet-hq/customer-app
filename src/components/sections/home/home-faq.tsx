@@ -17,6 +17,8 @@ interface HomeFaqProps {
 export function HomeFaq({ eyebrow, title, items }: HomeFaqProps) {
   const [open, setOpen] = useState<number>(0);
 
+  // Suppress the section until an admin has added at least one FAQ.
+  if (!items || items.length === 0) return null;
   return (
     <section id="faqs" className="bg-subtle py-[60px]">
       <div id="faq" className="mx-auto max-w-[860px] px-6">

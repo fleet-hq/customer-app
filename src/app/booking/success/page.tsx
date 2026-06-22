@@ -2,8 +2,6 @@
 
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Header } from '@/components/layout/header';
-import { Footer } from '@/components/layout/footer';
 import { getBookingBySession, BookingNotReadyYet } from '@/services/bookingServices';
 import { setBookingToken } from '@/utils/booking-token';
 import { paths } from '@/lib/paths';
@@ -71,7 +69,6 @@ function SuccessContent() {
 
   return (
     <div className="flex min-h-screen flex-col bg-white text-ink">
-      <Header />
       <main className="flex flex-1 items-center justify-center p-8">
         <div className="w-full max-w-md text-center">
           {phase !== 'error' ? (
@@ -102,7 +99,6 @@ function SuccessContent() {
           )}
         </div>
       </main>
-      <Footer />
     </div>
   );
 }

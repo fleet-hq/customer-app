@@ -7,17 +7,20 @@ interface CtaBandProps {
   title: string;
   description: string;
   ctaLabel: string;
+  /** Admin-supplied background image; overlaid with the brand gradient
+   *  so contrast is preserved no matter what the operator uploads. */
+  backgroundImage?: string;
 }
 
-export function CtaBand({ eyebrow, title, description, ctaLabel }: CtaBandProps) {
+export function CtaBand({ eyebrow, title, description, ctaLabel, backgroundImage }: CtaBandProps) {
+  const bg = backgroundImage
+    ? `linear-gradient(120deg, color-mix(in srgb, var(--color-primary) 75%, transparent) 0%, color-mix(in srgb, var(--color-secondary) 85%, transparent) 100%), url('${backgroundImage}')`
+    : 'radial-gradient(120% 140% at 85% 15%, var(--color-primary) 0%, color-mix(in srgb, var(--color-primary) 60%, var(--color-secondary)) 42%, var(--color-secondary) 100%)';
   return (
     <section id="contact" className="mx-auto max-w-[1200px] px-6 pt-[24px] pb-[76px]">
       <div
-        className="relative overflow-hidden rounded-[22px] px-[32px] py-[64px] text-center"
-        style={{
-          background:
-            'radial-gradient(120% 140% at 85% 15%, var(--color-primary) 0%, color-mix(in srgb, var(--color-primary) 60%, var(--color-secondary)) 42%, var(--color-secondary) 100%)',
-        }}
+        className="relative overflow-hidden rounded-[22px] px-[32px] py-[64px] text-center bg-cover bg-center"
+        style={{ background: bg }}
       >
         <div className="absolute -top-[80px] -right-[60px] h-[260px] w-[260px] rounded-full bg-white/[0.07]" />
         <div className="absolute -bottom-[110px] -left-[50px] h-[240px] w-[240px] rounded-full bg-white/[0.06]" />

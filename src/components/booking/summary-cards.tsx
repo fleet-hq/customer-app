@@ -36,9 +36,9 @@ export function VehicleDriverCard({ booking }: { booking: BookingDetails }) {
         </div>
       </div>
       <div className="my-5 h-px bg-card-border" />
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(130px,1fr))] gap-[18px]">
+      <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-2 md:grid-cols-4">
         <Detail label="Driver name" value={booking.customer.name} />
-        <Detail label="Email" value={booking.customer.email} />
+        <Detail label="Email" value={booking.customer.email} breakAll />
         <Detail label="Phone" value={booking.customer.phone} />
         <Detail label="Vehicle VIN" value={booking.vehicle.vin} />
       </div>
@@ -46,11 +46,25 @@ export function VehicleDriverCard({ booking }: { booking: BookingDetails }) {
   );
 }
 
-function Detail({ label, value }: { label: string; value: string }) {
+function Detail({
+  label,
+  value,
+  breakAll = false,
+}: {
+  label: string;
+  value: string;
+  breakAll?: boolean;
+}) {
+  // ``min-w-0`` + ``break-all`` lets long emails wrap inside their
+  // own column instead of pushing into the neighbouring field.
   return (
-    <div>
+    <div className="min-w-0">
       <div className="mb-[5px] text-[11px] text-faint">{label}</div>
-      <div className="text-[13.5px] font-semibold text-ink">{value}</div>
+      <div
+        className={`text-[13.5px] font-semibold text-ink ${breakAll ? 'break-all' : 'break-words'}`}
+      >
+        {value}
+      </div>
     </div>
   );
 }

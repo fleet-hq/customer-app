@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useTenant } from '@/lib/tenant-context';
 import { cn } from '@/lib/utils';
 import { DEMO_USER } from '@/lib/mock-data';
@@ -10,21 +11,56 @@ import { paths } from '@/lib/paths';
 import { BookmarkList, ChevronDown, Logout, User } from '@/components/ui/icons';
 
 interface HeaderProps {
+  /** Optional override; when omitted the active link is derived from
+   *  the current pathname so the header can live in the root layout
+   *  without each page passing the prop. */
   active?: string;
   signedIn?: boolean;
   userName?: string;
   userEmail?: string;
 }
 
+/** Match an admin-supplied nav link against the current pathname +
+ *  hash. Hash-anchor links (``/#about``) are only active when BOTH
+ *  the pathname matches AND the URL hash points at the same section —
+ *  otherwise every hash link on the homepage lights up at once. */
+function isLinkActive(href: string, pathname: string, hash: string): boolean {
+  const [rawBase, rawHash] = href.split('#');
+  const base = rawBase || '/';
+  if (rawHash !== undefined && rawHash.length > 0) {
+    // Hash anchor — must be on the matching page and have the
+    // matching hash currently selected.
+    if (base !== pathname) return false;
+    return `#${rawHash}` === hash;
+  }
+  if (base === '/') return pathname === '/' && hash === '';
+  return pathname === base || pathname.startsWith(`${base}/`);
+}
+
 export function Header({
-  active = '',
+  active,
   signedIn = false,
   userName = DEMO_USER.name,
   userEmail = DEMO_USER.email,
 }: HeaderProps) {
   const tenant = useTenant();
+  const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  // The browser owns the URL hash — Next's router doesn't expose it.
+  // We mirror it into state and resubscribe on hash + history changes
+  // so the active-nav highlight reflects what the user actually sees.
+  const [hash, setHash] = useState('');
+  useEffect(() => {
+    const sync = () => setHash(typeof window !== 'undefined' ? window.location.hash : '');
+    sync();
+    window.addEventListener('hashchange', sync);
+    window.addEventListener('popstate', sync);
+    return () => {
+      window.removeEventListener('hashchange', sync);
+      window.removeEventListener('popstate', sync);
+    };
+  }, [pathname]);
 
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
@@ -47,21 +83,32 @@ export function Header({
       <div className="mx-auto flex max-w-[1200px] items-center justify-between gap-6 px-6 py-[11px]">
         <div className="flex items-center gap-[34px]">
           <Link href={paths.home} className="flex flex-shrink-0 items-center">
-            <Image src={tenant.logo} alt={tenant.name} width={412} height={412} className="h-9 w-auto" priority />
+            {tenant.brand.logo ? (
+              <Image src={tenant.brand.logo} alt={tenant.name} width={412} height={412} className="h-9 w-auto" priority unoptimized />
+            ) : (
+              // No uploaded logo → render the tenant name as a wordmark
+              // instead of a bundled placeholder image.
+              <span className="text-[17px] font-semibold tracking-[-0.01em] text-ink">{tenant.name}</span>
+            )}
           </Link>
           <nav className="hidden items-center gap-6 min-[840px]:flex">
-            {tenant.navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={cn(
-                  'text-xs transition-colors',
-                  link.label === active ? 'font-semibold text-primary' : 'font-medium text-ink hover:text-primary',
-                )}
-              >
-                {link.label}
-              </Link>
-            ))}
+            {tenant.brand.navLinks.map((link) => {
+              const isActive = active
+                ? link.label === active
+                : isLinkActive(link.href, pathname ?? '/', hash);
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={cn(
+                    'text-xs transition-colors',
+                    isActive ? 'font-semibold text-primary' : 'font-medium text-ink hover:text-primary',
+                  )}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
           </nav>
         </div>
 

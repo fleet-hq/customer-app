@@ -3,8 +3,6 @@
 import { use, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Header } from '@/components/layout/header';
-import { Footer } from '@/components/layout/footer';
 import { BackLink } from '@/components/ui/back-link';
 import { TextInput, FieldError } from '@/components/ui/field';
 import { PhoneInput } from '@/components/ui/phone-input';
@@ -12,6 +10,8 @@ import { DateTimeField } from '@/components/search/date-time-field';
 import { Check, Info, Pencil, ImageIcon, Close, ChevronLeft, ChevronDown, ShieldCheck } from '@/components/ui/icons';
 import { DEFAULT_TRIP } from '@/lib/mock-data';
 import { useFleet, useInsuranceOptions, useStartBookingCheckout, useCompanyLocations, useFleetUnavailableRanges } from '@/hooks';
+import { useBookingInvoice } from '@/hooks/useBookingInvoice';
+import { useDefaultTaxProfile } from '@/hooks/useTaxProfiles';
 import { useBookingVerificationPolicy, useStartVerificationFirstBooking } from '@/hooks/useBookingPolicy';
 import { getBookingVerificationPolicy } from '@/services/bookingPolicyServices';
 import { useDefaultLocation } from '@/contexts';
@@ -137,6 +137,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   const { data: verificationPolicy } = useBookingVerificationPolicy();
   const startVerification = useStartVerificationFirstBooking();
   const { data: unavailableRanges = [] } = useFleetUnavailableRanges(carId);
+  const { data: defaultTaxProfile } = useDefaultTaxProfile();
   const unavailableDates = useMemo(() => computeUnavailableDates(unavailableRanges), [unavailableRanges]);
   const protectionRef = useRef<HTMLHeadingElement>(null);
 
@@ -156,24 +157,83 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   const [galleryIndex, setGalleryIndex] = useState(0);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [tripOpen, setTripOpen] = useState(false);
-  const [pickupLoc, setPickupLoc] = useState('');
+  const [pickupLocId, setPickupLocId] = useState<string | null>(null);
+  const [dropoffLocId, setDropoffLocId] = useState<string | null>(null);
   const [pickupDate, setPickupDate] = useState(DEFAULT_TRIP.pickupDate);
   const [pickupTime, setPickupTime] = useState(DEFAULT_TRIP.pickupTime);
   const [returnDate, setReturnDate] = useState(DEFAULT_TRIP.returnDate);
   const [returnTime, setReturnTime] = useState(DEFAULT_TRIP.returnTime);
 
   useEffect(() => {
-    if (pickupLoc || !companyLocations?.length) return;
-    const def = companyLocations.find((l) => String(l.id) === String(defaultLoc?.id)) ?? companyLocations[0];
-    setPickupLoc(def.name);
-  }, [companyLocations, defaultLoc, pickupLoc]);
+    if (pickupLocId || !companyLocations?.length) return;
+    const pickupLocs = companyLocations.filter((l) => l.type === 'pickup' || l.type === 'both');
+    const dropoffLocs = companyLocations.filter((l) => l.type === 'dropoff' || l.type === 'both');
+    const def =
+      pickupLocs.find((l) => String(l.id) === String(defaultLoc?.id)) ?? pickupLocs[0] ?? companyLocations[0];
+    setPickupLocId(String(def.id));
+    const dropDef =
+      dropoffLocs.find((l) => String(l.id) === String(def.id)) ?? dropoffLocs[0] ?? def;
+    setDropoffLocId(String(dropDef.id));
+  }, [companyLocations, defaultLoc, pickupLocId]);
+
+  const days = rentalDays(pickupDate, returnDate, pickupTime, returnTime);
+  const rentalHours = useMemo(() => {
+    const pickupMs = new Date(`${pickupDate}T${pickupTime || '00:00'}:00`).getTime();
+    const dropoffMs = new Date(`${returnDate}T${returnTime || '00:00'}:00`).getTime();
+    if (Number.isNaN(pickupMs) || Number.isNaN(dropoffMs)) return Math.max(1, days * 24);
+    return Math.max(1, Math.ceil((dropoffMs - pickupMs) / 3600000));
+  }, [pickupDate, pickupTime, returnDate, returnTime, days]);
+
+  const selectedExtras = useMemo<Record<string, { enabled: boolean; quantity: number }>>(() => {
+    const out: Record<string, { enabled: boolean; quantity: number }> = {};
+    Object.entries(extras).forEach(([id, qty]) => {
+      out[id] = { enabled: qty > 0, quantity: qty };
+    });
+    return out;
+  }, [extras]);
+
+  const vehicleData = useMemo(
+    () =>
+      vehicle
+        ? {
+            pricePerDay: vehicle.pricePerDay,
+            pricePerHour: vehicle.pricePerHour,
+            autoCapEnabled: vehicle.autoCapEnabled,
+            discounts: vehicle.discounts,
+            securityDeposit: vehicle.securityDeposit,
+            bookingFee: vehicle.bookingFee,
+            taxProfile: vehicle.taxProfile,
+            image: vehicle.images?.[0] ?? PLACEHOLDER_IMAGE,
+            name: vehicle.name,
+            licensePlate: vehicle.licensePlate,
+            description: vehicle.description ?? '',
+            extras: vehicle.extras ?? [],
+          }
+        : null,
+    [vehicle],
+  );
+
+  const { pricing, extraInvoiceItems, insuranceLabel } = useBookingInvoice({
+    vehicleData,
+    rentalDays: days,
+    rentalHours,
+    pickupDate,
+    dropoffDate: returnDate,
+    selectedInsurance,
+    insuranceOptions: insuranceOptions ?? [],
+    selectedExtras,
+    companyLocations: companyLocations ?? [],
+    pickupLocationId: pickupLocId,
+    dropoffLocationId: dropoffLocId,
+    appliedDiscount: promoApplied ? promoDiscount : 0,
+    discountCode: promoApplied ? promoCode : undefined,
+    defaultTaxProfile,
+  });
 
   if (isLoading) {
     return (
       <div className="flex min-h-screen flex-col bg-white text-ink">
-        <Header active="Fleet" />
         <div className="mx-auto flex w-full max-w-[1180px] flex-1 items-center justify-center px-6 py-24 text-center text-muted">Loading vehicle…</div>
-        <Footer />
       </div>
     );
   }
@@ -181,19 +241,15 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   if (!vehicle) {
     return (
       <div className="flex min-h-screen flex-col bg-white text-ink">
-        <Header active="Fleet" />
         <div className="mx-auto flex w-full max-w-[1180px] flex-1 flex-col items-center justify-center px-6 py-24 text-center text-muted">
           <div className="mb-4">
             <BackLink href={paths.fleet}>Back to fleet</BackLink>
           </div>
           Vehicle not found.
         </div>
-        <Footer />
       </div>
     );
   }
-
-  const days = rentalDays(pickupDate, returnDate, pickupTime, returnTime);
 
   const plans: InsuranceOption[] = insuranceOptions ?? [];
   const recommendedPlanId = (plans.find((p) => p.price > 0) ?? plans[0])?.id ?? null;
@@ -202,14 +258,8 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
 
   const galleryImages = vehicle.images.length > 0 ? vehicle.images : ['/images/car-cherokee.png'];
 
-  const rental = vehicle.pricePerDay * days;
-  const insuranceTotal = selectedPlans.reduce((s, p) => s + (p.totalPrice ?? p.price * days), 0);
-  const extrasTotal = vehicle.extras.reduce(
-    (s, x) => s + x.price * (extras[x.id] || 0) * (x.priceUnit === '/day' ? days : 1),
-    0,
-  );
-  const discount = promoApplied ? promoDiscount : 0;
-  const total = rental + insuranceTotal + extrasTotal - discount;
+  const discount = pricing.discount;
+  const total = pricing.total;
 
   const isInsuranceDisabled = (id: string) => id === 'sli' && !selectedInsurance.has('rcli');
   const toggleInsurance = (id: string) => {
@@ -266,18 +316,6 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
     if (!returnDate || d > returnDate) setReturnDate(d);
   };
 
-  const activeExtras = vehicle.extras
-    .filter((x) => (extras[x.id] || 0) > 0)
-    .map((x) => {
-      const c = extras[x.id];
-      const mult = x.priceUnit === '/day' ? days : 1;
-      return {
-        name: `${x.title} ×${c}`,
-        sub: `${money(x.price)}${x.priceUnit}${c > 1 ? ` × ${c}` : ''}`,
-        amount: money(x.price * c * mult),
-      };
-    });
-
   const validate = () => {
     const f = fields;
     const e: Partial<Record<keyof Fields, string>> = {};
@@ -302,7 +340,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
     }
 
     const hasLocations = (companyLocations?.length ?? 0) > 0;
-    if (hasLocations && !pickupLoc) {
+    if (hasLocations && !pickupLocId) {
       setCheckoutError('Please select a pickup location for your rental.');
       return;
     }
@@ -323,7 +361,8 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
       return;
     }
 
-    const locationId = Number(companyLocations?.find((l) => l.name === pickupLoc)?.id ?? defaultLoc?.id ?? 0);
+    const pickupLocationId = Number(pickupLocId ?? defaultLoc?.id ?? 0);
+    const dropoffLocationId = Number(dropoffLocId ?? pickupLocId ?? defaultLoc?.id ?? 0);
     const nameParts = fields.name.trim().split(/\s+/);
     const firstName = nameParts[0] ?? '';
     const lastName = nameParts.slice(1).join(' ') || '-';
@@ -349,8 +388,8 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
         email: fields.email.trim(),
         phone: fields.phone.trim().slice(0, 15),
         fleet_id: Number(vehicle.id),
-        pickup_location_id: locationId,
-        dropoff_location_id: locationId,
+        pickup_location_id: pickupLocationId,
+        dropoff_location_id: dropoffLocationId,
         pickup_datetime: pickupDatetime,
         dropoff_datetime: dropoffDatetime,
         insurance_selected: insuranceSelected,
@@ -387,8 +426,8 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
         },
         pickup_datetime: pickupDatetime,
         dropoff_datetime: dropoffDatetime,
-        pickup_location_id: locationId,
-        dropoff_location_id: locationId,
+        pickup_location_id: pickupLocationId,
+        dropoff_location_id: dropoffLocationId,
         insurance_selected: insuranceSelected,
         cdw_cover: selectedInsurance.has('cdw'),
         rcli_cover: selectedInsurance.has('rcli'),
@@ -414,10 +453,10 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
     try {
       const result = await validatePromoCode({
         code: c,
-        base_price: rental,
-        extras_price: insuranceTotal + extrasTotal,
-        fees: 0,
-        location_charges: 0,
+        base_price: pricing.subtotal - pricing.insuranceCost - pricing.extrasCost,
+        extras_price: pricing.insuranceCost + pricing.extrasCost,
+        fees: pricing.bookingFee,
+        location_charges: pricing.locationCharges,
       });
       if (result.valid && result.discount_amount) {
         setPromoApplied(true);
@@ -442,11 +481,18 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   };
 
   const hasErrors = Object.keys(errors).length > 0;
-  const pickupCity = pickupLoc.split(',')[0];
+  const locs = companyLocations ?? [];
+  const pickupLocations = locs.filter((l) => l.type === 'pickup' || l.type === 'both');
+  const dropoffLocations = locs.filter((l) => l.type === 'dropoff' || l.type === 'both');
+  const selectedPickup = locs.find((l) => String(l.id) === String(pickupLocId));
+  const selectedDropoff = locs.find((l) => String(l.id) === String(dropoffLocId));
+  const pickupCity = (selectedPickup?.name ?? '').split(',')[0];
+  const dropoffCity = (selectedDropoff?.name ?? selectedPickup?.name ?? '').split(',')[0];
+  const minTime = selectedPickup && !selectedPickup.is247 ? selectedPickup.openingTime : null;
+  const maxTime = selectedPickup && !selectedPickup.is247 ? selectedPickup.closingTime : null;
 
   return (
     <div className="bg-white text-ink">
-      <Header active="Fleet" />
       <div className="mx-auto max-w-[1180px] px-6 pt-[22px] pb-16">
         <div className="mb-4 flex items-center justify-between gap-4">
           <BackLink href={paths.fleet}>Back to fleet</BackLink>
@@ -714,7 +760,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               >
                 <div>
                   <div className="text-[10px] uppercase tracking-[0.03em] text-muted">Drop-off</div>
-                  <div className="mt-[2px] text-[12.5px] font-semibold text-secondary">{pickupCity} · {formatTripStamp(returnDate, returnTime)}</div>
+                  <div className="mt-[2px] text-[12.5px] font-semibold text-secondary">{dropoffCity} · {formatTripStamp(returnDate, returnTime)}</div>
                 </div>
                 <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary">
                   Edit <Pencil size={12} strokeWidth={2} />
@@ -743,14 +789,18 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
             <div className="flex items-start justify-between text-[13px]">
               <div>
                 <div className="font-medium text-ink">Car rental</div>
-                <div className="mt-px text-[11.5px] text-muted">{money(vehicle.pricePerDay)} × {days} days</div>
+                <div className="mt-px text-[11.5px] text-muted">
+                  {pricing.rateUnit === 'hour'
+                    ? `${money(vehicle.pricePerHour)} × ${rentalHours} ${rentalHours === 1 ? 'hour' : 'hours'}`
+                    : `${money(vehicle.pricePerDay)} × ${days} ${days === 1 ? 'day' : 'days'}`}
+                </div>
               </div>
-              <span className="font-medium text-ink">{money(rental)}</span>
+              <span className="font-medium text-ink">{money(pricing.subtotal - pricing.insuranceCost - pricing.extrasCost)}</span>
             </div>
             <div className="my-[14px] h-px bg-card-border" />
 
             <div className="mb-[11px] flex items-center justify-between">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-muted">Insurance</span>
+              <span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-muted">Insurance{insuranceLabel ? ` (${insuranceLabel})` : ''}</span>
               <span onClick={scrollProtection} className="cursor-pointer text-[11px] font-semibold text-primary">Change</span>
             </div>
             {selectedPlans.length > 0 ? (
@@ -774,15 +824,12 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
             <div className="my-[14px] h-px bg-card-border" />
 
             <div className="mb-[11px] text-[11px] font-semibold uppercase tracking-[0.05em] text-muted">Add-ons</div>
-            {activeExtras.length > 0 ? (
+            {extraInvoiceItems.length > 0 ? (
               <div className="flex flex-col gap-[10px]">
-                {activeExtras.map((a) => (
+                {extraInvoiceItems.map((a) => (
                   <div key={a.name} className="flex items-start justify-between text-[13px]">
-                    <div>
-                      <div className="font-medium text-ink">{a.name}</div>
-                      <div className="mt-px text-[11.5px] text-muted">{a.sub}</div>
-                    </div>
-                    <span className="font-medium text-ink">{a.amount}</span>
+                    <div className="font-medium text-ink">{a.name}</div>
+                    <span className="font-medium text-ink">{money(a.price)}</span>
                   </div>
                 ))}
               </div>
@@ -795,10 +842,34 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
             <div className="my-[14px] h-px bg-card-border" />
 
             <div className="mb-[11px] text-[11px] font-semibold uppercase tracking-[0.05em] text-muted">Discounts</div>
-            {promoApplied && (
+            {/* Duration-based fleet discount — shown when a daily,
+                weekly or hourly tier has fired. Distinct from the
+                promo-code row below so the customer sees exactly where
+                each saving comes from. */}
+            {pricing.fleetDiscount > 0 && pricing.fleetDiscountTier && (
               <div className="flex items-center justify-between text-[13px]">
                 <div className="flex items-center gap-[7px]">
-                  <span className="font-medium text-primary">Discount</span>
+                  <span className="font-medium text-primary">
+                    {pricing.fleetDiscountTier.unitType === 'week'
+                      ? 'Weekly discount'
+                      : pricing.fleetDiscountTier.unitType === 'hour'
+                        ? 'Hourly discount'
+                        : 'Long-rental discount'}
+                  </span>
+                  <span className="inline-flex items-center rounded-[5px] bg-primary-soft px-[7px] py-[2px] text-[10px] font-semibold text-primary">
+                    {pricing.fleetDiscountTier.percentage}% OFF
+                  </span>
+                </div>
+                <span className="font-semibold text-primary">−{money(pricing.fleetDiscount)}</span>
+              </div>
+            )}
+            {promoApplied && (
+              <div className={cn(
+                'flex items-center justify-between text-[13px]',
+                pricing.fleetDiscount > 0 ? 'mt-2' : '',
+              )}>
+                <div className="flex items-center gap-[7px]">
+                  <span className="font-medium text-primary">Promo</span>
                   <span className="inline-flex items-center gap-[5px] rounded-[5px] bg-primary-soft py-[2px] pl-[7px] pr-[5px] text-[10px] font-semibold text-primary">
                     {promoCode}
                     <span onClick={() => setPromoApplied(false)} className="cursor-pointer text-[11px] leading-none">
@@ -806,7 +877,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                     </span>
                   </span>
                 </div>
-                <span className="font-semibold text-primary">−{money(discount)}</span>
+                <span className="font-semibold text-primary">−{money(promoDiscount)}</span>
               </div>
             )}
             <div
@@ -835,10 +906,24 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
             {promoError && <FieldError>{promoError}</FieldError>}
             <div className="my-[14px] h-px bg-card-border" />
 
-            <div className="mb-[11px] text-[11px] font-semibold uppercase tracking-[0.05em] text-muted">Taxes &amp; fees</div>
-            <div className="flex items-center justify-between text-[13px]">
-              <span className="inline-flex items-center gap-[5px] text-muted">Sales tax &amp; surcharges</span>
-              <span className="font-medium text-ink">Included</span>
+            <div className="mb-[11px] text-[11px] font-semibold uppercase tracking-[0.05em] text-muted">Charges &amp; taxes</div>
+            <div className="flex flex-col gap-[10px] text-[13px]">
+              {pricing.locationCharges > 0 && (
+                <div className="flex items-center justify-between">
+                  <span className="text-muted">Location charges</span>
+                  <span className="font-medium text-ink">{money(pricing.locationCharges)}</span>
+                </div>
+              )}
+              {pricing.bookingFee > 0 && (
+                <div className="flex items-center justify-between">
+                  <span className="text-muted">Booking fees</span>
+                  <span className="font-medium text-ink">{money(pricing.bookingFee)}</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between">
+                <span className="text-muted">Tax</span>
+                <span className="font-medium text-ink">{money(pricing.tax)}</span>
+              </div>
             </div>
             <div className="my-4 h-px bg-card-border" />
 
@@ -857,6 +942,17 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                 <span className="text-[22px] font-bold text-secondary">{money(total)}</span>
               </div>
             </div>
+
+            {pricing.deposit > 0 && (
+              <>
+                <div className="my-4 h-px bg-card-border" />
+                <div className="flex items-center justify-between text-[13px]">
+                  <span className="font-semibold text-ink">Security deposit</span>
+                  <span className="font-semibold text-ink">{money(pricing.deposit)}</span>
+                </div>
+                <div className="mt-[6px] text-[11px] leading-[1.5] text-muted">Refundable hold, collected separately at pick-up.</div>
+              </>
+            )}
 
             {(hasErrors || checkoutError) && (
               <div className="mt-4 flex items-center gap-[7px] rounded-[9px] border border-danger-border bg-danger-bg px-3 py-[9px] text-[11.5px] leading-[1.4] text-danger-text">
@@ -917,8 +1013,6 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
           </div>
         </div>
       </div>
-      <Footer />
-
       {galleryOpen && (
         <div
           onClick={() => setGalleryOpen(false)}
@@ -998,13 +1092,35 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               <div>
                 <div className="mb-[7px] text-[11px] uppercase tracking-[0.03em] text-muted">Pick-up location</div>
                 <select
-                  value={pickupLoc}
-                  onChange={(e) => setPickupLoc(e.target.value)}
+                  value={pickupLocId ?? ''}
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    setPickupLocId(id);
+                    if (!dropoffLocId || dropoffLocId === pickupLocId) {
+                      const match = dropoffLocations.find((l) => String(l.id) === id);
+                      if (match) setDropoffLocId(id);
+                    }
+                  }}
                   className="h-[46px] w-full rounded-[10px] border border-line bg-white px-[14px] text-sm text-ink outline-none transition-colors focus:border-primary"
                 >
-                  {(companyLocations ?? []).length === 0 && <option value="">No locations available</option>}
-                  {(companyLocations ?? []).map((l) => (
-                    <option key={l.id} value={l.name}>
+                  {pickupLocations.length === 0 && <option value="">No locations available</option>}
+                  {pickupLocations.map((l) => (
+                    <option key={l.id} value={String(l.id)}>
+                      {l.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <div className="mb-[7px] text-[11px] uppercase tracking-[0.03em] text-muted">Drop-off location</div>
+                <select
+                  value={dropoffLocId ?? ''}
+                  onChange={(e) => setDropoffLocId(e.target.value)}
+                  className="h-[46px] w-full rounded-[10px] border border-line bg-white px-[14px] text-sm text-ink outline-none transition-colors focus:border-primary"
+                >
+                  {dropoffLocations.length === 0 && <option value="">No locations available</option>}
+                  {dropoffLocations.map((l) => (
+                    <option key={l.id} value={String(l.id)}>
                       {l.name}
                     </option>
                   ))}
@@ -1019,6 +1135,8 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                     onDate={handlePickupDate}
                     onTime={setPickupTime}
                     minDate={todayISO()}
+                    minTime={minTime}
+                    maxTime={maxTime}
                     unavailableDates={unavailableDates}
                     label="Pick-up"
                   />
@@ -1033,6 +1151,8 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                     onDate={setReturnDate}
                     onTime={setReturnTime}
                     minDate={pickupDate || todayISO()}
+                    minTime={minTime}
+                    maxTime={maxTime}
                     highlightDate={pickupDate}
                     unavailableDates={unavailableDates}
                     label="Return"

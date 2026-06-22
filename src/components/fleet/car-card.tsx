@@ -29,7 +29,7 @@ export function CarCard({ vehicle, badge, oldPrice }: CarCardProps) {
           style={{ backgroundImage: `url('${vehicle.image}')` }}
         />
         {badge && (
-          <span className="absolute top-3 left-3 rounded-full bg-primary px-[11px] py-[5px] text-[11px] font-semibold text-white">
+          <span className="absolute top-[10px] left-[10px] rounded-full bg-primary px-[8px] py-[3px] text-[9px] font-semibold tracking-[0.02em] text-white">
             {badge}
           </span>
         )}

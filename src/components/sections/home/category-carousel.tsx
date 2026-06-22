@@ -15,10 +15,13 @@ interface CategoryCarouselProps {
   eyebrow: string;
   title: string;
   description: string;
-  items: CategoryItem[];
+  /** Category cards. ``undefined`` / empty → the carousel renders
+   *  just the heading copy with no card row beneath it. */
+  items?: CategoryItem[];
 }
 
 export function CategoryCarousel({ eyebrow, title, description, items }: CategoryCarouselProps) {
+  const list = items ?? [];
   const ref = useRef<CarouselHandle>(null);
 
   return (
@@ -30,10 +33,13 @@ export function CategoryCarousel({ eyebrow, title, description, items }: Categor
             <h2 className="m-0 mb-[12px] text-[23px] font-semibold tracking-[-0.01em] text-ink">{title}</h2>
             <p className="m-0 text-[12px] leading-[1.7] text-muted">{description}</p>
           </div>
-          <CarouselArrows onPrev={() => ref.current?.scroll(-1)} onNext={() => ref.current?.scroll(1)} />
+          {list.length > 0 ? (
+            <CarouselArrows onPrev={() => ref.current?.scroll(-1)} onNext={() => ref.current?.scroll(1)} />
+          ) : null}
         </div>
+        {list.length > 0 ? (
         <Carousel ref={ref} className="mt-[30px] gap-[16px]">
-          {items.map((cat) => (
+          {list.map((cat) => (
             <Link
               key={cat.name}
               href={cat.href}
@@ -63,6 +69,7 @@ export function CategoryCarousel({ eyebrow, title, description, items }: Categor
             </Link>
           ))}
         </Carousel>
+        ) : null}
       </div>
     </section>
   );

@@ -6,6 +6,7 @@ import { paths } from '@/lib/paths';
 import { DEFAULT_TRIP } from '@/lib/mock-data';
 import { todayISO } from '@/lib/time-slots';
 import { useCompanyLocations } from '@/hooks';
+import { useFleetDiscountsSummary } from '@/hooks/useFleetDiscounts';
 import { cn, rentalDays } from '@/lib/utils';
 import { ArrowRight, Check, ChevronDown, MapPin, Search, Swap } from '@/components/ui/icons';
 import { DateTimeField } from './date-time-field';
@@ -13,12 +14,6 @@ import { DateTimeField } from './date-time-field';
 interface SearchBarProps {
   variant?: 'hero' | 'compact';
 }
-
-const DISCOUNT_TIERS = [
-  { minDays: 7, pct: 10 },
-  { minDays: 14, pct: 15 },
-  { minDays: 30, pct: 20 },
-];
 
 export function SearchBar({ variant = 'hero' }: SearchBarProps) {
   const router = useRouter();
@@ -66,21 +61,33 @@ export function SearchBar({ variant = 'hero' }: SearchBarProps) {
   }, [openLoc]);
 
   const days = rentalDays(pickupDate, returnDate, pickupTime, returnTime);
-  let curPct = 0;
-  for (const t of DISCOUNT_TIERS) if (days >= t.minDays) curPct = t.pct;
-  const next = DISCOUNT_TIERS.find((t) => t.minDays > days) ?? null;
-  const showDisc = !!next || curPct > 0;
+
+  // Weekly discount banner — every weekly tier has an implicit
+  // 1-week threshold (7 days), so the banner has two states:
+  //  • Picked < 7 days → "Add N more days to save X% per day."
+  //  • Picked ≥ 7 days → "You're getting our best weekly rate. X% off…"
+  // The headline percentage is the highest configured weekly tier.
+  const { data: discountsSummary } = useFleetDiscountsSummary();
+  const bestWeeklyPct = useMemo(() => {
+    const weekly = (discountsSummary?.tiers ?? []).filter(
+      (t) => t.unit_type === 'week',
+    );
+    return weekly.reduce((m, t) => (t.percentage > m ? t.percentage : m), 0);
+  }, [discountsSummary]);
+  const WEEK_DAYS = 7;
+  const earnedWeekly = bestWeeklyPct > 0 && days >= WEEK_DAYS;
+  const showDisc = bestWeeklyPct > 0;
   let discTitle = '';
   let discSub = '';
-  if (next) {
-    const d = next.minDays - days;
-    discTitle = `Add ${d} more ${d === 1 ? 'day' : 'days'} to save ${next.pct}% per day.`;
-    discSub = `Rent ${next.minDays}+ days and ${next.pct}% comes off the daily rate${
-      curPct > 0 ? ` — you're already saving ${curPct}%.` : '.'
-    }`;
-  } else if (curPct > 0) {
-    discTitle = "You're getting our best long-rental rate.";
-    discSub = `${curPct}% off the daily rate on this ${days}-day rental.`;
+  if (showDisc) {
+    if (earnedWeekly) {
+      discTitle = "You've unlocked our best weekly rate.";
+      discSub = `Up to ${bestWeeklyPct}% off the daily rate on this ${days}-day rental depending on the car you pick.`;
+    } else {
+      const d = WEEK_DAYS - days;
+      discTitle = `Add ${d} more ${d === 1 ? 'day' : 'days'} to save up to ${bestWeeklyPct}% per day.`;
+      discSub = `Rent 1+ weeks and up to ${bestWeeklyPct}% comes off the daily rate.`;
+    }
   }
 
   const goSearch = () => {

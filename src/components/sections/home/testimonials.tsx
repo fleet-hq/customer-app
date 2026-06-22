@@ -14,6 +14,9 @@ interface TestimonialsProps {
 }
 
 export function Testimonials({ eyebrow, title, items }: TestimonialsProps) {
+  // Hide the whole section until an admin adds at least one review —
+  // an empty grid looks broken on a marketing page.
+  if (!items || items.length === 0) return null;
   return (
     <section className="mx-auto max-w-[1200px] px-6 py-[72px]">
       <div className="mb-[44px] text-center">

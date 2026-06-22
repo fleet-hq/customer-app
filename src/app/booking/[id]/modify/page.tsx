@@ -3,8 +3,6 @@
 import { use, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import axios from 'axios';
-import { Header } from '@/components/layout/header';
-import { Footer } from '@/components/layout/footer';
 import { BackLink } from '@/components/ui/back-link';
 import { Field } from '@/components/ui/field';
 import { DateTimeField } from '@/components/search/date-time-field';
@@ -12,12 +10,24 @@ import { Calendar, Info } from '@/components/ui/icons';
 import { todayISO } from '@/lib/time-slots';
 import { paths } from '@/lib/paths';
 import { money } from '@/lib/utils';
-import { useBookingDetails, useFleetUnavailableRanges } from '@/hooks';
+import { useBookingDetails, useFleet, useFleetUnavailableRanges } from '@/hooks';
 import { useDefaultLocation } from '@/contexts';
 import { setBookingToken, getBookingTokenHeaders } from '@/utils/booking-token';
 import { toUtcIso, utcIsoToFormValues } from '@/utils/datetime';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+
+function Row({ label, value, muted, note }: { label: string; value: string; muted?: boolean; note?: string }) {
+  return (
+    <>
+      <div className="flex items-center justify-between text-[13px]">
+        <span className={muted ? 'text-muted' : 'text-secondary'}>{label}</span>
+        <span className={muted ? 'text-ink' : 'font-medium text-ink'}>{value}</span>
+      </div>
+      {note && <p className="mt-[2px] text-[10.5px] leading-[1.45] italic text-faint">{note}</p>}
+    </>
+  );
+}
 
 export default function ModifyTripPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -62,6 +72,26 @@ export default function ModifyTripPage({ params }: { params: Promise<{ id: strin
 
   const isOngoing = !!booking?.pickUp.rawDatetime
     && new Date(booking.pickUp.rawDatetime).getTime() <= Date.now();
+
+  const [debouncedPickup, setDebouncedPickup] = useState({ date: '', time: '' });
+  const [debouncedDropoff, setDebouncedDropoff] = useState({ date: '', time: '' });
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedPickup({ date: pickupDate, time: pickupTime });
+      setDebouncedDropoff({ date: returnDate, time: returnTime });
+    }, 350);
+    return () => clearTimeout(t);
+  }, [pickupDate, pickupTime, returnDate, returnTime]);
+
+  const fleetDateArgs = useMemo(() => {
+    if (!debouncedPickup.date || !debouncedDropoff.date || !tz) return undefined;
+    return {
+      pickupDatetime: toUtcIso(debouncedPickup.date, debouncedPickup.time || '00:00', tz),
+      dropoffDatetime: toUtcIso(debouncedDropoff.date, debouncedDropoff.time || '00:00', tz),
+    };
+  }, [debouncedPickup, debouncedDropoff, tz]);
+
+  const { data: fleet } = useFleet(booking?.fleetId, !!booking?.fleetId, fleetDateArgs);
 
   const handlePickupDate = (d: string) => {
     setPickupDate(d);
@@ -172,11 +202,9 @@ export default function ModifyTripPage({ params }: { params: Promise<{ id: strin
   if (isLoading) {
     return (
       <div className="flex min-h-screen flex-col bg-white text-ink">
-        <Header />
         <section className="mx-auto w-full max-w-[760px] flex-1 px-6 pt-20 text-center">
           <p className="text-muted">Loading...</p>
         </section>
-        <Footer />
       </div>
     );
   }
@@ -184,12 +212,10 @@ export default function ModifyTripPage({ params }: { params: Promise<{ id: strin
   if (isError || !booking) {
     return (
       <div className="flex min-h-screen flex-col bg-white text-ink">
-        <Header />
         <section className="mx-auto w-full max-w-[760px] flex-1 px-6 pt-20 text-center">
           <h1 className="text-2xl font-semibold text-ink">Booking not found</h1>
           <p className="mt-2 text-muted">The booking you are looking for does not exist.</p>
         </section>
-        <Footer />
       </div>
     );
   }
@@ -201,9 +227,24 @@ export default function ModifyTripPage({ params }: { params: Promise<{ id: strin
   const notAllowed = preview?.allowed === false;
   const changed = newTotal !== null && !notAllowed;
 
+  const nb = preview?.new_breakdown ?? null;
+  const num = (v: any) => (v != null ? parseFloat(v) || 0 : 0);
+  const newDays = preview?.new_days ?? null;
+  const unitLabel = booking.invoice.items[0]?.unit || 'day';
+  const nbBase = nb ? num(nb.base_price) : 0;
+  const nbDiscounted = nb ? num(nb.discounted_price || nb.base_price) : 0;
+  const nbFleetDiscount = Math.max(0, nbBase - nbDiscounted);
+  const nbLocation = nb ? num(nb.location_charges) : 0;
+  const nbFees = nb ? num(nb.fees) : 0;
+  const nbInsurance = nb ? num(nb.insurance) : 0;
+  const nbTax = nb ? num(nb.tax) : 0;
+  const extensionInsurance = num(preview?.extension_insurance);
+  const insuranceRefund = num(preview?.insurance_refund);
+  const insuranceExcluded = num(preview?.insurance_excluded);
+  const originalTotal = preview?.original_total != null ? num(preview.original_total) : currentTotal;
+
   return (
     <div className="flex min-h-screen flex-col bg-white text-ink">
-      <Header />
       <section className="mx-auto w-full max-w-[760px] flex-1 px-6 pt-[22px] pb-16">
         <BackLink href={`${paths.booking(id)}?token=${token || ''}`}>Back to booking</BackLink>
 
@@ -253,27 +294,99 @@ export default function ModifyTripPage({ params }: { params: Promise<{ id: strin
           </div>
         </div>
 
+        {(fleet?.isPeakPricing || fleet?.isPromoPricing) && changed && (
+          <div className="mt-[14px] space-y-2">
+            {fleet?.isPeakPricing && (
+              <p className="rounded-[10px] border border-amber-border bg-amber-bg px-[14px] py-[10px] text-[11.5px] leading-[1.5] text-amber-text">
+                Peak-day pricing is in effect for the selected dates.
+              </p>
+            )}
+            {fleet?.isPromoPricing && (
+              <p className="rounded-[10px] border border-green-border-2 bg-green-bg px-[14px] py-[10px] text-[11.5px] leading-[1.5] text-success">
+                Promo pricing is in effect for the selected dates.
+              </p>
+            )}
+          </div>
+        )}
+
         <div className="mt-[22px] rounded-2xl border border-card-border bg-subtle p-6">
           <div className="mb-[14px] flex items-center gap-2 text-sm font-semibold text-ink">
             <Calendar size={16} className="text-primary" /> Price difference
           </div>
 
-          <div className="flex items-center justify-between text-[13px]">
-            <span className="text-muted">Current total</span>
-            <span className="font-medium text-ink">{money(currentTotal)}</span>
-          </div>
-          <div className="mt-[10px] flex items-center justify-between text-[13px]">
-            <div>
-              <span className="text-muted">New total</span>
-              {newTotal !== null && (
-                <span className="ml-2 text-[11.5px] text-faint">
-                  {money(newTotal)}
-                  {modificationFee > 0 ? ` · incl. ${money(modificationFee)} fee` : ''}
-                </span>
+          {changed && nb ? (
+            <div className="space-y-[10px]">
+              {priceDiff >= 0 && nbFees === 0 ? (
+                <>
+                  <p className="text-[11px] font-medium uppercase tracking-[0.04em] text-faint">Extension charges</p>
+                  <Row
+                    label={`Additional rental${newDays != null ? ` (${newDays} ${unitLabel}${newDays === 1 ? '' : 's'})` : ''}`}
+                    value={money(nbBase)}
+                  />
+                  {nbTax > 0 && <Row label="Tax" value={money(nbTax)} />}
+                  {(extensionInsurance || nbInsurance) > 0 && (
+                    <Row label="Insurance (additional days)" value={money(extensionInsurance || nbInsurance)} />
+                  )}
+                </>
+              ) : (
+                <>
+                  <Row label="Rental total" value={money(nbBase)} />
+                  {nbFleetDiscount > 0 && <Row label="Fleet discount" value={`-${money(nbFleetDiscount)}`} />}
+                  {nbLocation > 0 && <Row label="Location charges" value={money(nbLocation)} />}
+                  {nbFees > 0 && <Row label="Booking fees" value={money(nbFees)} />}
+                  {nbInsurance > 0 && (
+                    <Row
+                      label="Insurance"
+                      value={money(nbInsurance)}
+                      note={extensionInsurance > 0 ? 'Premium is recalculated by your insurance provider for the new dates; you pay the difference between the original and the new premium.' : undefined}
+                    />
+                  )}
+                  {nbTax > 0 && <Row label="Tax" value={money(nbTax)} />}
+                </>
               )}
+
+              {priceDiff < 0 && (
+                <>
+                  {insuranceRefund > 0 && (
+                    <Row
+                      label="Insurance (refundable)"
+                      value={`+${money(insuranceRefund)}`}
+                      note="Premium is recalculated by your insurance provider for the new shorter dates; you're refunded the difference."
+                    />
+                  )}
+                  {insuranceExcluded > 0 && <Row label="Insurance (non-refundable)" value={`-${money(insuranceExcluded)}`} />}
+                </>
+              )}
+              {modificationFee > 0 && <Row label="Modification fee" value={`-${money(modificationFee)}`} />}
+
+              <div className="my-1 h-px bg-card-border" />
+              <Row label="Previous total" value={money(originalTotal)} muted />
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-ink">New total</span>
+                <span className="text-[17px] font-bold text-ink">{money(newTotal!)}</span>
+              </div>
             </div>
-            <span className="font-semibold text-secondary">{newTotal !== null ? money(newTotal) : '—'}</span>
-          </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between text-[13px]">
+                <span className="text-muted">Current total</span>
+                <span className="font-medium text-ink">{money(currentTotal)}</span>
+              </div>
+              <div className="mt-[10px] flex items-center justify-between text-[13px]">
+                <div>
+                  <span className="text-muted">New total</span>
+                  {newTotal !== null && (
+                    <span className="ml-2 text-[11.5px] text-faint">
+                      {money(newTotal)}
+                      {newDays != null ? ` · ${newDays} ${unitLabel}${newDays === 1 ? '' : 's'}` : ''}
+                      {modificationFee > 0 ? ` · incl. ${money(modificationFee)} fee` : ''}
+                    </span>
+                  )}
+                </div>
+                <span className="font-semibold text-secondary">{newTotal !== null ? money(newTotal) : '—'}</span>
+              </div>
+            </>
+          )}
 
           <div className="my-4 h-px bg-card-border" />
 
@@ -334,7 +447,6 @@ export default function ModifyTripPage({ params }: { params: Promise<{ id: strin
           </button>
         </div>
       </section>
-      <Footer />
     </div>
   );
 }
