@@ -93,21 +93,22 @@ export function FleetToolbar({
             )}
           </button>
           {open && (
-            <div className="absolute top-[calc(100%+8px)] right-0 z-40 w-[300px] rounded-[14px] border border-line bg-white p-4 shadow-[var(--shadow-pop)]">
+            <div className="fixed inset-x-0 bottom-0 z-40 max-h-[80vh] overflow-y-auto rounded-t-[14px] border border-line bg-white p-4 shadow-[var(--shadow-pop)] md:absolute md:inset-x-auto md:top-[calc(100%+8px)] md:bottom-auto md:right-0 md:max-h-none md:w-[300px] md:overflow-visible md:rounded-[14px]">
               <div className="mb-2 px-[3px] text-[10px] font-semibold tracking-[0.05em] text-faint uppercase">Sort by</div>
               <div className="-mx-1">
                 {sorts.map((s) => (
-                  <div
+                  <button
+                    type="button"
                     key={s}
                     onClick={() => onSort(s)}
                     className={cn(
-                      'flex cursor-pointer items-center justify-between rounded-lg px-[11px] py-[9px] text-[13px]',
+                      'flex w-full cursor-pointer items-center justify-between rounded-lg bg-transparent px-[11px] py-[9px] text-left text-[13px]',
                       s === sort ? 'bg-primary-soft font-semibold text-secondary' : 'text-label hover:bg-primary-soft hover:text-secondary',
                     )}
                   >
                     {s}
                     {s === sort && <Check size={14} className="text-primary" />}
-                  </div>
+                  </button>
                 ))}
               </div>
               <div className="my-4 h-px bg-line" />

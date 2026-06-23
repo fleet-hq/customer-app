@@ -176,7 +176,7 @@ export function DatePicker({
         aria-label="Choose date"
         style={dropdownStyle}
         className={cn(
-          'z-50 w-64 rounded-lg border border-line bg-white shadow-[var(--shadow-pop)] transition-all duration-200 ease-out',
+          'z-50 w-[280px] rounded-lg border border-line bg-white shadow-[var(--shadow-pop)] transition-all duration-200 ease-out sm:w-64',
           originClass,
           isOpen ? 'scale-y-100 opacity-100' : 'pointer-events-none scale-y-0 opacity-0',
         )}
@@ -232,7 +232,7 @@ export function DatePicker({
                 title={isBlocked ? 'Unavailable' : undefined}
                 onClick={() => handleSelect(dateStr)}
                 className={cn(
-                  'flex h-8 w-8 items-center justify-center rounded-md text-sm transition-colors',
+                  'flex h-10 w-10 items-center justify-center rounded-md text-sm transition-colors sm:h-8 sm:w-8',
                   selected && 'bg-primary font-medium text-white',
                   !selected && isHighlighted && 'bg-primary/10 font-medium text-primary ring-1 ring-primary/30',
                   !selected && !isHighlighted && isToday && !isBlocked && 'border border-primary font-medium text-primary',

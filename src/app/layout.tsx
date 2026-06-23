@@ -1,12 +1,15 @@
 import type { Metadata } from 'next';
+import { headers } from 'next/headers';
 import { Inter, Manrope } from 'next/font/google';
 import './globals.css';
-import { getCurrentTenant } from '@/lib/get-tenant';
+import { getCurrentTenant, TenantNotFoundError } from '@/lib/get-tenant';
 import { TenantProvider } from '@/lib/tenant-context';
 import { Providers } from './providers';
 import { CompanyProvider } from '@/contexts';
-import { Header } from '@/components/layout/header';
-import { Footer } from '@/components/layout/footer';
+import { LayoutChrome } from '@/components/layout/layout-chrome';
+import { ErrorBoundary } from '@/components/error-boundary';
+import { StripeProvider } from '@/components/stripe-provider';
+import { SetupInProgress } from '@/components/setup-in-progress';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -23,28 +26,43 @@ const manrope = Manrope({
 });
 
 export async function generateMetadata(): Promise<Metadata> {
-  const tenant = await getCurrentTenant();
-  // Favicon priority is color-logo first because browser tabs render
-  // on a light background; the mono variant is the dark-mode fallback.
-  // Apple-touch-icon uses the same source so iOS home-screen shortcuts
-  // match the brand without a separate upload.
-  const favicon = tenant.brand.logo || tenant.brand.logoMono;
-  return {
-    title: `${tenant.name} — Car Rentals`,
-    description: tenant.brand.description,
-    // Only emit icon metadata when the tenant has uploaded a logo —
-    // otherwise let the browser fall back to its own default rather
-    // than serving a broken/empty icon.
-    ...(favicon
-      ? { icons: { icon: favicon, shortcut: favicon, apple: favicon } }
-      : {}),
-  };
+  try {
+    const tenant = await getCurrentTenant();
+    const favicon = tenant.brand.logo || tenant.brand.logoMono;
+    return {
+      title: `${tenant.name} — Car Rentals`,
+      description: tenant.brand.description,
+      ...(favicon
+        ? { icons: { icon: favicon, shortcut: favicon, apple: favicon } }
+        : {}),
+    };
+  } catch (err) {
+    if (err instanceof TenantNotFoundError) {
+      return { title: 'Site setup in progress' };
+    }
+    throw err;
+  }
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const tenant = await getCurrentTenant();
-  const { theme } = tenant.brand;
+  let tenant;
+  try {
+    tenant = await getCurrentTenant();
+  } catch (err) {
+    if (err instanceof TenantNotFoundError) {
+      const host = (await headers()).get('host') ?? err.host;
+      return (
+        <html lang="en" className={`${inter.variable} ${manrope.variable}`}>
+          <body>
+            <SetupInProgress host={host} />
+          </body>
+        </html>
+      );
+    }
+    throw err;
+  }
 
+  const { theme } = tenant.brand;
   const brandVars = {
     '--color-primary': theme.primary,
     '--color-secondary': theme.secondary,
@@ -56,16 +74,21 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en" data-tenant={tenant.slug} style={brandVars} className={`${inter.variable} ${manrope.variable}`}>
       <body>
         <Providers>
-          <CompanyProvider>
-            <TenantProvider tenant={tenant}>
-              {/* Header + Footer live at the layout level so client-
-                  side navigation keeps them mounted. The logo image
-                  stops re-fetching on every route change. */}
-              <Header />
-              <main className="bg-white text-ink">{children}</main>
-              <Footer />
-            </TenantProvider>
-          </CompanyProvider>
+          {/* TenantProvider must wrap CompanyProvider. CompanyProvider
+              calls useCompanySettings which reads useTenant for the
+              per-tenant queryKey — inverting the order makes the
+              tenant context unmounted when CompanyProvider's first
+              render fires its hooks, throwing the runtime error
+              "useTenant must be used within a TenantProvider". */}
+          <TenantProvider tenant={tenant}>
+            <CompanyProvider>
+              <StripeProvider>
+                <LayoutChrome>
+                  <ErrorBoundary>{children}</ErrorBoundary>
+                </LayoutChrome>
+              </StripeProvider>
+            </CompanyProvider>
+          </TenantProvider>
         </Providers>
       </body>
     </html>

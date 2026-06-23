@@ -14,30 +14,23 @@ export function isDevelopment(): boolean {
   return true; // Assume development for SSR
 }
 
-/**
- * Get domain for API requests.
- * Uses NEXT_PUBLIC_DOMAIN if set, otherwise falls back to window.location.hostname
- */
-export function getDomain(): string | undefined {
-  // Always use configured domain if set (gives full control via env)
-  if (CONFIGURED_DOMAIN) {
-    return CONFIGURED_DOMAIN;
-  }
-  // Fall back to hostname in production
+// Resolve the domain for tenant-scoped API requests. Pass an explicit
+// override (e.g. `useTenant().domain`) on the client so we never pin
+// every request to the single NEXT_PUBLIC_DOMAIN env value when the
+// app is serving multiple tenants. Falls back to env / hostname for
+// callers that don't yet have a tenant in scope.
+export function getDomain(override?: string | null): string | undefined {
+  if (override) return override;
+  if (CONFIGURED_DOMAIN) return CONFIGURED_DOMAIN;
   if (typeof window !== 'undefined' && !isDevelopment()) {
     return window.location.hostname;
   }
   return undefined;
 }
 
-/**
- * Get domain params for public API requests.
- */
-export function getDomainParams(): Record<string, string> {
-  const domain = getDomain();
-  if (domain) {
-    return { domain };
-  }
+export function getDomainParams(override?: string | null): Record<string, string> {
+  const domain = getDomain(override);
+  if (domain) return { domain };
   return {};
 }
 

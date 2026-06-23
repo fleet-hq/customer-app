@@ -13,6 +13,8 @@ export interface ApiLocation {
   is_default?: boolean;
   type?: string;
   price?: number | string;
+  pickup_fee?: number | string;
+  dropoff_fee?: number | string;
   is_active?: boolean;
   is_24_7?: boolean;
   opening_time?: string | null;
@@ -30,6 +32,8 @@ export interface Location {
   isDefault: boolean;
   type: 'pickup' | 'dropoff' | 'both';
   price: number;
+  pickupFee: number;
+  dropoffFee: number;
   is247: boolean;
   openingTime: string | null;
   closingTime: string | null;
@@ -54,6 +58,8 @@ function transformLocation(api: ApiLocation): Location {
     isDefault: api.is_default ?? false,
     type: mapLocationType(api.type),
     price: Number(api.price) || 0,
+    pickupFee: Number(api.pickup_fee) || 0,
+    dropoffFee: Number(api.dropoff_fee) || 0,
     is247: !!api.is_24_7,
     openingTime: api.opening_time ?? null,
     closingTime: api.closing_time ?? null,
@@ -62,9 +68,9 @@ function transformLocation(api: ApiLocation): Location {
 }
 
 // Fetch all company locations (public endpoint)
-export async function getCompanyLocations(): Promise<Location[]> {
+export async function getCompanyLocations(domain?: string | null): Promise<Location[]> {
   try {
-    const domainParams = getDomainParams();
+    const domainParams = getDomainParams(domain);
     const res = await axios.get<ApiLocation[] | { results: ApiLocation[] }>(
       `${API_URL}/api/companies/public/locations/`,
       {

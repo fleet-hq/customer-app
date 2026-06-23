@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import axios from 'axios';
 import { BackLink } from '@/components/ui/back-link';
+import { PageLoading } from '@/components/ui/page-loading';
 import { ArrowRight, Check, Close, Info } from '@/components/ui/icons';
 import { getBookingById, type BookingDetails } from '@/services/bookingServices';
 import { setBookingToken, getBookingTokenHeaders } from '@/utils/booking-token';
@@ -87,9 +88,7 @@ export default function CancelBookingPage({ params }: { params: Promise<{ id: st
   if (loading) {
     return (
       <div className="flex min-h-screen flex-col bg-white text-ink">
-        <section className="mx-auto flex w-full max-w-[640px] flex-1 items-center justify-center px-6 pt-[22px] pb-16">
-          <p className="text-muted">Loading...</p>
-        </section>
+        <PageLoading />
       </div>
     );
   }

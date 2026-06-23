@@ -15,8 +15,8 @@ export interface BookingVerificationPolicy {
   hold_expiry_unit: BookingHoldUnit;
 }
 
-export async function getBookingVerificationPolicy(): Promise<BookingVerificationPolicy> {
-  const domainParams = getDomainParams();
+export async function getBookingVerificationPolicy(domain?: string | null): Promise<BookingVerificationPolicy> {
+  const domainParams = getDomainParams(domain);
   const res = await axios.get<BookingVerificationPolicy>(
     `${API_URL}/api/companies/public/booking-verification-policy/`,
     { params: domainParams, headers: { 'Content-Type': 'application/json' } },

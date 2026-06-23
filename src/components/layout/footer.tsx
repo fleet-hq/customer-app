@@ -16,7 +16,7 @@ export function Footer() {
   const socials = footer.socials;
 
   return (
-    <footer className="w-full bg-secondary text-white">
+    <footer className="no-print w-full bg-secondary text-white">
       <div className="mx-auto max-w-[1200px] px-6 pt-[60px] pb-[26px]">
         <div className="grid grid-cols-1 gap-12 md:grid-cols-[2fr_1fr_1.4fr]">
           <div className="max-w-[340px]">

@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
+import { Suspense, use, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { BackLink } from '@/components/ui/back-link';
 import { BookingActions } from '@/components/booking/booking-chrome';
@@ -15,7 +15,7 @@ import {
 } from '@/services/billingServices';
 import { setBookingToken } from '@/utils/booking-token';
 import { paths } from '@/lib/paths';
-import { cn, money, formatLongDate } from '@/lib/utils';
+import { cn, money } from '@/lib/utils';
 
 const CHARGE_TYPE_LABELS: Record<string, string> = {
   booking_fee: 'Booking',
@@ -74,6 +74,25 @@ function ChargeRow({ charge }: { charge: BillingChargeRow }) {
       </div>
       <p className="shrink-0 text-[13.5px] font-semibold text-ink tabular-nums">
         {money(Number(charge.amount))}
+      </p>
+    </div>
+  );
+}
+
+function SyntheticBookingRow({ amount, bookedOn }: { amount: number; bookedOn: string }) {
+  return (
+    <div className="flex items-center justify-between gap-4 px-5 py-[14px]">
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="truncate text-[13.5px] font-semibold text-ink">Booking</p>
+          <span className="inline-flex items-center rounded-full bg-green-bg-2 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-success">
+            Paid
+          </span>
+        </div>
+        {bookedOn ? <p className="mt-0.5 text-[11px] text-faint">{bookedOn}</p> : null}
+      </div>
+      <p className="shrink-0 text-[13.5px] font-semibold text-ink tabular-nums">
+        {money(amount)}
       </p>
     </div>
   );
@@ -144,8 +163,7 @@ function TotalRow({
   );
 }
 
-export default function PaymentPendingPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+function PayBookingPageInner({ bookingId }: { bookingId: string }) {
   const token = useSearchParams().get('token');
   const [tokenReady, setTokenReady] = useState(!token);
 
@@ -156,9 +174,9 @@ export default function PaymentPendingPage({ params }: { params: Promise<{ id: s
     }
   }, [token]);
 
-  const fetchId = tokenReady ? id : undefined;
+  const fetchId = tokenReady ? bookingId : undefined;
   const { data: booking, isLoading, isError } = useBookingDetails(fetchId);
-  const { data: balance, isLoading: balanceLoading } = useBookingBalance(!!fetchId, id);
+  const { data: balance, isLoading: balanceLoading } = useBookingBalance(!!fetchId, bookingId);
 
   const [payLoading, setPayLoading] = useState(false);
   const handlePay = async () => {
@@ -168,8 +186,8 @@ export default function PaymentPendingPage({ params }: { params: Promise<{ id: s
       const origin = typeof window !== 'undefined' ? window.location.origin : '';
       const suffix = token ? `?token=${token}` : '';
       const result = await createBillingCheckoutSession({
-        successUrl: `${origin}/booking/${id}${suffix}`,
-        cancelUrl: `${origin}/booking/${id}/payment-pending${suffix}`,
+        successUrl: `${origin}/booking/${bookingId}${suffix}`,
+        cancelUrl: `${origin}/pay/booking/${bookingId}${suffix}`,
       });
       window.location.href = result.checkout_url;
     } catch {
@@ -218,12 +236,23 @@ export default function PaymentPendingPage({ params }: { params: Promise<{ id: s
   const settledCharges = charges.filter(
     (c) => !c.is_voided && (c.status === 'paid' || c.status === 'refunded' || c.status === 'partially_refunded'),
   );
-  const hasHistory = payments.length > 0 || refunds.length > 0 || settledCharges.length > 0;
+
+  const ledgerHasBookingFee = charges.some((c) => c.type === 'booking_fee');
+  const syntheticBookingTotal = Number(booking.invoice?.total ?? 0);
+  const bookingActuallyPaid = booking.paymentStatus === 'paid';
+  const showSyntheticBooking =
+    !ledgerHasBookingFee && syntheticBookingTotal > 0 && bookingActuallyPaid;
+
+  const hasHistory =
+    showSyntheticBooking || payments.length > 0 || refunds.length > 0 || settledCharges.length > 0;
+
+  const displayTotalCharged = totalCharged + (showSyntheticBooking ? syntheticBookingTotal : 0);
+  const displayTotalPaid = totalPaid + (showSyntheticBooking ? syntheticBookingTotal : 0);
 
   return (
     <div className="flex min-h-screen flex-col bg-white text-ink">
       <div className="mx-auto w-full max-w-[1140px] flex-1 px-6 pt-[22px] pb-16">
-        <BackLink href={token ? `${paths.booking(id)}?token=${token}` : paths.booking(id)}>
+        <BackLink href={token ? `${paths.booking(bookingId)}?token=${token}` : paths.booking(bookingId)}>
           Back to booking
         </BackLink>
 
@@ -231,7 +260,7 @@ export default function PaymentPendingPage({ params }: { params: Promise<{ id: s
           <h1 className="text-2xl font-semibold tracking-[-0.01em] text-ink">
             Booking <span className="text-secondary">#{booking.invoice.number}</span>
           </h1>
-          <BookingActions bookingId={id} token={token} />
+          <BookingActions bookingId={bookingId} token={token} />
         </div>
 
         <div className="mt-[22px] grid grid-cols-1 items-start gap-[22px] min-[900px]:grid-cols-[1.5fr_1fr]">
@@ -258,6 +287,9 @@ export default function PaymentPendingPage({ params }: { params: Promise<{ id: s
                   <h2 className="text-[15px] font-semibold text-secondary">Payment history</h2>
                 </div>
                 <div className="divide-y divide-hairline">
+                  {showSyntheticBooking && (
+                    <SyntheticBookingRow amount={syntheticBookingTotal} bookedOn={booking.bookedOn ?? ''} />
+                  )}
                   {settledCharges.map((c) => (
                     <ChargeRow key={c.id} charge={c} />
                   ))}
@@ -321,8 +353,8 @@ export default function PaymentPendingPage({ params }: { params: Promise<{ id: s
             <section className="rounded-[14px] border border-card-border bg-white p-5">
               <h2 className="text-[15px] font-semibold text-secondary">Summary</h2>
               <div className="mt-3">
-                <TotalRow label="Total charged" value={money(totalCharged)} />
-                <TotalRow label="Total paid" value={money(totalPaid)} />
+                <TotalRow label="Total charged" value={money(displayTotalCharged)} />
+                <TotalRow label="Total paid" value={money(displayTotalPaid)} />
                 <div className="mt-2 border-t border-hairline pt-3">
                   <TotalRow
                     label="Outstanding balance"
@@ -337,5 +369,14 @@ export default function PaymentPendingPage({ params }: { params: Promise<{ id: s
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PayBookingPage({ params }: { params: Promise<{ bookingId: string }> }) {
+  const { bookingId } = use(params);
+  return (
+    <Suspense fallback={null}>
+      <PayBookingPageInner bookingId={bookingId} />
+    </Suspense>
   );
 }

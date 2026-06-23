@@ -1,6 +1,6 @@
 'use client';
 
-import { forwardRef } from 'react';
+import { forwardRef, useId, cloneElement, isValidElement, type ReactElement } from 'react';
 import { cn } from '@/lib/utils';
 import { Info } from '@/components/ui/icons';
 
@@ -39,10 +39,23 @@ export function Field({
   children: React.ReactNode;
   className?: string;
 }) {
+  const reactId = useId();
+  let control = children;
+  let inputId: string | undefined;
+  if (isValidElement(children)) {
+    const child = children as ReactElement<{ id?: string }>;
+    inputId = child.props.id ?? reactId;
+    if (!child.props.id) {
+      control = cloneElement(child, { id: inputId });
+    }
+  }
+
   return (
     <div className={className}>
-      <label className="mb-[7px] block text-xs font-medium text-label">{label}</label>
-      {children}
+      <label htmlFor={inputId} className="mb-[7px] block text-xs font-medium text-label">
+        {label}
+      </label>
+      {control}
       {error && <FieldError>{error}</FieldError>}
     </div>
   );

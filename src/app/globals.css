@@ -90,3 +90,33 @@ textarea::placeholder {
 .tabular {
   font-variant-numeric: tabular-nums;
 }
+
+/* Print stylesheet — drives the "Download PDF" flow on the booking
+ * detail page (the Download button calls window.print()). Anything
+ * tagged ``.no-print`` is hidden: site header / footer, search bar,
+ * action buttons, modals. Backgrounds + shadows are flattened so the
+ * receipt prints as plain content. */
+@media print {
+  header.no-print,
+  footer.no-print,
+  .no-print,
+  .no-print * {
+    display: none !important;
+  }
+  html,
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+  a {
+    text-decoration: none !important;
+    color: inherit !important;
+  }
+  .print-keep-together {
+    break-inside: avoid;
+  }
+}

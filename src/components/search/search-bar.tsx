@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { paths } from '@/lib/paths';
 import { DEFAULT_TRIP } from '@/lib/mock-data';
 import { todayISO } from '@/lib/time-slots';
@@ -17,6 +17,7 @@ interface SearchBarProps {
 
 export function SearchBar({ variant = 'hero' }: SearchBarProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const rootRef = useRef<HTMLDivElement>(null);
 
   const { data: apiLocations } = useCompanyLocations();
@@ -29,21 +30,26 @@ export function SearchBar({ variant = 'hero' }: SearchBarProps) {
     [apiLocations],
   );
 
-  const [pickupCity, setPickupCity] = useState('');
-  const [dropCity, setDropCity] = useState('');
-  const [pickupDate, setPickupDate] = useState(DEFAULT_TRIP.pickupDate);
-  const [returnDate, setReturnDate] = useState(DEFAULT_TRIP.returnDate);
-  const [pickupTime, setPickupTime] = useState(DEFAULT_TRIP.pickupTime);
-  const [returnTime, setReturnTime] = useState(DEFAULT_TRIP.returnTime);
-  const [diffLocation, setDiffLocation] = useState(false);
+  const [pickupLocId, setPickupLocId] = useState<string>(() => searchParams.get('pickupLocId') ?? '');
+  const [dropLocId, setDropLocId] = useState<string>(() => searchParams.get('dropoffLocId') ?? '');
+  const [pickupDate, setPickupDate] = useState(() => searchParams.get('pickupDate') ?? DEFAULT_TRIP.pickupDate);
+  const [returnDate, setReturnDate] = useState(() => searchParams.get('returnDate') ?? DEFAULT_TRIP.returnDate);
+  const [pickupTime, setPickupTime] = useState(() => searchParams.get('pickupTime') ?? DEFAULT_TRIP.pickupTime);
+  const [returnTime, setReturnTime] = useState(() => searchParams.get('returnTime') ?? DEFAULT_TRIP.returnTime);
+  const [diffLocation, setDiffLocation] = useState(() => {
+    const drop = searchParams.get('dropoffLocId');
+    const pick = searchParams.get('pickupLocId');
+    return !!drop && drop !== pick;
+  });
   const [openLoc, setOpenLoc] = useState<null | 'pickup' | 'drop'>(null);
 
   useEffect(() => {
-    if (pickupLocations.length && !pickupCity) setPickupCity(pickupLocations[0].name);
-    if (dropoffLocations.length && !dropCity) setDropCity(dropoffLocations[0].name);
-  }, [pickupLocations, dropoffLocations, pickupCity, dropCity]);
+    if (pickupLocations.length && !pickupLocId) setPickupLocId(pickupLocations[0].id);
+    if (dropoffLocations.length && !dropLocId) setDropLocId(dropoffLocations[0].id);
+  }, [pickupLocations, dropoffLocations, pickupLocId, dropLocId]);
 
-  const selectedPickup = pickupLocations.find((l) => l.name === pickupCity);
+  const selectedPickup = pickupLocations.find((l) => l.id === pickupLocId);
+  const selectedDrop = dropoffLocations.find((l) => l.id === dropLocId);
   const minTime = selectedPickup && !selectedPickup.is247 ? selectedPickup.openingTime : null;
   const maxTime = selectedPickup && !selectedPickup.is247 ? selectedPickup.closingTime : null;
 
@@ -91,9 +97,11 @@ export function SearchBar({ variant = 'hero' }: SearchBarProps) {
   }
 
   const goSearch = () => {
-    const params = new URLSearchParams();
-    if (pickupCity) params.set('pickupLocation', pickupCity);
-    if (diffLocation && dropCity) params.set('dropoffLocation', dropCity);
+    const params = new URLSearchParams(searchParams.toString());
+    if (pickupLocId) params.set('pickupLocId', pickupLocId);
+    else params.delete('pickupLocId');
+    if (diffLocation && dropLocId) params.set('dropoffLocId', dropLocId);
+    else params.delete('dropoffLocId');
     params.set('pickupDate', pickupDate);
     params.set('pickupTime', pickupTime);
     params.set('returnDate', returnDate);
@@ -102,7 +110,8 @@ export function SearchBar({ variant = 'hero' }: SearchBarProps) {
   };
 
   const LocationField = ({ which }: { which: 'pickup' | 'drop' }) => {
-    const value = which === 'pickup' ? pickupCity : dropCity;
+    const selected = which === 'pickup' ? selectedPickup : selectedDrop;
+    const value = selected?.name ?? '';
     const list = which === 'pickup' ? pickupLocations : dropoffLocations;
     const open = openLoc === which;
     return (
@@ -110,36 +119,42 @@ export function SearchBar({ variant = 'hero' }: SearchBarProps) {
         <div className="mb-[6px] text-[10px] tracking-[0.03em] text-faint uppercase">
           {which === 'pickup' ? 'Pick-up' : 'Drop-off'}
         </div>
-        <div
+        <button
+          type="button"
           onClick={() => setOpenLoc(open ? null : which)}
-          className="flex cursor-pointer items-center gap-[9px]"
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          className="flex w-full cursor-pointer items-center gap-[9px] bg-transparent text-left"
         >
           <MapPin size={16} className="flex-shrink-0 text-primary" />
           <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink">
             {value || <span className="text-placeholder">Select location</span>}
           </span>
           <ChevronDown size={13} className="flex-shrink-0 text-faint" />
-        </div>
+        </button>
         {open && (
-          <div className="absolute top-full right-0 left-0 z-40 mt-[10px] max-h-[260px] overflow-y-auto rounded-[11px] border border-line bg-white p-[6px] shadow-[var(--shadow-pop)]">
+          <div role="listbox" className="absolute top-full right-0 left-0 z-40 mt-[10px] max-h-[260px] overflow-y-auto rounded-[11px] border border-line bg-white p-[6px] shadow-[var(--shadow-pop)]">
             {list.length === 0 ? (
               <div className="px-[11px] py-[10px] text-[13px] text-faint">No locations available</div>
             ) : (
               list.map((loc) => (
-                <div
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={loc.id === (which === 'pickup' ? pickupLocId : dropLocId)}
                   key={loc.id}
                   onClick={() => {
-                    which === 'pickup' ? setPickupCity(loc.name) : setDropCity(loc.name);
+                    which === 'pickup' ? setPickupLocId(loc.id) : setDropLocId(loc.id);
                     setOpenLoc(null);
                   }}
-                  className="flex cursor-pointer items-start gap-[9px] rounded-lg px-[11px] py-[10px] text-[13.5px] whitespace-nowrap text-label hover:bg-primary-soft hover:text-secondary"
+                  className="flex w-full cursor-pointer items-start gap-[9px] rounded-lg px-[11px] py-[10px] text-left text-[13.5px] whitespace-nowrap text-label hover:bg-primary-soft hover:text-secondary"
                 >
                   <MapPin size={15} className="mt-px flex-shrink-0 text-primary" />
                   <span className="min-w-0">
                     <span className="block truncate">{loc.name}</span>
                     {loc.address && <span className="block truncate text-[11.5px] text-faint">{loc.address}</span>}
                   </span>
-                </div>
+                </button>
               ))
             )}
           </div>
@@ -163,16 +178,18 @@ export function SearchBar({ variant = 'hero' }: SearchBarProps) {
                   : 'hidden overflow-hidden opacity-0 md:flex md:max-w-0 md:flex-[0_0_0px] md:gap-0 md:opacity-0 pointer-events-none',
               )}
             >
-              <div
+              <button
+                type="button"
                 onClick={() => {
-                  setPickupCity(dropCity);
-                  setDropCity(pickupCity);
+                  setPickupLocId(dropLocId);
+                  setDropLocId(pickupLocId);
                 }}
                 title="Swap locations"
-                className="flex flex-shrink-0 cursor-pointer items-center justify-center p-1 text-primary"
+                aria-label="Swap locations"
+                className="flex flex-shrink-0 cursor-pointer items-center justify-center bg-transparent p-1 text-primary"
               >
                 <Swap size={16} />
-              </div>
+              </button>
               <LocationField which="drop" />
             </div>
             <div className="mx-[9px] hidden h-[38px] w-px flex-shrink-0 bg-line md:block" />
@@ -250,16 +267,18 @@ export function SearchBar({ variant = 'hero' }: SearchBarProps) {
                 : 'hidden overflow-hidden opacity-0 md:flex md:max-w-0 md:flex-[0_0_0px] md:gap-0 md:opacity-0 pointer-events-none',
             )}
           >
-            <div
+            <button
+              type="button"
               onClick={() => {
-                setPickupCity(dropCity);
-                setDropCity(pickupCity);
+                setPickupLocId(dropLocId);
+                setDropLocId(pickupLocId);
               }}
               title="Swap locations"
-              className="flex flex-shrink-0 cursor-pointer items-center justify-center p-1 text-primary"
+              aria-label="Swap locations"
+              className="flex flex-shrink-0 cursor-pointer items-center justify-center bg-transparent p-1 text-primary"
             >
               <Swap size={18} />
-            </div>
+            </button>
             <LocationField which="drop" />
           </div>
           <div className="mx-3 hidden h-[44px] w-px flex-shrink-0 bg-line md:block" />

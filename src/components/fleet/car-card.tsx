@@ -7,9 +7,10 @@ interface CarCardProps {
   vehicle: Vehicle;
   badge?: string;
   oldPrice?: number;
+  bookingQuery?: string;
 }
 
-export function CarCard({ vehicle, badge, oldPrice }: CarCardProps) {
+export function CarCard({ vehicle, badge, oldPrice, bookingQuery }: CarCardProps) {
   const specs = [
     vehicle.seats ? `${vehicle.seats} Seats` : null,
     vehicle.transmission,
@@ -18,9 +19,13 @@ export function CarCard({ vehicle, badge, oldPrice }: CarCardProps) {
     .filter(Boolean)
     .join(' · ');
 
+  const href = bookingQuery
+    ? `${paths.checkout(vehicle.id)}?${bookingQuery}`
+    : paths.checkout(vehicle.id);
+
   return (
     <Link
-      href={paths.checkout(vehicle.id)}
+      href={href}
       className="group flex flex-col overflow-hidden rounded-[16px] border border-card-border bg-white transition-shadow hover:shadow-[var(--shadow-card)]"
     >
       <div className="relative aspect-[16/11] overflow-hidden">

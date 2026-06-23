@@ -439,9 +439,9 @@ function transformDefaultLocation(
   };
 }
 
-export async function getCompanySettings(): Promise<CompanySettings> {
+export async function getCompanySettings(domain?: string | null): Promise<CompanySettings> {
   try {
-    const domainParams = getDomainParams();
+    const domainParams = getDomainParams(domain);
     const res = await axios.get<{
       name?: string;
       address?: string;
@@ -482,8 +482,8 @@ export interface AgreementTemplate {
   clauses: { id: number; title: string; content: string }[];
 }
 
-export async function getDefaultAgreementTemplate(): Promise<AgreementTemplate | null> {
-  const domainParams = getDomainParams();
+export async function getDefaultAgreementTemplate(domain?: string | null): Promise<AgreementTemplate | null> {
+  const domainParams = getDomainParams(domain);
 
   if (Object.keys(domainParams).length === 0) {
     return null;

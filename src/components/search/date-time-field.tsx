@@ -14,6 +14,10 @@ interface DateTimeFieldProps {
   unavailableDates?: string[];
   minTime?: string | null;
   maxTime?: string | null;
+  /** Disabled "HH:mm" slots for the currently selected ``date``.
+   *  Lets parents block the hours of an existing booking inside an
+   *  otherwise-available day. */
+  disabledSlots?: string[];
   compact?: boolean;
   label?: string;
 }
@@ -28,6 +32,7 @@ export function DateTimeField({
   unavailableDates,
   minTime,
   maxTime,
+  disabledSlots,
   compact,
   label,
 }: DateTimeFieldProps) {
@@ -50,6 +55,7 @@ export function DateTimeField({
         onChange={onTime}
         minTime={minTime}
         maxTime={maxTime}
+        disabledSlots={disabledSlots}
         className="min-w-0 flex-1"
         aria-label={label ? `${label} time` : 'Time'}
         icon={<ClockFace size={iconSize} className="flex-shrink-0 text-primary" />}

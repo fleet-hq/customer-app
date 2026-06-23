@@ -41,7 +41,7 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
   const fetchId = tokenReady ? id : undefined;
 
   const { data: booking, isLoading, isError } = useBookingDetails(fetchId);
-  const { data: balance } = useBookingBalance(!!fetchId);
+  const { data: balance } = useBookingBalance(!!fetchId, id);
   const { data: bookingImages = [] } = useBookingImages(fetchId);
   const { data: verificationStatus } = useVerificationStatus(fetchId);
 

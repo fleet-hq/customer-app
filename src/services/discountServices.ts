@@ -20,8 +20,8 @@ export interface FleetDiscountsSummary {
   tiers: FleetDiscountTier[];
 }
 
-export async function getFleetDiscountsSummary(): Promise<FleetDiscountsSummary> {
-  const domainParams = getDomainParams();
+export async function getFleetDiscountsSummary(domain?: string | null): Promise<FleetDiscountsSummary> {
+  const domainParams = getDomainParams(domain);
   const res = await axios.get<FleetDiscountsSummary>(
     `${API_URL}/api/fleets/public/discounts-summary/`,
     { params: domainParams, headers: { 'Content-Type': 'application/json' } },

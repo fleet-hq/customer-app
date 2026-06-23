@@ -8,7 +8,7 @@ import { FleetToolbar } from '@/components/fleet/fleet-toolbar';
 import { FleetPagination } from '@/components/fleet/fleet-pagination';
 import { INITIAL_FILTERS, activeFilterCount, type FilterState } from '@/components/fleet/fleet-filters';
 import { useTenant } from '@/lib/tenant-context';
-import { useFleets, useFleetAvailability } from '@/hooks';
+import { useFleets, useFleetAvailability, useCompanyLocations } from '@/hooks';
 import { useDefaultLocation } from '@/contexts';
 import { toUtcIso } from '@/utils/datetime';
 import { paths } from '@/lib/paths';
@@ -61,8 +61,26 @@ export default function FleetPage() {
   }, [searchInput]);
 
   const { data, isLoading, isError } = useFleets(page, search, PAGE_SIZE);
+  const { data: companyLocations } = useCompanyLocations();
 
   const tz = useDefaultLocation()?.timezone ?? null;
+
+  const bookingQuery = useMemo(() => {
+    const params = new URLSearchParams();
+    ['pickupDate', 'pickupTime', 'returnDate', 'returnTime', 'pickupLocId', 'dropoffLocId'].forEach((key) => {
+      const value = searchParams.get(key);
+      if (value) params.set(key, value);
+    });
+    return params.toString();
+  }, [searchParams]);
+
+  const locationAddressById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const loc of companyLocations ?? []) {
+      if (loc?.address) map.set(String(loc.id), loc.address);
+    }
+    return map;
+  }, [companyLocations]);
   const type = searchParams.get('type') ?? '';
   const activeLabel = type ? CATEGORY_LABELS[type] ?? type : '';
   const isFiltered = !!type;
@@ -88,21 +106,30 @@ export default function FleetPage() {
   const count = data?.count ?? 0;
   const totalPages = Math.max(1, Math.ceil(count / PAGE_SIZE));
 
+  const enrichedResults = useMemo(() => {
+    const raw = data?.results ?? [];
+    return raw.map((v) => {
+      const fallback = locationAddressById.get(String(v.availableLocations?.[0] ?? ''));
+      return { ...v, location: v.location || fallback || '' };
+    });
+  }, [data, locationAddressById]);
+
   const filterOptions = useMemo(() => {
-    const results = data?.results ?? [];
     return {
-      makes: [...new Set(results.map((v) => v.make).filter(Boolean))].sort(),
-      colors: [...new Set(results.map((v) => v.color).filter(Boolean))].sort(),
-      seats: [...new Set(results.map((v) => v.seats).filter(Boolean))].sort((a, b) => a - b),
+      vehicleTypes: [...new Set(enrichedResults.map((v) => v.vehicleType).filter(Boolean))].sort(),
+      makes: [...new Set(enrichedResults.map((v) => v.make).filter(Boolean))].sort(),
+      colors: [...new Set(enrichedResults.map((v) => v.color).filter(Boolean))].sort(),
+      seats: [...new Set(enrichedResults.map((v) => v.seats).filter(Boolean))].sort((a, b) => a - b),
     };
-  }, [data]);
+  }, [enrichedResults]);
 
   const clientFilterCount = activeFilterCount(filters);
 
   const vehicles = useMemo(() => {
-    let list = [...(data?.results ?? [])];
+    let list = [...enrichedResults];
     if (isFiltered) list = list.filter((v) => slugify(v.vehicleType ?? '') === type);
     list = list.filter((v) => {
+      if (filters.vehicleType.length && !filters.vehicleType.includes(v.vehicleType ?? '')) return false;
       if (filters.make.length && !filters.make.includes(v.make)) return false;
       if (filters.color.length && !filters.color.includes(v.color)) return false;
       if (filters.seats.length && !filters.seats.includes(v.seats)) return false;
@@ -121,10 +148,14 @@ export default function FleetPage() {
       list.sort((a, b) => weeklyDiscountPct(b) - weeklyDiscountPct(a));
     }
     return list;
-  }, [data, sort, isFiltered, type, filters, days]);
+  }, [enrichedResults, sort, isFiltered, type, filters, days]);
 
-  const fleetIds = useMemo(() => (data?.results ?? []).map((v) => v.id), [data]);
-  const { data: availability } = useFleetAvailability(fleetIds, pickupDatetime, dropoffDatetime);
+  const fleetIds = useMemo(() => enrichedResults.map((v) => v.id), [enrichedResults]);
+  const { data: availability, isLoading: isAvailabilityLoading } = useFleetAvailability(
+    fleetIds,
+    pickupDatetime,
+    dropoffDatetime,
+  );
   const unavailableIds = useMemo(() => {
     const ids = new Set<string>();
     if (availability) for (const [id, ok] of Object.entries(availability)) if (ok === false) ids.add(id);
@@ -188,10 +219,11 @@ export default function FleetPage() {
                 const weeklyPct = weeklyDiscountPct(v);
                 return (
                   <div key={v.id}>
-                    <div className={cn(unavailable && 'pointer-events-none opacity-50')}>
+                    <div className={cn((unavailable || isAvailabilityLoading) && 'pointer-events-none opacity-50')}>
                       <CarCard
                         vehicle={v}
                         badge={weeklyPct > 0 ? `${weeklyPct}% OFF WEEKLY` : undefined}
+                        bookingQuery={bookingQuery}
                       />
                     </div>
                     {unavailable && (
@@ -206,7 +238,7 @@ export default function FleetPage() {
 
             <div className="mt-10 flex flex-wrap items-center justify-between gap-4">
               <span className="text-sm text-faint">{countLabel}</span>
-              {!clientFiltered && totalPages > 1 && (
+              {totalPages > 1 && (
                 <FleetPagination page={page} totalPages={totalPages} onPage={goToPage} />
               )}
             </div>

@@ -2,12 +2,13 @@
 
 import { use, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { BackLink } from '@/components/ui/back-link';
 import { TextInput, FieldError } from '@/components/ui/field';
 import { PhoneInput } from '@/components/ui/phone-input';
 import { DateTimeField } from '@/components/search/date-time-field';
-import { Check, Info, Pencil, ImageIcon, Close, ChevronLeft, ChevronDown, ShieldCheck } from '@/components/ui/icons';
+import { Check, Info, Pencil, ImageIcon, Close, ChevronLeft, ChevronDown, ShieldCheck, MapPin } from '@/components/ui/icons';
+import { Dialog } from '@/components/ui/dialog';
 import { DEFAULT_TRIP } from '@/lib/mock-data';
 import { useFleet, useInsuranceOptions, useStartBookingCheckout, useCompanyLocations, useFleetUnavailableRanges } from '@/hooks';
 import { useBookingInvoice } from '@/hooks/useBookingInvoice';
@@ -20,6 +21,7 @@ import type { InsuranceOption } from '@/services/bookingServices';
 import { toUtcIso } from '@/utils/datetime';
 import { todayISO } from '@/lib/time-slots';
 import { cn, money, rentalDays } from '@/lib/utils';
+import { buildUnavailabilityIndex, slotsBlockedOn } from '@/lib/unavailable-slots';
 import { paths } from '@/lib/paths';
 
 const PLACEHOLDER_IMAGE = '/images/vehicles/car_placeholder.png';
@@ -80,54 +82,17 @@ const EXTRA_ICON = (
   </svg>
 );
 
-type Fields = { name: string; email: string; phone: string; license: string };
+type Fields = { firstName: string; lastName: string; email: string; phone: string; license: string };
 
-const MIN_PER_DAY = 24 * 60;
-
-function dayKey(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-function computeUnavailableDates(ranges: { start: string; end: string }[]): string[] {
-  const byDate = new Map<string, { startMin: number; endMin: number }[]>();
-  for (const r of ranges) {
-    let cur = new Date(r.start);
-    const end = new Date(r.end);
-    if (Number.isNaN(cur.getTime()) || Number.isNaN(end.getTime())) continue;
-    while (cur < end) {
-      const dayStart = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate(), 0, 0, 0, 0);
-      const nextDay = new Date(dayStart.getTime() + MIN_PER_DAY * 60000);
-      const segEnd = end < nextDay ? end : nextDay;
-      const startMin = Math.floor((cur.getTime() - dayStart.getTime()) / 60000);
-      const endMin = Math.ceil((segEnd.getTime() - dayStart.getTime()) / 60000);
-      const key = dayKey(dayStart);
-      const arr = byDate.get(key) ?? [];
-      arr.push({ startMin, endMin });
-      byDate.set(key, arr);
-      cur = nextDay;
-    }
-  }
-  const out: string[] = [];
-  for (const [date, intervals] of byDate) {
-    const sorted = [...intervals].sort((a, b) => a.startMin - b.startMin);
-    let covered = 0;
-    let cursor = 0;
-    for (const i of sorted) {
-      if (i.startMin > cursor) break;
-      if (i.endMin > cursor) {
-        covered += i.endMin - cursor;
-        cursor = i.endMin;
-      }
-      if (cursor >= MIN_PER_DAY) break;
-    }
-    if (covered >= MIN_PER_DAY) out.push(date);
-  }
-  return out;
-}
+// Slot-blocking math lives in @/lib/unavailable-slots so the modify
+// page (and any future picker surface) shares the same TZ-aware
+// implementation. The picker uses ``slotsBlockedOn`` to grey out the
+// hours of an existing booking inside an otherwise-available day.
 
 export default function Page({ params }: { params: Promise<{ carId: string }> }) {
   const { carId } = use(params);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const { data: vehicle, isLoading } = useFleet(carId);
   const { data: insuranceOptions } = useInsuranceOptions();
@@ -138,7 +103,12 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   const startVerification = useStartVerificationFirstBooking();
   const { data: unavailableRanges = [] } = useFleetUnavailableRanges(carId);
   const { data: defaultTaxProfile } = useDefaultTaxProfile();
-  const unavailableDates = useMemo(() => computeUnavailableDates(unavailableRanges), [unavailableRanges]);
+  const locationTz = defaultLoc?.timezone ?? null;
+  const unavailabilityIndex = useMemo(
+    () => buildUnavailabilityIndex(unavailableRanges, locationTz),
+    [unavailableRanges, locationTz],
+  );
+  const unavailableDates = unavailabilityIndex.fullyBlockedDates;
   const protectionRef = useRef<HTMLHeadingElement>(null);
 
   const [selectedInsurance, setSelectedInsurance] = useState<Set<string>>(new Set());
@@ -148,7 +118,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   const [promoDiscount, setPromoDiscount] = useState(0);
   const [promoInput, setPromoInput] = useState('');
   const [promoError, setPromoError] = useState('');
-  const [fields, setFields] = useState<Fields>({ name: '', email: '', phone: '', license: '' });
+  const [fields, setFields] = useState<Fields>({ firstName: '', lastName: '', email: '', phone: '', license: '' });
   const [errors, setErrors] = useState<Partial<Record<keyof Fields, string>>>({});
   const [checkoutError, setCheckoutError] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -157,12 +127,19 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   const [galleryIndex, setGalleryIndex] = useState(0);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [tripOpen, setTripOpen] = useState(false);
-  const [pickupLocId, setPickupLocId] = useState<string | null>(null);
-  const [dropoffLocId, setDropoffLocId] = useState<string | null>(null);
-  const [pickupDate, setPickupDate] = useState(DEFAULT_TRIP.pickupDate);
-  const [pickupTime, setPickupTime] = useState(DEFAULT_TRIP.pickupTime);
-  const [returnDate, setReturnDate] = useState(DEFAULT_TRIP.returnDate);
-  const [returnTime, setReturnTime] = useState(DEFAULT_TRIP.returnTime);
+  const [openLocDropdown, setOpenLocDropdown] = useState<'pickup' | 'dropoff' | null>(null);
+  const urlPickupLoc = searchParams.get('pickupLocId');
+  const urlDropoffLoc = searchParams.get('dropoffLocId');
+  const urlPickupDate = searchParams.get('pickupDate');
+  const urlPickupTime = searchParams.get('pickupTime');
+  const urlReturnDate = searchParams.get('returnDate');
+  const urlReturnTime = searchParams.get('returnTime');
+  const [pickupLocId, setPickupLocId] = useState<string | null>(urlPickupLoc);
+  const [dropoffLocId, setDropoffLocId] = useState<string | null>(urlDropoffLoc);
+  const [pickupDate, setPickupDate] = useState(urlPickupDate ?? DEFAULT_TRIP.pickupDate);
+  const [pickupTime, setPickupTime] = useState(urlPickupTime ?? DEFAULT_TRIP.pickupTime);
+  const [returnDate, setReturnDate] = useState(urlReturnDate ?? DEFAULT_TRIP.returnDate);
+  const [returnTime, setReturnTime] = useState(urlReturnTime ?? DEFAULT_TRIP.returnTime);
 
   useEffect(() => {
     if (pickupLocId || !companyLocations?.length) return;
@@ -319,7 +296,8 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   const validate = () => {
     const f = fields;
     const e: Partial<Record<keyof Fields, string>> = {};
-    if (!f.name.trim()) e.name = "Please enter the driver's name";
+    if (!f.firstName.trim()) e.firstName = 'First name is required';
+    if (!f.lastName.trim()) e.lastName = 'Last name is required';
     if (!f.email) e.email = 'Email address is required';
     else if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.email)) e.email = 'Enter a valid email address';
     if (!f.phone) e.phone = 'Phone number is required';
@@ -345,7 +323,8 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
       return;
     }
 
-    const tz = defaultLoc?.timezone ?? null;
+    const tzPickup = companyLocations?.find((l) => String(l.id) === pickupLocId)?.timezone ?? null;
+    const tz = tzPickup ?? defaultLoc?.timezone ?? null;
     if (!tz) {
       setCheckoutError("Couldn't determine the rental location's timezone, please refresh.");
       return;
@@ -363,9 +342,9 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
 
     const pickupLocationId = Number(pickupLocId ?? defaultLoc?.id ?? 0);
     const dropoffLocationId = Number(dropoffLocId ?? pickupLocId ?? defaultLoc?.id ?? 0);
-    const nameParts = fields.name.trim().split(/\s+/);
-    const firstName = nameParts[0] ?? '';
-    const lastName = nameParts.slice(1).join(' ') || '-';
+    const firstName = fields.firstName.trim();
+    const lastName = fields.lastName.trim();
+    const licenseNo = fields.license.trim();
     const activeExtraItems = vehicle.extras
       .filter((x) => (extras[x.id] || 0) > 0)
       .map((x) => ({ id: Number(x.id), quantity: extras[x.id] }))
@@ -387,6 +366,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
         last_name: lastName,
         email: fields.email.trim(),
         phone: fields.phone.trim().slice(0, 15),
+        license_no: licenseNo,
         fleet_id: Number(vehicle.id),
         pickup_location_id: pickupLocationId,
         dropoff_location_id: dropoffLocationId,
@@ -408,8 +388,21 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
         onSuccess: (data) => {
           window.location.href = `/booking/${data.booking_id}?token=${encodeURIComponent(data.access_token)}`;
         },
-        onError: () => {
-          setCheckoutError('Could not start verification. Please try again.');
+        onError: (error: unknown) => {
+          let message = 'Could not start verification. Please try again.';
+          if (error && typeof error === 'object' && 'response' in error) {
+            const res = (error as { response?: { data?: Record<string, unknown> } }).response;
+            const body = res?.data;
+            if (body) {
+              const nested = body.errors as Record<string, string[]> | undefined;
+              const source = nested ?? body;
+              const messages = Object.values(source)
+                .flat()
+                .filter((v): v is string => typeof v === 'string');
+              if (messages.length > 0) message = messages.join(' ');
+            }
+          }
+          setCheckoutError(message);
         },
       });
       return;
@@ -423,6 +416,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
           last_name: lastName,
           email: fields.email.trim(),
           phone_no: fields.phone.trim().slice(0, 15),
+          license_no: licenseNo,
         },
         pickup_datetime: pickupDatetime,
         dropoff_datetime: dropoffDatetime,
@@ -475,6 +469,47 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
     }
   };
 
+  useEffect(() => {
+    if (!promoApplied || !promoCode) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const result = await validatePromoCode({
+          code: promoCode,
+          base_price: pricing.subtotal - pricing.insuranceCost - pricing.extrasCost,
+          extras_price: pricing.insuranceCost + pricing.extrasCost,
+          fees: pricing.bookingFee,
+          location_charges: pricing.locationCharges,
+        });
+        if (cancelled) return;
+        if (result.valid && result.discount_amount) {
+          setPromoDiscount(parseFloat(result.discount_amount));
+        } else {
+          setPromoApplied(false);
+          setPromoCode('');
+          setPromoDiscount(0);
+          setPromoError(result.error || 'Promo no longer valid');
+        }
+      } catch {
+        if (cancelled) return;
+        setPromoApplied(false);
+        setPromoCode('');
+        setPromoDiscount(0);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    promoApplied,
+    promoCode,
+    pricing.subtotal,
+    pricing.insuranceCost,
+    pricing.extrasCost,
+    pricing.bookingFee,
+    pricing.locationCharges,
+  ]);
+
   const scrollProtection = () => {
     const el = protectionRef.current;
     if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 80, behavior: 'smooth' });
@@ -490,12 +525,31 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   const dropoffCity = (selectedDropoff?.name ?? selectedPickup?.name ?? '').split(',')[0];
   const minTime = selectedPickup && !selectedPickup.is247 ? selectedPickup.openingTime : null;
   const maxTime = selectedPickup && !selectedPickup.is247 ? selectedPickup.closingTime : null;
+  const dropoffMinTime = selectedDropoff && !selectedDropoff.is247 ? selectedDropoff.openingTime : null;
+  const dropoffMaxTime = selectedDropoff && !selectedDropoff.is247 ? selectedDropoff.closingTime : null;
 
   return (
     <div className="bg-white text-ink">
-      <div className="mx-auto max-w-[1180px] px-6 pt-[22px] pb-16">
+      <div className="mx-auto max-w-[1180px] px-6 pt-[22px] pb-28 lg:pb-16">
         <div className="mb-4 flex items-center justify-between gap-4">
           <BackLink href={paths.fleet}>Back to fleet</BackLink>
+        </div>
+
+        <div className="mb-4 flex items-center justify-between gap-3 rounded-[12px] border border-card-border bg-subtle p-3 lg:hidden">
+          <div className="flex min-w-0 items-center gap-3">
+            <div
+              className="h-[48px] w-[64px] flex-shrink-0 rounded-[8px] bg-cover bg-center"
+              style={{ backgroundImage: `url('${galleryImages[0]}')` }}
+            />
+            <div className="min-w-0">
+              <div className="truncate text-[13px] font-semibold text-secondary">{vehicle.name}</div>
+              <div className="text-[11px] text-muted">{days} {days === 1 ? 'day' : 'days'}</div>
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-[15px] font-bold text-secondary">{money(total)}</div>
+            <div className="text-[10px] text-muted">Total</div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_350px]">
@@ -558,7 +612,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               </div>
             </div>
 
-            <div className="mb-4 grid grid-cols-3 gap-[14px] rounded-[12px] border border-card-border px-4 py-[15px]">
+            <div className="mb-4 grid grid-cols-2 gap-[14px] rounded-[12px] border border-card-border px-4 py-[15px] sm:grid-cols-3">
               {[
                 { key: 'seats', label: 'Seats', value: vehicle.seats ? String(vehicle.seats) : '' },
                 { key: 'transmission', label: 'Transmission', value: vehicle.transmission },
@@ -587,10 +641,12 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               </>
             )}
 
+            {plans.length > 0 && (
+              <>
             <h3 ref={protectionRef} className="mb-3 text-[15px] font-semibold text-ink">
               Protection
             </h3>
-            <div className="mb-[26px] grid grid-cols-2 gap-[10px]">
+            <div className="mb-[26px] grid grid-cols-1 gap-[10px] sm:grid-cols-2">
               {plans.map((p) => {
                 const sel = selectedInsurance.has(p.id);
                 const disabled = isInsuranceDisabled(p.id);
@@ -661,7 +717,11 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                 );
               })}
             </div>
+              </>
+            )}
 
+            {vehicle.extras.length > 0 && (
+              <>
             <h3 className="mb-3 text-[15px] font-semibold text-ink">Add extras</h3>
             <div className="mb-[26px] flex flex-col gap-[10px]">
               {vehicle.extras.map((x) => {
@@ -716,12 +776,18 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                 );
               })}
             </div>
+              </>
+            )}
 
             <h3 className="mb-3 text-[15px] font-semibold text-ink">Driver details</h3>
-            <div className="grid grid-cols-2 gap-x-3 gap-y-[14px]">
+            <div className="grid grid-cols-1 gap-x-3 gap-y-[14px] sm:grid-cols-2">
               <div>
-                <TextInput value={fields.name} onChange={(e) => setField('name', e.target.value)} placeholder="Full name" error={!!errors.name} />
-                {errors.name && <FieldError>{errors.name}</FieldError>}
+                <TextInput value={fields.firstName} onChange={(e) => setField('firstName', e.target.value)} placeholder="First name" error={!!errors.firstName} />
+                {errors.firstName && <FieldError>{errors.firstName}</FieldError>}
+              </div>
+              <div>
+                <TextInput value={fields.lastName} onChange={(e) => setField('lastName', e.target.value)} placeholder="Last name" error={!!errors.lastName} />
+                {errors.lastName && <FieldError>{errors.lastName}</FieldError>}
               </div>
               <div>
                 <TextInput type="email" value={fields.email} onChange={(e) => setField('email', e.target.value)} onBlur={() => blurField('email')} placeholder="Email address" error={!!errors.email} />
@@ -731,7 +797,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                 <PhoneInput value={fields.phone} onChange={(v) => setField('phone', v)} onBlur={() => blurField('phone')} error={!!errors.phone} placeholder="Phone number" />
                 {errors.phone && <FieldError>{errors.phone}</FieldError>}
               </div>
-              <div>
+              <div className="sm:col-span-2">
                 <TextInput value={fields.license} onChange={(e) => setField('license', e.target.value)} placeholder="Driver's license no." error={!!errors.license} />
                 {errors.license && <FieldError>{errors.license}</FieldError>}
               </div>
@@ -739,7 +805,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
 
           </div>
 
-          <div className="rounded-2xl border border-card-border bg-subtle p-[22px] lg:sticky lg:top-[88px]">
+          <div className="hidden rounded-2xl border border-card-border bg-subtle p-[22px] lg:sticky lg:top-[88px] lg:block">
             <div className="mb-3 text-sm font-semibold text-ink">Your trip</div>
             <div className="flex flex-col gap-2">
               <div
@@ -872,9 +938,14 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                   <span className="font-medium text-primary">Promo</span>
                   <span className="inline-flex items-center gap-[5px] rounded-[5px] bg-primary-soft py-[2px] pl-[7px] pr-[5px] text-[10px] font-semibold text-primary">
                     {promoCode}
-                    <span onClick={() => setPromoApplied(false)} className="cursor-pointer text-[11px] leading-none">
+                    <button
+                      type="button"
+                      aria-label="Remove promo code"
+                      onClick={() => setPromoApplied(false)}
+                      className="cursor-pointer text-[11px] leading-none"
+                    >
                       ✕
-                    </span>
+                    </button>
                   </span>
                 </div>
                 <span className="font-semibold text-primary">−{money(promoDiscount)}</span>
@@ -899,9 +970,9 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                 placeholder="Enter promo code"
                 className="flex-1 border-none bg-transparent text-[12.5px] text-ink outline-none"
               />
-              <span onClick={applyPromo} className="cursor-pointer rounded-[7px] bg-secondary px-4 py-2 text-[12px] font-semibold text-white">
+              <button type="button" onClick={applyPromo} className="cursor-pointer rounded-[7px] bg-secondary px-4 py-2 text-[12px] font-semibold text-white">
                 Apply
-              </span>
+              </button>
             </div>
             {promoError && <FieldError>{promoError}</FieldError>}
             <div className="my-[14px] h-px bg-card-border" />
@@ -989,7 +1060,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                 )}
               </span>
               <span className="text-[11.5px] leading-[1.5] text-muted">
-                I have read and agree to the{' '}
+                I have read and accept the rental information and the{' '}
                 <Link
                   href={paths.terms}
                   target="_blank"
@@ -998,7 +1069,8 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                 >
                   Terms &amp; Conditions
                 </Link>
-                .
+                . I confirm that I am booking a prepaid rate, where the entire price of the
+                reservation will be immediately debited from the payment method I have provided.
               </span>
             </label>
 
@@ -1012,6 +1084,20 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
             </div>
           </div>
         </div>
+      </div>
+      <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-card-border bg-white px-4 py-3 shadow-[var(--shadow-pop)] lg:hidden">
+        <div>
+          <div className="text-[11px] text-muted">Total</div>
+          <div className="text-[18px] font-bold text-secondary">{money(total)}</div>
+        </div>
+        <button
+          type="button"
+          onClick={reserve}
+          disabled={startCheckout.isPending || startVerification.isPending || !termsAccepted}
+          className="flex-1 rounded-[10px] bg-primary py-3 text-center text-sm font-bold text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {startCheckout.isPending || startVerification.isPending ? 'Starting…' : 'Reserve Now'}
+        </button>
       </div>
       {galleryOpen && (
         <div
@@ -1051,8 +1137,10 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
             </div>
             <div className="mt-[14px] flex gap-2 overflow-x-auto">
               {gallery.map((src, i) => (
-                <div
+                <button
                   key={i}
+                  type="button"
+                  aria-label={`View image ${i + 1}`}
                   onClick={() => setGalleryIndex(i)}
                   className={cn(
                     'h-[56px] w-[78px] flex-shrink-0 cursor-pointer rounded-[8px] border-2 bg-cover bg-center',
@@ -1076,55 +1164,57 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
         />
       )}
 
-      {tripOpen && (
-        <div
-          onClick={() => setTripOpen(false)}
-          className="fixed inset-0 z-[200] flex items-center justify-center bg-[rgba(12,14,12,0.55)] p-6"
-        >
-          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-[460px] rounded-2xl bg-white p-[26px] shadow-[var(--shadow-pop)]">
+      <Dialog
+        isOpen={tripOpen}
+        onClose={() => setTripOpen(false)}
+        labelledBy="trip-edit-title"
+        panelClassName="max-w-[460px] p-[26px]"
+      >
             <div className="mb-5 flex items-start justify-between gap-4">
-              <h3 className="text-[18px] font-semibold text-secondary">Edit your trip</h3>
-              <span onClick={() => setTripOpen(false)} className="cursor-pointer text-muted">
+              <h3 id="trip-edit-title" className="text-[18px] font-semibold text-secondary">Edit your trip</h3>
+              <button
+                type="button"
+                aria-label="Close"
+                onClick={() => setTripOpen(false)}
+                className="text-muted"
+              >
                 <Close size={20} strokeWidth={2} />
-              </span>
+              </button>
             </div>
             <div className="flex flex-col gap-4">
               <div>
                 <div className="mb-[7px] text-[11px] uppercase tracking-[0.03em] text-muted">Pick-up location</div>
-                <select
-                  value={pickupLocId ?? ''}
-                  onChange={(e) => {
-                    const id = e.target.value;
+                <LocationDropdown
+                  open={openLocDropdown === 'pickup'}
+                  onToggle={() => setOpenLocDropdown((o) => (o === 'pickup' ? null : 'pickup'))}
+                  onClose={() => setOpenLocDropdown(null)}
+                  options={pickupLocations}
+                  value={pickupLocId}
+                  placeholder="Select pick-up location"
+                  onSelect={(id) => {
                     setPickupLocId(id);
                     if (!dropoffLocId || dropoffLocId === pickupLocId) {
                       const match = dropoffLocations.find((l) => String(l.id) === id);
                       if (match) setDropoffLocId(id);
                     }
+                    setOpenLocDropdown(null);
                   }}
-                  className="h-[46px] w-full rounded-[10px] border border-line bg-white px-[14px] text-sm text-ink outline-none transition-colors focus:border-primary"
-                >
-                  {pickupLocations.length === 0 && <option value="">No locations available</option>}
-                  {pickupLocations.map((l) => (
-                    <option key={l.id} value={String(l.id)}>
-                      {l.name}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
               <div>
                 <div className="mb-[7px] text-[11px] uppercase tracking-[0.03em] text-muted">Drop-off location</div>
-                <select
-                  value={dropoffLocId ?? ''}
-                  onChange={(e) => setDropoffLocId(e.target.value)}
-                  className="h-[46px] w-full rounded-[10px] border border-line bg-white px-[14px] text-sm text-ink outline-none transition-colors focus:border-primary"
-                >
-                  {dropoffLocations.length === 0 && <option value="">No locations available</option>}
-                  {dropoffLocations.map((l) => (
-                    <option key={l.id} value={String(l.id)}>
-                      {l.name}
-                    </option>
-                  ))}
-                </select>
+                <LocationDropdown
+                  open={openLocDropdown === 'dropoff'}
+                  onToggle={() => setOpenLocDropdown((o) => (o === 'dropoff' ? null : 'dropoff'))}
+                  onClose={() => setOpenLocDropdown(null)}
+                  options={dropoffLocations}
+                  value={dropoffLocId}
+                  placeholder="Select drop-off location"
+                  onSelect={(id) => {
+                    setDropoffLocId(id);
+                    setOpenLocDropdown(null);
+                  }}
+                />
               </div>
               <div>
                 <div className="mb-[7px] text-[11px] uppercase tracking-[0.03em] text-muted">Pick-up date &amp; time</div>
@@ -1138,6 +1228,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                     minTime={minTime}
                     maxTime={maxTime}
                     unavailableDates={unavailableDates}
+                    disabledSlots={slotsBlockedOn(unavailabilityIndex, pickupDate, 'pickup')}
                     label="Pick-up"
                   />
                 </div>
@@ -1151,10 +1242,11 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                     onDate={setReturnDate}
                     onTime={setReturnTime}
                     minDate={pickupDate || todayISO()}
-                    minTime={minTime}
-                    maxTime={maxTime}
+                    minTime={dropoffMinTime}
+                    maxTime={dropoffMaxTime}
                     highlightDate={pickupDate}
                     unavailableDates={unavailableDates}
+                    disabledSlots={slotsBlockedOn(unavailabilityIndex, returnDate, 'dropoff')}
                     label="Return"
                   />
                 </div>
@@ -1163,7 +1255,81 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
             <button onClick={() => setTripOpen(false)} className="mt-[22px] w-full rounded-[9px] bg-primary py-3 text-center text-sm font-semibold text-white">
               Update trip
             </button>
-          </div>
+      </Dialog>
+    </div>
+  );
+}
+
+function LocationDropdown({
+  open,
+  onToggle,
+  onClose,
+  options,
+  value,
+  placeholder,
+  onSelect,
+}: {
+  open: boolean;
+  onToggle: () => void;
+  onClose: () => void;
+  options: { id: string; name: string; address: string; price: number }[];
+  value: string | null;
+  placeholder: string;
+  onSelect: (id: string) => void;
+}) {
+  const selected = options.find((l) => String(l.id) === value);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [open, onClose]);
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex h-[46px] w-full items-center gap-2 rounded-[10px] border border-line bg-white px-[14px] text-left text-sm text-ink transition-colors focus:border-primary focus:outline-none"
+      >
+        <MapPin size={16} className="flex-shrink-0 text-primary" />
+        <span className="min-w-0 flex-1 truncate">
+          {selected ? selected.name : <span className="text-placeholder">{placeholder}</span>}
+        </span>
+        {selected && selected.price > 0 && (
+          <span className="flex-shrink-0 rounded-[5px] bg-primary-soft px-[7px] py-[2px] text-[11px] font-semibold text-primary">
+            +{money(selected.price)}
+          </span>
+        )}
+        <ChevronDown size={13} className="flex-shrink-0 text-faint" />
+      </button>
+      {open && (
+        <div className="absolute left-0 right-0 top-full z-40 mt-[6px] max-h-[260px] overflow-y-auto rounded-[11px] border border-line bg-white p-[6px] shadow-[var(--shadow-pop)]">
+          {options.length === 0 ? (
+            <div className="px-[11px] py-[10px] text-[13px] text-faint">No locations available</div>
+          ) : (
+            options.map((loc) => (
+              <button
+                key={loc.id}
+                type="button"
+                onClick={() => onSelect(String(loc.id))}
+                className="flex w-full items-start gap-[9px] rounded-lg px-[11px] py-[10px] text-left text-[13.5px] text-label hover:bg-primary-soft hover:text-secondary"
+              >
+                <MapPin size={15} className="mt-px flex-shrink-0 text-primary" />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate">{loc.name}</span>
+                  {loc.address && <span className="block truncate text-[11.5px] text-faint">{loc.address}</span>}
+                </span>
+                {loc.price > 0 && (
+                  <span className="flex-shrink-0 rounded-[5px] bg-primary-soft px-[7px] py-[2px] text-[11px] font-semibold text-primary">
+                    +{money(loc.price)}
+                  </span>
+                )}
+              </button>
+            ))
+          )}
         </div>
       )}
     </div>
@@ -1272,22 +1438,24 @@ function InsuranceDetailModal({
   const detail = INSURANCE_DETAILS[option.id];
   if (!detail) return null;
   return (
-    <div onClick={onClose} className="fixed inset-0 z-[200] flex items-end justify-center bg-[rgba(12,14,12,0.55)] p-0 sm:items-center sm:p-6">
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="relative max-h-[90vh] w-full max-w-[560px] overflow-y-auto rounded-t-2xl bg-white shadow-[var(--shadow-pop)] sm:rounded-2xl"
-      >
+    <Dialog
+      isOpen={true}
+      onClose={onClose}
+      labelledBy="insurance-detail-title"
+      className="items-end sm:items-center"
+      panelClassName="max-h-[90vh] max-w-[560px] overflow-y-auto rounded-t-2xl sm:rounded-2xl"
+    >
         <div className="sticky top-0 z-10 border-b border-hairline bg-white px-[26px] pb-4 pt-[22px]">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-[10px]">
               <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary-soft">
                 <ShieldCheck size={15} className="text-primary" />
               </span>
-              <h3 className="text-[17px] font-semibold leading-tight text-secondary">{detail.fullTitle}</h3>
+              <h3 id="insurance-detail-title" className="text-[17px] font-semibold leading-tight text-secondary">{detail.fullTitle}</h3>
             </div>
-            <span onClick={onClose} className="flex-shrink-0 cursor-pointer text-muted">
+            <button type="button" aria-label="Close" onClick={onClose} className="flex-shrink-0 text-muted">
               <Close size={20} strokeWidth={2} />
-            </span>
+            </button>
           </div>
           <div className="mt-[10px] flex items-baseline gap-1">
             <span className="text-[24px] font-bold text-primary">{money(option.price)}</span>
@@ -1369,7 +1537,6 @@ function InsuranceDetailModal({
             {disabled ? 'Requires RCLI' : selected ? 'Remove Coverage' : 'Add Coverage'}
           </button>
         </div>
-      </div>
-    </div>
+    </Dialog>
   );
 }

@@ -16,9 +16,12 @@ import {
  *
  * X-Booking-Token must already be set in storage (utils/booking-token).
  */
-export const useBookingBalance = (enabled: boolean = true) =>
+export const useBookingBalance = (
+  enabled: boolean = true,
+  bookingId?: string | number,
+) =>
   useQuery<BookingBalanceSnapshot>({
-    queryKey: ['public-booking-balance'],
+    queryKey: ['public-booking-balance', bookingId ?? null],
     queryFn: () => getBookingBalance(),
     enabled,
     refetchInterval: 30 * 1000,

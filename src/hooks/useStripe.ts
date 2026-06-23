@@ -6,13 +6,16 @@ import {
   createCheckoutSession,
   createPaymentIntent,
 } from '@/services/stripeServices';
+import { useTenant } from '@/lib/tenant-context';
 
-export const useStripePublishableKey = () =>
-  useQuery({
-    queryKey: ['stripePublishableKey'],
-    queryFn: getStripePublishableKey,
-    staleTime: 30 * 60 * 1000, // Cache for 30 minutes
+export const useStripePublishableKey = () => {
+  const tenant = useTenant();
+  return useQuery({
+    queryKey: ['stripePublishableKey', tenant.slug],
+    queryFn: () => getStripePublishableKey(tenant.domain),
+    staleTime: 30 * 60 * 1000,
   });
+};
 
 export const useCreateCheckoutSession = () =>
   useMutation({

@@ -590,6 +590,7 @@ export interface CustomerData {
   last_name: string;
   email: string;
   phone_no: string;
+  license_no?: string;
 }
 
 // Create booking request payload
@@ -647,6 +648,7 @@ export async function startBookingCheckout(
     last_name: payload.customer.last_name,
     email: payload.customer.email,
     phone: payload.customer.phone_no.slice(0, 15),
+    ...(payload.customer.license_no ? { license_no: payload.customer.license_no } : {}),
     fleet_id: payload.fleet_id,
     pickup_location_id: payload.pickup_location_id,
     dropoff_location_id: payload.dropoff_location_id || payload.pickup_location_id,

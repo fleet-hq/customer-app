@@ -79,7 +79,7 @@ export function Header({
     .toUpperCase();
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-hairline bg-white/92 backdrop-blur-md backdrop-saturate-180">
+    <header className="no-print sticky top-0 z-50 w-full border-b border-hairline bg-white/92 backdrop-blur-md backdrop-saturate-180">
       <div className="mx-auto flex max-w-[1200px] items-center justify-between gap-6 px-6 py-[11px]">
         <div className="flex items-center gap-[34px]">
           <Link href={paths.home} className="flex flex-shrink-0 items-center">

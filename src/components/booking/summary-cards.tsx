@@ -250,7 +250,13 @@ export function Invoice({
         >
           {paid ? 'Paid' : payLoading ? 'Redirecting…' : 'Make Payment'}
         </button>
-        <button className="flex h-[44px] w-[46px] flex-shrink-0 items-center justify-center rounded-[9px] border border-line bg-white text-ink">
+        <button
+          type="button"
+          onClick={() => window.print()}
+          title="Save or print this invoice as a PDF"
+          aria-label="Download invoice as PDF"
+          className="no-print flex h-[44px] w-[46px] flex-shrink-0 items-center justify-center rounded-[9px] border border-line bg-white text-ink hover:bg-subtle"
+        >
           <Download size={16} />
         </button>
       </div>

@@ -8,6 +8,7 @@ import {
   getCompanySettings,
   getDefaultAgreementTemplate,
 } from '@/services/agreementServices';
+import { useTenant } from '@/lib/tenant-context';
 
 export const useAgreement = (agreementId?: string | number) =>
   useQuery({
@@ -23,19 +24,23 @@ export const useAgreementByBooking = (bookingId?: string | number) =>
     enabled: !!bookingId,
   });
 
-export const useCompanySettings = () =>
-  useQuery({
-    queryKey: ['company-settings'],
-    queryFn: getCompanySettings,
-    staleTime: 10 * 60 * 1000, // Cache for 10 minutes
+export const useCompanySettings = () => {
+  const tenant = useTenant();
+  return useQuery({
+    queryKey: ['company-settings', tenant.slug],
+    queryFn: () => getCompanySettings(tenant.domain),
+    staleTime: 10 * 60 * 1000,
   });
+};
 
-export const useDefaultAgreementTemplate = () =>
-  useQuery({
-    queryKey: ['default-agreement-template'],
-    queryFn: getDefaultAgreementTemplate,
-    staleTime: 10 * 60 * 1000, // Cache for 10 minutes
+export const useDefaultAgreementTemplate = () => {
+  const tenant = useTenant();
+  return useQuery({
+    queryKey: ['default-agreement-template', tenant.slug],
+    queryFn: () => getDefaultAgreementTemplate(tenant.domain),
+    staleTime: 10 * 60 * 1000,
   });
+};
 
 export const useAcceptAgreement = () => {
   const queryClient = useQueryClient();

@@ -15,6 +15,9 @@ export interface TimePickerProps {
   'aria-label'?: string;
   minTime?: string | null;
   maxTime?: string | null;
+  /** Set of "HH:mm" slots to render as disabled — used to grey out
+   *  the hours of an existing booking on a partially-blocked day. */
+  disabledSlots?: string[];
   disabled?: boolean;
 }
 
@@ -40,8 +43,13 @@ export function TimePicker({
   'aria-label': ariaLabel,
   minTime,
   maxTime,
+  disabledSlots,
   disabled = false,
 }: TimePickerProps) {
+  const disabledSlotSet = useMemo(
+    () => new Set(disabledSlots ?? []),
+    [disabledSlots],
+  );
   const [isOpen, setIsOpen] = useState(false);
   const [dropdownStyle, setDropdownStyle] = useState<CSSProperties>({ position: 'fixed' });
   const [originClass, setOriginClass] = useState('origin-top');
@@ -156,6 +164,7 @@ export function TimePicker({
         <div ref={listRef} className="max-h-60 overflow-y-auto py-1">
           {timeSlots.map((slot) => {
             const selected = slot.value === value;
+            const slotDisabled = disabledSlotSet.has(slot.value);
             return (
               <button
                 key={slot.value}
@@ -163,10 +172,16 @@ export function TimePicker({
                 type="button"
                 role="option"
                 aria-selected={selected}
+                disabled={slotDisabled}
                 onClick={() => handleSelect(slot.value)}
+                title={slotDisabled ? 'Already booked' : undefined}
                 className={cn(
                   'flex w-full px-4 py-2 text-left text-sm transition-colors',
-                  selected ? 'bg-hover font-medium text-primary' : 'text-ink hover:bg-subtle',
+                  slotDisabled
+                    ? 'cursor-not-allowed text-faint line-through opacity-60'
+                    : selected
+                      ? 'bg-hover font-medium text-primary'
+                      : 'text-ink hover:bg-subtle',
                 )}
               >
                 {slot.label}

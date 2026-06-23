@@ -16,3 +16,12 @@ export function useTenant(): Tenant {
   }
   return tenant;
 }
+
+/** Non-throwing variant for components that may render OUTSIDE the
+ *  TenantProvider — specifically `app/not-found.tsx`, `app/error.tsx`,
+ *  and `app/global-error.tsx`. Next.js renders these surfaces in error
+ *  paths where the root layout's providers can be unmounted. Returns
+ *  ``null`` instead of crashing so the error page itself can render. */
+export function useOptionalTenant(): Tenant | null {
+  return useContext(TenantContext);
+}

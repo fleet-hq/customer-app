@@ -8,15 +8,18 @@ import {
   startVerificationFirstBooking,
   startVerificationFirstPayment,
 } from '@/services/bookingPolicyServices';
+import { useTenant } from '@/lib/tenant-context';
 
-export const useBookingVerificationPolicy = () =>
-  useQuery<BookingVerificationPolicy>({
-    queryKey: ['booking-verification-policy'],
-    queryFn: getBookingVerificationPolicy,
+export const useBookingVerificationPolicy = () => {
+  const tenant = useTenant();
+  return useQuery<BookingVerificationPolicy>({
+    queryKey: ['booking-verification-policy', tenant.slug],
+    queryFn: () => getBookingVerificationPolicy(tenant.domain),
     staleTime: 0,
     refetchOnWindowFocus: true,
     refetchOnMount: true,
   });
+};
 
 export const useStartVerificationFirstBooking = () =>
   useMutation({

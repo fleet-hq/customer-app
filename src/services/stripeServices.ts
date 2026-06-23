@@ -29,8 +29,8 @@ export interface CheckoutSession {
 }
 
 // Get Stripe publishable key for the company (public endpoint with domain)
-export async function getStripePublishableKey(): Promise<string | null> {
-  const domainParams = getDomainParams();
+export async function getStripePublishableKey(domain?: string | null): Promise<string | null> {
+  const domainParams = getDomainParams(domain);
 
   try {
     const res = await axios.get<ApiStripePublishableKeyResponse>(

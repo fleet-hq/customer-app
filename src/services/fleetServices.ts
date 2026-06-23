@@ -35,8 +35,9 @@ export interface ListFleetsResponse {
 // Fetch fleets using public endpoint with domain param
 export async function listFleets(
   params?: ListFleetsParams,
+  domain?: string | null,
 ): Promise<ListFleetsResponse> {
-  const domainParams = getDomainParams();
+  const domainParams = getDomainParams(domain);
 
   const res = await axios.get<ApiPaginatedResponse<ApiVehicle>>(
     `${API_URL}/api/fleets/public/`,
@@ -65,9 +66,10 @@ export async function checkFleetAvailability(
   fleetId: number | string,
   pickupDatetime: string,
   dropoffDatetime: string,
+  domain?: string | null,
 ): Promise<boolean | null> {
   try {
-    const domainParams = getDomainParams();
+    const domainParams = getDomainParams(domain);
     const res = await axios.get<{ available: boolean }>(
       `${API_URL}/api/bookings/public/availability/`,
       {
@@ -101,11 +103,12 @@ export interface UnavailableRange {
 export async function getFleetUnavailableRanges(
   fleetId: number | string,
   opts?: { excludeBookingId?: number | string },
+  domain?: string | null,
 ): Promise<UnavailableRange[]> {
   try {
     const params: Record<string, unknown> = {
       fleet_id: fleetId,
-      ...getDomainParams(),
+      ...getDomainParams(domain),
     };
     if (opts?.excludeBookingId) params.exclude_booking_id = opts.excludeBookingId;
     const res = await axios.get<{ ranges: UnavailableRange[] }>(
@@ -126,10 +129,11 @@ export async function checkBulkAvailability(
   fleetIds: (number | string)[],
   pickupDatetime: string,
   dropoffDatetime: string,
+  domain?: string | null,
 ): Promise<Record<string, boolean | null>> {
   const results = await Promise.all(
     fleetIds.map(async (id) => {
-      const available = await checkFleetAvailability(id, pickupDatetime, dropoffDatetime);
+      const available = await checkFleetAvailability(id, pickupDatetime, dropoffDatetime, domain);
       return [String(id), available] as const;
     }),
   );
@@ -139,8 +143,9 @@ export async function checkBulkAvailability(
 export async function getFleetById(
   id: number | string,
   args?: { pickupDatetime?: string; dropoffDatetime?: string },
+  domain?: string | null,
 ): Promise<Vehicle> {
-  const domainParams = getDomainParams();
+  const domainParams = getDomainParams(domain);
   const dateParams: Record<string, string> = {};
   if (args?.pickupDatetime) dateParams.pickup_datetime = args.pickupDatetime;
   if (args?.dropoffDatetime) dateParams.dropoff_datetime = args.dropoffDatetime;

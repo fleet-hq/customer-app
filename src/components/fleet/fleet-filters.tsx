@@ -4,6 +4,7 @@ import { useCallback } from 'react';
 import { cn } from '@/lib/utils';
 
 export interface FilterState {
+  vehicleType: string[];
   make: string[];
   color: string[];
   seats: number[];
@@ -12,6 +13,7 @@ export interface FilterState {
 }
 
 export const INITIAL_FILTERS: FilterState = {
+  vehicleType: [],
   make: [],
   color: [],
   seats: [],
@@ -20,6 +22,7 @@ export const INITIAL_FILTERS: FilterState = {
 };
 
 export interface FilterOptions {
+  vehicleTypes: string[];
   makes: string[];
   colors: string[];
   seats: number[];
@@ -27,6 +30,7 @@ export interface FilterOptions {
 
 export function activeFilterCount(filters: FilterState): number {
   return (
+    filters.vehicleType.length +
     filters.make.length +
     filters.color.length +
     filters.seats.length +
@@ -43,7 +47,10 @@ interface FleetFiltersProps {
 
 export function FleetFilters({ filters, options, onChange }: FleetFiltersProps) {
   const toggle = useCallback(
-    <T extends string | number>(key: 'make' | 'color' | 'seats', value: T) => {
+    <T extends string | number>(
+      key: 'vehicleType' | 'make' | 'color' | 'seats',
+      value: T,
+    ) => {
       const current = filters[key] as T[];
       const next = current.includes(value)
         ? current.filter((v) => v !== value)
@@ -71,6 +78,15 @@ export function FleetFilters({ filters, options, onChange }: FleetFiltersProps) 
           </button>
         )}
       </div>
+
+      {options.vehicleTypes.length > 0 && (
+        <ChipGroup
+          label="Type"
+          values={options.vehicleTypes}
+          selected={filters.vehicleType}
+          onToggle={(v) => toggle('vehicleType', v)}
+        />
+      )}
 
       {options.makes.length > 0 && (
         <ChipGroup

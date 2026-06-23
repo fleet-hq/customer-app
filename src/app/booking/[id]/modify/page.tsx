@@ -4,6 +4,7 @@ import { use, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import axios from 'axios';
 import { BackLink } from '@/components/ui/back-link';
+import { PageLoading } from '@/components/ui/page-loading';
 import { Field } from '@/components/ui/field';
 import { DateTimeField } from '@/components/search/date-time-field';
 import { Calendar, Info } from '@/components/ui/icons';
@@ -14,6 +15,7 @@ import { useBookingDetails, useFleet, useFleetUnavailableRanges } from '@/hooks'
 import { useDefaultLocation } from '@/contexts';
 import { setBookingToken, getBookingTokenHeaders } from '@/utils/booking-token';
 import { toUtcIso, utcIsoToFormValues } from '@/utils/datetime';
+import { buildUnavailabilityIndex, slotsBlockedOn } from '@/lib/unavailable-slots';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -102,23 +104,11 @@ export default function ModifyTripPage({ params }: { params: Promise<{ id: strin
     booking?.fleetId,
     booking ? { excludeBookingId: booking.id } : undefined,
   );
-  const unavailableDates = useMemo(() => {
-    const out = new Set<string>();
-    for (const r of unavailableRanges) {
-      const start = new Date(r.start);
-      const end = new Date(r.end);
-      const d = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()));
-      const stop = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate()));
-      while (d <= stop) {
-        const yyyy = d.getUTCFullYear();
-        const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
-        const dd = String(d.getUTCDate()).padStart(2, '0');
-        out.add(`${yyyy}-${mm}-${dd}`);
-        d.setUTCDate(d.getUTCDate() + 1);
-      }
-    }
-    return Array.from(out);
-  }, [unavailableRanges]);
+  const unavailabilityIndex = useMemo(
+    () => buildUnavailabilityIndex(unavailableRanges, tz ?? null),
+    [unavailableRanges, tz],
+  );
+  const unavailableDates = unavailabilityIndex.fullyBlockedDates;
 
   useEffect(() => {
     if (!pickupDate || !pickupTime || !returnDate || !returnTime || !booking || !tz) return;
@@ -202,9 +192,7 @@ export default function ModifyTripPage({ params }: { params: Promise<{ id: strin
   if (isLoading) {
     return (
       <div className="flex min-h-screen flex-col bg-white text-ink">
-        <section className="mx-auto w-full max-w-[760px] flex-1 px-6 pt-20 text-center">
-          <p className="text-muted">Loading...</p>
-        </section>
+        <PageLoading />
       </div>
     );
   }
@@ -265,6 +253,7 @@ export default function ModifyTripPage({ params }: { params: Promise<{ id: strin
                     onTime={isOngoing ? () => {} : setPickupTime}
                     minDate={todayISO()}
                     unavailableDates={unavailableDates}
+                    disabledSlots={slotsBlockedOn(unavailabilityIndex, pickupDate, 'pickup')}
                     label="Pick-up"
                   />
                 </div>
@@ -279,6 +268,7 @@ export default function ModifyTripPage({ params }: { params: Promise<{ id: strin
                     minDate={pickupDate || todayISO()}
                     highlightDate={pickupDate}
                     unavailableDates={unavailableDates}
+                    disabledSlots={slotsBlockedOn(unavailabilityIndex, returnDate, 'dropoff')}
                     label="Return"
                   />
                 </div>

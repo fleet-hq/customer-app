@@ -7,11 +7,9 @@ import { calculateBasePrice, type RateUnit } from '@/lib/api-pricing';
 
 // IMPORTANT — the pricing math here must stay in lock-step with the
 // backend bookings/services.py PricingService. Pure parity coverage
-// lives in src/lib/pricing.ts (computeBookingPricing) and is asserted
-// by src/lib/pricing.test.ts which mirrors bookings/test_pricing_parity.py.
-// If you change the formula, run `npx tsx src/lib/pricing.test.ts`
-// AND `python manage.py test bookings.test_pricing_parity` and update
-// both fixtures together.
+// lives in src/lib/api-pricing.ts (computeBookingPricing) which
+// mirrors bookings/test_pricing_parity.py. If you change the formula,
+// keep both sides in sync.
 
 export interface InvoiceItem {
   image: string;
@@ -161,10 +159,12 @@ export function useBookingInvoice({
     });
 
     // Location charges from selected pickup + dropoff locations
-    const pickupPrice = companyLocations.find((loc) => loc.id === pickupLocationId)?.price || 0;
+    const pickupLoc = companyLocations.find((loc) => loc.id === pickupLocationId);
+    const dropoffLoc = companyLocations.find((loc) => loc.id === dropoffLocationId);
+    const pickupPrice = pickupLoc?.pickupFee ?? pickupLoc?.price ?? 0;
     const dropoffPrice = pickupLocationId === dropoffLocationId
       ? 0
-      : (companyLocations.find((loc) => loc.id === dropoffLocationId)?.price || 0);
+      : (dropoffLoc?.dropoffFee ?? dropoffLoc?.price ?? 0);
     const locationCharges = pickupPrice + dropoffPrice;
 
     // Fleet discount based on duration (mirrors backend

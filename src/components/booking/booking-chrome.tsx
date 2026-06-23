@@ -68,9 +68,10 @@ export function BookingActions({
       {renderAction('Cancel', <Close size={14} strokeWidth={2} className={cancelEnabled ? 'text-danger' : 'text-faint'} />, paths.cancel(bookingId), cancelEnabled)}
       <button
         onClick={() => window.print()}
-        className="inline-flex min-w-[118px] items-center justify-center gap-[7px] rounded-[9px] border border-primary bg-primary px-[14px] py-[9px] text-[13px] font-semibold text-white"
+        className="no-print inline-flex min-w-[118px] items-center justify-center gap-[7px] rounded-[9px] border border-primary bg-primary px-[14px] py-[9px] text-[13px] font-semibold text-white"
+        title="Save or print this booking as a PDF"
       >
-        <Download size={14} /> Download
+        <Download size={14} /> Download PDF
       </button>
     </div>
   );

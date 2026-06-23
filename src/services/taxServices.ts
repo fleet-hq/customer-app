@@ -4,9 +4,9 @@ import { ApiTaxProfile } from '@/types/vehicle';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-export async function getDefaultTaxProfile(): Promise<ApiTaxProfile | null> {
+export async function getDefaultTaxProfile(domain?: string | null): Promise<ApiTaxProfile | null> {
   try {
-    const domainParams = getDomainParams();
+    const domainParams = getDomainParams(domain);
     const res = await axios.get<ApiTaxProfile[] | { results: ApiTaxProfile[] }>(
       `${API_URL}/api/companies/public/tax-profiles/`,
       {
