@@ -13,24 +13,25 @@ interface CtaBandProps {
 }
 
 export function CtaBand({ eyebrow, title, description, ctaLabel, backgroundImage }: CtaBandProps) {
+  // Image rendered as-is with a soft light-gray wash overlay so the
+  // copy stays legible on top of any uploaded photo. No more brand
+  // gradient, no more decorative blobs.
   const bg = backgroundImage
-    ? `linear-gradient(120deg, color-mix(in srgb, var(--color-primary) 75%, transparent) 0%, color-mix(in srgb, var(--color-secondary) 85%, transparent) 100%), url('${backgroundImage}')`
-    : 'radial-gradient(120% 140% at 85% 15%, var(--color-primary) 0%, color-mix(in srgb, var(--color-primary) 60%, var(--color-secondary)) 42%, var(--color-secondary) 100%)';
+    ? `linear-gradient(rgba(244,244,246,0.78), rgba(244,244,246,0.78)), url('${backgroundImage}')`
+    : 'rgb(244,244,246)';
   return (
     <section id="contact" className="mx-auto max-w-[1200px] px-6 pt-[24px] pb-[76px]">
       <div
-        className="relative overflow-hidden rounded-[22px] px-[32px] py-[64px] text-center bg-cover bg-center"
+        className="relative overflow-hidden rounded-[22px] bg-cover bg-center px-[32px] py-[64px] text-center"
         style={{ background: bg }}
       >
-        <div className="absolute -top-[80px] -right-[60px] h-[260px] w-[260px] rounded-full bg-white/[0.07]" />
-        <div className="absolute -bottom-[110px] -left-[50px] h-[240px] w-[240px] rounded-full bg-white/[0.06]" />
         <div className="relative mx-auto max-w-[600px]">
-          <div className="mb-[14px] text-[12px] font-semibold tracking-[0.08em] text-white/80 uppercase">{eyebrow}</div>
-          <h2 className="m-0 mb-[14px] text-[30px] leading-[1.18] font-semibold tracking-[-0.02em] text-white">{title}</h2>
-          <p className="m-0 mb-[28px] text-[13px] leading-[1.6] text-white/85">{description}</p>
+          <div className="mb-[14px] text-[12px] font-semibold tracking-[0.08em] text-muted uppercase">{eyebrow}</div>
+          <h2 className="m-0 mb-[14px] text-[30px] leading-[1.18] font-semibold tracking-[-0.02em] text-ink">{title}</h2>
+          <p className="m-0 mb-[28px] text-[13px] leading-[1.6] text-muted">{description}</p>
           <Link
             href={paths.fleet}
-            className="inline-flex items-center gap-[9px] rounded-[9px] bg-white px-[34px] py-[14px] text-[15px] font-semibold text-secondary"
+            className="inline-flex items-center gap-[9px] rounded-[9px] bg-primary px-[34px] py-[14px] text-[15px] font-semibold text-white"
           >
             {ctaLabel}
             <ArrowRight size={17} />
