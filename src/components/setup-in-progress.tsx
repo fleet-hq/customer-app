@@ -1,14 +1,22 @@
 interface SetupInProgressProps {
   host: string;
+  /** When true, drop the full-screen sizing so the block can sit
+   *  inside a layout that already has header + footer rendering.
+   *  ``layout.tsx`` uses the default (full-screen) for unmapped
+   *  hostnames; ``app/page.tsx`` uses ``compact`` when a mapped
+   *  tenant has no content yet. */
+  compact?: boolean;
 }
 
-// Renders OUTSIDE TenantProvider — by definition we couldn't resolve a
-// tenant for this hostname. Use platform defaults (no tenant brand,
-// no theme) and keep the markup self-contained so a future change to
-// the layout chrome can't accidentally pull tenant context in.
-export function SetupInProgress({ host }: SetupInProgressProps) {
+export function SetupInProgress({ host, compact = false }: SetupInProgressProps) {
   return (
-    <section className="mx-auto flex min-h-screen max-w-[560px] flex-col items-center justify-center px-6 py-16 text-center">
+    <section
+      className={
+        compact
+          ? 'mx-auto flex min-h-[60vh] max-w-[560px] flex-col items-center justify-center px-6 py-20 text-center'
+          : 'mx-auto flex min-h-screen max-w-[560px] flex-col items-center justify-center px-6 py-16 text-center'
+      }
+    >
       <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full bg-amber-100">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#b45309" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="10" />

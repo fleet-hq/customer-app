@@ -10,6 +10,7 @@ import { CategoryCarousel } from '@/components/sections/home/category-carousel';
 import { Testimonials } from '@/components/sections/home/testimonials';
 import { HomeFaq } from '@/components/sections/home/home-faq';
 import { CtaBand } from '@/components/sections/home/cta-band';
+import { SetupInProgress } from '@/components/setup-in-progress';
 import { useTenant } from '@/lib/tenant-context';
 import { withCompany } from '@/lib/tenant';
 import { useFleetDiscountsSummary } from '@/hooks/useFleetDiscounts';
@@ -67,6 +68,26 @@ export default function HomePage() {
 
   const cta = sections.cta;
   const ctaVisible = !!(cta?.title || cta?.description || cta?.cta_label);
+
+  const hasAnyBodyContent =
+    heroHasCopy ||
+    !!images.hero ||
+    featureBannerImages.length > 0 ||
+    featureColumns.length > 0 ||
+    fleetCopyVisible ||
+    whyChooseVisible ||
+    categoriesVisible ||
+    testimonialItems.length > 0 ||
+    faqItems.length > 0 ||
+    ctaVisible;
+
+  if (!hasAnyBodyContent) {
+    return (
+      <div className="bg-white text-ink">
+        <SetupInProgress host={tenant.domain || tenant.name} compact />
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white text-ink">
