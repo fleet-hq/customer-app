@@ -23,7 +23,7 @@ export function HomeHero({ pill, headingLines, subheading, backgroundImage }: Ho
             className="absolute inset-0 bg-cover"
             style={{ backgroundImage: `url('${backgroundImage}')`, backgroundPosition: 'center 42%' }}
           />
-          <div className="absolute inset-0 bg-black/55" />
+          <div className="absolute inset-0 bg-black/25" />
         </>
       ) : null}
       <div className="relative z-10 flex flex-col items-center">
