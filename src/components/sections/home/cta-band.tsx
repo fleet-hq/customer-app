@@ -17,7 +17,7 @@ export function CtaBand({ eyebrow, title, description, ctaLabel, backgroundImage
   // top so the white copy stays legible on bright photos. The
   // tenant's image is the bg, not the brand color or a flat panel.
   const bg = backgroundImage
-    ? `linear-gradient(rgba(0,0,0,0.22), rgba(0,0,0,0.22)), url('${backgroundImage}')`
+    ? `linear-gradient(rgba(0,0,0,0.32), rgba(0,0,0,0.32)), url('${backgroundImage}')`
     : 'rgb(238,239,243)';
   return (
     <section id="contact" className="mx-auto max-w-[1200px] px-6 pt-[24px] pb-[76px]">
