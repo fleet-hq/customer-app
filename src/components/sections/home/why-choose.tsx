@@ -37,7 +37,7 @@ export function WhyChoose({ eyebrow, title, description, ctaLabel, image }: WhyC
           ) : null}
           {description ? (
             <p
-              className={`m-0 text-[12.5px] leading-[1.75] text-muted ${image ? 'max-w-[480px]' : 'mx-auto max-w-[520px]'}`}
+              className={`m-0 text-[12.5px] leading-[1.75] text-muted text-justify hyphens-auto ${image ? 'max-w-[480px]' : 'mx-auto max-w-[520px]'}`}
             >
               {description}
             </p>

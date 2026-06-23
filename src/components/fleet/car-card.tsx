@@ -41,7 +41,7 @@ export function CarCard({ vehicle, badge, oldPrice, bookingQuery }: CarCardProps
       </div>
 
       <div className="flex flex-1 flex-col p-[16px]">
-        <div className="text-[15px] font-semibold text-secondary">{vehicle.name}</div>
+        <div className="line-clamp-2 min-h-[40px] text-[15px] leading-[1.25] font-semibold text-secondary">{vehicle.name}</div>
         {vehicle.location && (
           <div className="mt-[5px] flex items-center gap-[5px] text-[11.5px] text-muted">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 text-primary">
