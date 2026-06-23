@@ -207,6 +207,51 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
     defaultTaxProfile,
   });
 
+  // Re-validate the promo whenever the priced subtotal moves (insurance
+  // / extras / location / fees change after the user typed the code).
+  // Must run BEFORE the isLoading early-return so the hooks order stays
+  // stable across renders — Rules of Hooks.
+  useEffect(() => {
+    if (!promoApplied || !promoCode) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const result = await validatePromoCode({
+          code: promoCode,
+          base_price: pricing.subtotal - pricing.insuranceCost - pricing.extrasCost,
+          extras_price: pricing.insuranceCost + pricing.extrasCost,
+          fees: pricing.bookingFee,
+          location_charges: pricing.locationCharges,
+        });
+        if (cancelled) return;
+        if (result.valid && result.discount_amount) {
+          setPromoDiscount(parseFloat(result.discount_amount));
+        } else {
+          setPromoApplied(false);
+          setPromoCode('');
+          setPromoDiscount(0);
+          setPromoError(result.error || 'Promo no longer valid');
+        }
+      } catch {
+        if (cancelled) return;
+        setPromoApplied(false);
+        setPromoCode('');
+        setPromoDiscount(0);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    promoApplied,
+    promoCode,
+    pricing.subtotal,
+    pricing.insuranceCost,
+    pricing.extrasCost,
+    pricing.bookingFee,
+    pricing.locationCharges,
+  ]);
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen flex-col bg-white text-ink">
@@ -468,47 +513,6 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
       setPromoError(message);
     }
   };
-
-  useEffect(() => {
-    if (!promoApplied || !promoCode) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const result = await validatePromoCode({
-          code: promoCode,
-          base_price: pricing.subtotal - pricing.insuranceCost - pricing.extrasCost,
-          extras_price: pricing.insuranceCost + pricing.extrasCost,
-          fees: pricing.bookingFee,
-          location_charges: pricing.locationCharges,
-        });
-        if (cancelled) return;
-        if (result.valid && result.discount_amount) {
-          setPromoDiscount(parseFloat(result.discount_amount));
-        } else {
-          setPromoApplied(false);
-          setPromoCode('');
-          setPromoDiscount(0);
-          setPromoError(result.error || 'Promo no longer valid');
-        }
-      } catch {
-        if (cancelled) return;
-        setPromoApplied(false);
-        setPromoCode('');
-        setPromoDiscount(0);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    promoApplied,
-    promoCode,
-    pricing.subtotal,
-    pricing.insuranceCost,
-    pricing.extrasCost,
-    pricing.bookingFee,
-    pricing.locationCharges,
-  ]);
 
   const scrollProtection = () => {
     const el = protectionRef.current;
