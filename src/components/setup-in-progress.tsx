@@ -30,19 +30,9 @@ export function SetupInProgress({ host, compact = false }: SetupInProgressProps)
         We&apos;re getting this site ready
       </h1>
       <p className="m-0 mb-6 text-[14px] leading-[1.6] text-slate-600">
-        <span className="font-mono text-[13px] text-slate-700">{host}</span> isn&apos;t live yet.
-        The operator needs to finish onboarding before the public site goes up.
-        Please check back shortly.
-      </p>
-      <p className="text-[12px] text-slate-500">
-        Operator? Sign in at{' '}
-        <a
-          href="https://app.fleethq.io"
-          className="font-medium text-slate-700 underline underline-offset-2 hover:text-slate-900"
-        >
-          app.fleethq.io
-        </a>{' '}
-        to register this domain and publish your site.
+        <span className="font-mono text-[13px] text-slate-700">{host}</span>
+        {' '}isn&apos;t live yet. The operator needs to finish onboarding before
+        the public site goes up. Please check back shortly.
       </p>
     </section>
   );
