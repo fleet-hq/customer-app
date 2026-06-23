@@ -171,7 +171,7 @@ export default function FleetPage() {
   const shown = clientFiltered ? vehicles.length : count;
   const countLabel = isLoading
     ? 'Loading…'
-    : `Showing ${shown} ${shown === 1 ? 'car' : 'cars'} · prices for your ${days}-day trip${pct > 0 ? ` (${pct}% off daily)` : ''}`;
+    : `Showing ${shown} ${shown === 1 ? 'car' : 'cars'} · your ${days}-day trip${pct > 0 ? ` (${pct}% off daily)` : ''}`;
 
   const heading = isFiltered ? activeLabel : 'Pick your next ride from our fleet.';
 

@@ -347,7 +347,6 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
     else if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.email)) e.email = 'Enter a valid email address';
     if (!f.phone) e.phone = 'Phone number is required';
     else if (f.phone.replace(/\D/g, '').length < 7) e.phone = 'Enter a valid phone number';
-    if (!f.license.trim()) e.license = "Driver's license is required";
     return e;
   };
 
@@ -800,10 +799,6 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               <div>
                 <PhoneInput value={fields.phone} onChange={(v) => setField('phone', v)} onBlur={() => blurField('phone')} error={!!errors.phone} placeholder="Phone number" />
                 {errors.phone && <FieldError>{errors.phone}</FieldError>}
-              </div>
-              <div className="sm:col-span-2">
-                <TextInput value={fields.license} onChange={(e) => setField('license', e.target.value)} placeholder="Driver's license no." error={!!errors.license} />
-                {errors.license && <FieldError>{errors.license}</FieldError>}
               </div>
             </div>
 
