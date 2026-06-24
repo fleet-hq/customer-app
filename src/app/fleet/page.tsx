@@ -18,6 +18,9 @@ import { activeTier } from '@/lib/discount-tiers';
 const SORTS = ['Recommended', 'Price: low to high', 'Price: high to low'] as const;
 const PAGE_SIZE = 12;
 
+const FLEET_GRID_CLASS =
+  'grid gap-x-4 gap-y-6 sm:gap-x-5 sm:gap-y-8 lg:gap-x-[30px] lg:gap-y-[34px] grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
+
 const CATEGORY_LABELS: Record<string, string> = {
   'small-cars': 'Small Cars',
   sedans: 'Sedans',
@@ -179,7 +182,7 @@ export default function FleetPage() {
     <div className="flex min-h-screen flex-col bg-white text-ink">
       <SearchBar variant="compact" />
 
-      <section className="mx-auto w-full max-w-[1200px] flex-1 px-6 pt-10 pb-[72px]">
+      <section className="mx-auto w-full max-w-[1200px] flex-1 px-4 pt-6 pb-12 sm:px-6 sm:pt-10 sm:pb-18">
         <FleetToolbar
           heading={heading}
           isFiltered={isFiltered}
@@ -202,7 +205,7 @@ export default function FleetPage() {
             We couldn&apos;t load the fleet right now. Please try again shortly.
           </div>
         ) : isLoading ? (
-          <div className="grid gap-x-[30px] gap-y-[34px] [grid-template-columns:repeat(auto-fill,minmax(228px,246px))]">
+          <div className={FLEET_GRID_CLASS}>
             {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="h-[320px] animate-pulse rounded-[16px] border border-card-border bg-subtle" />
             ))}
@@ -213,7 +216,7 @@ export default function FleetPage() {
           </div>
         ) : (
           <>
-            <div className="grid gap-x-[30px] gap-y-[34px] [grid-template-columns:repeat(auto-fill,minmax(228px,246px))]">
+            <div className={FLEET_GRID_CLASS}>
               {vehicles.map((v) => {
                 const unavailable = unavailableIds.has(v.id);
                 const weeklyPct = weeklyDiscountPct(v);
@@ -236,8 +239,8 @@ export default function FleetPage() {
               })}
             </div>
 
-            <div className="mt-10 flex flex-wrap items-center justify-between gap-4">
-              <span className="text-sm text-faint">{countLabel}</span>
+            <div className="mt-8 flex flex-col items-center gap-4 sm:mt-10 sm:flex-row sm:flex-wrap sm:justify-between">
+              <span className="text-center text-sm text-faint sm:text-left">{countLabel}</span>
               {totalPages > 1 && (
                 <FleetPagination page={page} totalPages={totalPages} onPage={goToPage} />
               )}

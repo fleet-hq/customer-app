@@ -97,10 +97,18 @@ export function AwaitingVerificationBanner({
   countdown,
   expired,
   message,
+  canPay = false,
+  onPay,
+  payLoading = false,
+  payError,
 }: {
   countdown: string | null;
   expired: boolean;
   message: string;
+  canPay?: boolean;
+  onPay?: () => void;
+  payLoading?: boolean;
+  payError?: string | null;
 }) {
   return (
     <div className="mt-4 flex flex-wrap items-center gap-[14px] rounded-[14px] border border-amber-border bg-amber-bg px-5 py-4">
@@ -115,7 +123,19 @@ export function AwaitingVerificationBanner({
         <div className="mt-0.5 text-[12.5px] text-amber-text-2">
           Your vehicle slot is held until verification is finished.
         </div>
+        {payError && (
+          <div className="mt-1 text-[12px] font-medium text-danger">{payError}</div>
+        )}
       </div>
+      {canPay && onPay && !expired && (
+        <button
+          onClick={onPay}
+          disabled={payLoading}
+          className="h-10 rounded-md bg-primary px-5 text-sm font-semibold text-white disabled:opacity-60"
+        >
+          {payLoading ? 'Redirecting…' : 'Continue to payment'}
+        </button>
+      )}
       {countdown && (
         <div
           className={cn(

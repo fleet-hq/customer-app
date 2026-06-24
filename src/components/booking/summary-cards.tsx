@@ -15,7 +15,7 @@ function rentalDays(booking: BookingDetails): number {
 export function VehicleDriverCard({ booking }: { booking: BookingDetails }) {
   const image = booking.vehicle.image && booking.vehicle.image.trim() !== '' ? booking.vehicle.image : PLACEHOLDER_IMAGE;
   return (
-    <div className="rounded-2xl border border-card-border bg-white p-6">
+    <div className="rounded-2xl border border-card-border bg-white p-4 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-[18px]">
         <div className="flex gap-4">
           <div
@@ -71,9 +71,9 @@ function Detail({
 
 export function TripDetails({ booking }: { booking: BookingDetails }) {
   return (
-    <div className="rounded-2xl border border-card-border bg-white p-6">
-      <h3 className="mb-[18px] text-[15px] font-semibold text-ink">Trip details</h3>
-      <div className="flex items-stretch gap-4">
+    <div className="rounded-2xl border border-card-border bg-white p-4 sm:p-6">
+      <h3 className="mb-4 text-[15px] font-semibold text-ink sm:mb-4.5">Trip details</h3>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch sm:gap-4">
         <TripEnd
           kind="Pick-up"
           dotClass="bg-primary"
@@ -81,7 +81,7 @@ export function TripDetails({ booking }: { booking: BookingDetails }) {
           location={booking.pickUp.address}
           when={`${booking.pickUp.date} · ${booking.pickUp.time}`}
         />
-        <div className="flex flex-shrink-0 items-center">
+        <div className="flex flex-shrink-0 items-center justify-center sm:justify-start">
           <span className="rounded-full bg-chip px-[10px] py-[5px] text-[10px] font-semibold whitespace-nowrap text-muted">
             {rentalDays(booking)} DAYS
           </span>
@@ -166,7 +166,7 @@ export function Invoice({
   const grandTotal = total ?? inv.total;
 
   return (
-    <div className="rounded-2xl border border-card-border bg-white p-6">
+    <div className="rounded-2xl border border-card-border bg-white p-4 sm:p-6">
       <div className="mb-[18px] flex items-center justify-between">
         <div className="flex items-baseline gap-2">
           <span className="text-[15px] font-semibold text-ink">Invoice</span>

@@ -115,28 +115,12 @@ export function Header({
         <div className="flex items-center justify-end gap-[14px]">
           <Link
             href={paths.manage}
-            className="hidden whitespace-nowrap text-xs font-medium text-ink-2 min-[560px]:block"
+            className="whitespace-nowrap rounded-[7px] border border-primary bg-primary px-[18px] py-[9px] text-xs font-semibold text-white"
           >
-            {signedIn ? 'My Bookings' : 'Manage Bookings'}
+            Manage Bookings
           </Link>
-          <div className="hidden h-[22px] w-px bg-card-border min-[560px]:block" />
 
-          {!signedIn ? (
-            <>
-              <Link
-                href={paths.signIn}
-                className="whitespace-nowrap rounded-[7px] border border-line px-[18px] py-[9px] text-xs font-semibold text-ink-2"
-              >
-                Sign in
-              </Link>
-              <Link
-                href={paths.register}
-                className="whitespace-nowrap rounded-[7px] border border-primary bg-primary px-[18px] py-[9px] text-xs font-semibold text-white"
-              >
-                Register
-              </Link>
-            </>
-          ) : (
+          {signedIn && (
             <div className="relative" ref={menuRef}>
               <button
                 onClick={() => setMenuOpen((o) => !o)}

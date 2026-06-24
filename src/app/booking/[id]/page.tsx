@@ -21,7 +21,16 @@ import {
   useCreateIdentityVerification,
   useCreateInsuranceVerification,
 } from '@/hooks/useVerification';
+import {
+  useBookingVerificationPolicy,
+  useStartVerificationFirstPayment,
+} from '@/hooks/useBookingPolicy';
+import {
+  HoldExpiredError,
+  VerificationIncompleteError,
+} from '@/services/bookingPolicyServices';
 import { createBillingCheckoutSession } from '@/services/billingServices';
+import { bookingHasInsuranceExtra } from '@/lib/insurance-extras';
 import { setBookingToken } from '@/utils/booking-token';
 import { paths } from '@/lib/paths';
 import { money } from '@/lib/utils';
@@ -44,6 +53,8 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
   const { data: balance } = useBookingBalance(!!fetchId, id);
   const { data: bookingImages = [] } = useBookingImages(fetchId);
   const { data: verificationStatus } = useVerificationStatus(fetchId);
+  const { data: verificationPolicy } = useBookingVerificationPolicy();
+  const { mutateAsync: startVerifyFirstPayment } = useStartVerificationFirstPayment();
 
   const { mutate: createIdVerification, isPending: idPending } = useCreateIdentityVerification();
   const { mutate: createInsuranceVerification, isPending: insurancePending } =
@@ -63,18 +74,33 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
   }, [isVerifyFirst, holdExpiresAt]);
 
   const [payLoading, setPayLoading] = useState(false);
+  const [payError, setPayError] = useState<string | null>(null);
   const handlePay = async () => {
     if (payLoading) return;
     setPayLoading(true);
+    setPayError(null);
     try {
-      const origin = typeof window !== 'undefined' ? window.location.origin : '';
-      const suffix = token ? `?token=${token}` : '';
-      const result = await createBillingCheckoutSession({
-        successUrl: `${origin}/booking/${id}${suffix}`,
-        cancelUrl: `${origin}/booking/${id}${suffix}`,
-      });
-      window.location.href = result.checkout_url;
-    } catch {
+      const cancelUrl = buildBookingReturnUrl(id, token);
+      const successUrl = buildBookingSuccessUrl();
+      const checkoutUrl =
+        isVerifyFirst && token
+          ? (
+              await startVerifyFirstPayment({
+                bookingId: Number(id),
+                accessToken: token,
+                successUrl,
+                cancelUrl,
+              })
+            ).checkout_url
+          : (
+              await createBillingCheckoutSession({
+                successUrl: cancelUrl,
+                cancelUrl,
+              })
+            ).checkout_url;
+      window.location.href = checkoutUrl;
+    } catch (err) {
+      setPayError(messageForPaymentError(err));
       setPayLoading(false);
     }
   };
@@ -156,18 +182,25 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
     const s = total % 60;
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   })();
+  const requireId = verificationPolicy?.require_id ?? true;
+  const hasInsuranceExtra = bookingHasInsuranceExtra(booking);
+  const requireInsurance =
+    (verificationPolicy?.require_insurance ?? false) && !hasInsuranceExtra;
   const pendingChecks: string[] = [];
-  if (!idVerified) pendingChecks.push('verify your ID');
-  if (booking.hasOwnInsurance && !insuranceVerified) pendingChecks.push('verify your insurance');
-  const verifyMessage =
-    pendingChecks.length === 0
-      ? 'All checks complete — continue to payment to confirm your booking.'
-      : `Please ${pendingChecks.join(' and ')} to continue to payment.`;
+  if (requireId && !idVerified) pendingChecks.push('verify your ID');
+  if (requireInsurance && !insuranceVerified) pendingChecks.push('verify your insurance');
+  const allRequiredChecksDone = pendingChecks.length === 0;
+  const verifyMessage = allRequiredChecksDone
+    ? 'All checks complete — continue to payment to confirm your booking.'
+    : `Please ${pendingChecks.join(' and ')} to continue to payment.`;
+
+  const showInsuranceStep =
+    !hasInsuranceExtra && (requireInsurance || !!booking.hasOwnInsurance);
 
   const steps = buildNextSteps({
     idVerified,
     insuranceVerified,
-    showInsurance: booking.hasOwnInsurance,
+    showInsurance: showInsuranceStep,
     agreementHref: paths.terms + '?bookingId=' + id + (token ? '&token=' + token : ''),
     onIdVerify: handleIdVerify,
     idPending,
@@ -183,7 +216,7 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
 
   return (
     <div className="bg-white text-ink">
-      <div className="mx-auto max-w-[1140px] px-6 pt-[22px] pb-16">
+      <div className="mx-auto max-w-[1140px] px-4 pt-5 pb-12 sm:px-6 sm:pt-[22px] sm:pb-16">
         <BackLink href={paths.home}>Back to home</BackLink>
 
         <div className="mt-[14px] flex flex-wrap items-center justify-between gap-[14px]">
@@ -208,6 +241,10 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
             countdown={holdCountdownLabel}
             expired={holdExpired}
             message={verifyMessage}
+            canPay={allRequiredChecksDone}
+            onPay={handlePay}
+            payLoading={payLoading}
+            payError={payError}
           />
         ) : showPaymentDue ? (
           <PaymentDueBanner amount={money(outstanding)} onPay={handlePay} payLoading={payLoading} />
@@ -251,4 +288,27 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
       </div>
     </div>
   );
+}
+
+function buildBookingReturnUrl(id: string, token: string | null) {
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  return `${origin}/booking/${id}${token ? `?token=${token}` : ''}`;
+}
+
+function buildBookingSuccessUrl() {
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  return `${origin}/booking/success?session_id={CHECKOUT_SESSION_ID}`;
+}
+
+function messageForPaymentError(err: unknown): string {
+  if (err instanceof VerificationIncompleteError) {
+    const labels = err.missing.map((m) =>
+      m === 'identity' ? 'ID verification' : 'insurance verification',
+    );
+    return `Please complete: ${labels.join(' and ')}.`;
+  }
+  if (err instanceof HoldExpiredError) {
+    return 'This booking hold has expired. Please start a new booking.';
+  }
+  return 'Could not start payment. Please try again.';
 }

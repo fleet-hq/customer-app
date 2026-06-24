@@ -23,6 +23,21 @@ export interface ApiBookingPrice {
   is_peak?: boolean;
   /** True when the override LOWERS the average per-day rate below base. */
   is_promo?: boolean;
+  daily_rates?: ApiDailyRate[] | null;
+}
+
+export interface ApiDailyRate {
+  date: string;
+  weekday: string;
+  rate: number;
+  is_dynamic: boolean;
+}
+
+export interface DailyRate {
+  date: string;
+  weekday: string;
+  rate: number;
+  isDynamic: boolean;
 }
 
 export interface ApiFleetExtra {
@@ -152,6 +167,7 @@ export interface Vehicle {
   isPeakPricing?: boolean;
   /** Override actually lowers the rate vs base — show "promo pricing" hint. */
   isPromoPricing?: boolean;
+  dailyRates?: DailyRate[] | null;
   maxDiscount?: number;
   discounts?: { unitType: string; units: number; percentage: number }[];
   licensePlate: string;
@@ -277,6 +293,13 @@ export function transformApiVehicle(apiVehicle: ApiVehicle): Vehicle {
     isDynamicPricing: !!apiVehicle.booking_price?.is_dynamic,
     isPeakPricing: !!apiVehicle.booking_price?.is_peak,
     isPromoPricing: !!apiVehicle.booking_price?.is_promo,
+    dailyRates:
+      apiVehicle.booking_price?.daily_rates?.map((d) => ({
+        date: d.date,
+        weekday: d.weekday,
+        rate: Number(d.rate),
+        isDynamic: !!d.is_dynamic,
+      })) ?? null,
     maxDiscount,
     discounts: activeDiscounts.map((d) => ({
       unitType: d.unit_type || 'day',

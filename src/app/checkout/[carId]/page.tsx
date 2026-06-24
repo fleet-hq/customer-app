@@ -9,6 +9,8 @@ import { PhoneInput } from '@/components/ui/phone-input';
 import { DateTimeField } from '@/components/search/date-time-field';
 import { Check, Info, Pencil, ImageIcon, Close, ChevronLeft, ChevronDown, ShieldCheck, MapPin } from '@/components/ui/icons';
 import { Dialog } from '@/components/ui/dialog';
+import { DateDealsCallout } from '@/components/booking/date-deals-callout';
+import { RentalBreakdown } from '@/components/booking/rental-breakdown';
 import { DEFAULT_TRIP } from '@/lib/mock-data';
 import { useFleet, useInsuranceOptions, useStartBookingCheckout, useCompanyLocations, useFleetUnavailableRanges } from '@/hooks';
 import { useBookingInvoice } from '@/hooks/useBookingInvoice';
@@ -94,7 +96,6 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const { data: vehicle, isLoading } = useFleet(carId);
   const { data: insuranceOptions } = useInsuranceOptions();
   const { data: companyLocations } = useCompanyLocations();
   const defaultLoc = useDefaultLocation();
@@ -110,6 +111,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   );
   const unavailableDates = unavailabilityIndex.fullyBlockedDates;
   const protectionRef = useRef<HTMLHeadingElement>(null);
+  const errorBannerRef = useRef<HTMLDivElement>(null);
 
   const [selectedInsurance, setSelectedInsurance] = useState<Set<string>>(new Set());
   const [extras, setExtras] = useState<Record<string, number>>({});
@@ -140,6 +142,21 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   const [pickupTime, setPickupTime] = useState(urlPickupTime ?? DEFAULT_TRIP.pickupTime);
   const [returnDate, setReturnDate] = useState(urlReturnDate ?? DEFAULT_TRIP.returnDate);
   const [returnTime, setReturnTime] = useState(urlReturnTime ?? DEFAULT_TRIP.returnTime);
+
+  const fleetTz = useMemo(() => {
+    const fromLoc = companyLocations?.find((l) => String(l.id) === pickupLocId)?.timezone;
+    return fromLoc ?? defaultLoc?.timezone ?? null;
+  }, [companyLocations, pickupLocId, defaultLoc]);
+
+  const fleetDateArgs = useMemo(() => {
+    if (!fleetTz) return undefined;
+    return {
+      pickupDatetime: toUtcIso(pickupDate, pickupTime, fleetTz),
+      dropoffDatetime: toUtcIso(returnDate, returnTime, fleetTz),
+    };
+  }, [fleetTz, pickupDate, pickupTime, returnDate, returnTime]);
+
+  const { data: vehicle, isLoading } = useFleet(carId, true, fleetDateArgs);
 
   useEffect(() => {
     if (pickupLocId || !companyLocations?.length) return;
@@ -207,10 +224,11 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
     defaultTaxProfile,
   });
 
-  // Re-validate the promo whenever the priced subtotal moves (insurance
-  // / extras / location / fees change after the user typed the code).
-  // Must run BEFORE the isLoading early-return so the hooks order stays
-  // stable across renders — Rules of Hooks.
+  useEffect(() => {
+    if (!checkoutError) return;
+    errorBannerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [checkoutError]);
+
   useEffect(() => {
     if (!promoApplied || !promoCode) return;
     let cancelled = false;
@@ -433,20 +451,9 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
           window.location.href = `/booking/${data.booking_id}?token=${encodeURIComponent(data.access_token)}`;
         },
         onError: (error: unknown) => {
-          let message = 'Could not start verification. Please try again.';
-          if (error && typeof error === 'object' && 'response' in error) {
-            const res = (error as { response?: { data?: Record<string, unknown> } }).response;
-            const body = res?.data;
-            if (body) {
-              const nested = body.errors as Record<string, string[]> | undefined;
-              const source = nested ?? body;
-              const messages = Object.values(source)
-                .flat()
-                .filter((v): v is string => typeof v === 'string');
-              if (messages.length > 0) message = messages.join(' ');
-            }
-          }
-          setCheckoutError(message);
+          setCheckoutError(
+            extractApiErrorMessage(error, 'Could not start verification. Please try again.'),
+          );
         },
       });
       return;
@@ -477,8 +484,10 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
         cancel_url: `${origin}/checkout/${carId}`,
       });
       window.location.href = data.checkout_url;
-    } catch {
-      setCheckoutError('We couldn’t start checkout. Please check your details and try again.');
+    } catch (error) {
+      setCheckoutError(
+        extractApiErrorMessage(error, 'We couldn’t start checkout. Please check your details and try again.'),
+      );
     }
   };
 
@@ -804,7 +813,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
 
           </div>
 
-          <div className="hidden rounded-2xl border border-card-border bg-subtle p-[22px] lg:sticky lg:top-[88px] lg:block">
+          <div className="rounded-2xl border border-card-border bg-subtle p-4 sm:p-[22px] lg:sticky lg:top-[88px]">
             <div className="mb-3 text-sm font-semibold text-ink">Your trip</div>
             <div className="flex flex-col gap-2">
               <div
@@ -839,29 +848,23 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               <span className="rounded-full border border-line bg-white px-[10px] py-[3px] text-[11px] font-medium text-muted">{days} days</span>
             </div>
 
-            {vehicle.isPeakPricing && (
-              <div className="mb-4 rounded-[9px] border border-amber-border bg-amber-bg px-3 py-[9px] text-[11.5px] font-medium text-amber-text-2">
-                Peak-day pricing is in effect for the selected dates.
-              </div>
-            )}
-            {vehicle.isPromoPricing && (
-              <div className="mb-4 rounded-[9px] border border-green-border-2 bg-green-bg px-3 py-[9px] text-[11.5px] font-medium text-success">
-                Promo pricing is in effect for the selected dates.
-              </div>
-            )}
+            <DateDealsCallout
+              className="mb-4"
+              days={days}
+              isPeakPricing={vehicle.isPeakPricing}
+              isPromoPricing={vehicle.isPromoPricing}
+            />
 
             <div className="mb-[11px] text-[11px] font-semibold uppercase tracking-[0.05em] text-muted">Rental</div>
-            <div className="flex items-start justify-between text-[13px]">
-              <div>
-                <div className="font-medium text-ink">Car rental</div>
-                <div className="mt-px text-[11.5px] text-muted">
-                  {pricing.rateUnit === 'hour'
-                    ? `${money(vehicle.pricePerHour)} × ${rentalHours} ${rentalHours === 1 ? 'hour' : 'hours'}`
-                    : `${money(vehicle.pricePerDay)} × ${days} ${days === 1 ? 'day' : 'days'}`}
-                </div>
-              </div>
-              <span className="font-medium text-ink">{money(pricing.subtotal - pricing.insuranceCost - pricing.extrasCost)}</span>
-            </div>
+            <RentalBreakdown
+              rateUnit={pricing.rateUnit}
+              pricePerHour={vehicle.pricePerHour}
+              rentalHours={rentalHours}
+              pricePerDay={vehicle.pricePerDay}
+              days={days}
+              dailyRates={vehicle.dailyRates}
+              total={pricing.subtotal - pricing.insuranceCost - pricing.extrasCost}
+            />
             <div className="my-[14px] h-px bg-card-border" />
 
             <div className="mb-[11px] flex items-center justify-between">
@@ -1025,7 +1028,10 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
             )}
 
             {(hasErrors || checkoutError) && (
-              <div className="mt-4 flex items-center gap-[7px] rounded-[9px] border border-danger-border bg-danger-bg px-3 py-[9px] text-[11.5px] leading-[1.4] text-danger-text">
+              <div
+                ref={errorBannerRef}
+                className="mt-4 flex items-center gap-[7px] rounded-[9px] border border-danger-border bg-danger-bg px-3 py-[9px] text-[11.5px] leading-[1.4] text-danger-text"
+              >
                 <Info size={14} strokeWidth={2} className="flex-shrink-0 text-danger" />
                 {checkoutError || 'Please fix the highlighted fields to continue.'}
               </div>
@@ -1251,6 +1257,12 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                 </div>
               </div>
             </div>
+            <DateDealsCallout
+              className="mt-5"
+              days={days}
+              isPeakPricing={vehicle.isPeakPricing}
+              isPromoPricing={vehicle.isPromoPricing}
+            />
             <button onClick={() => setTripOpen(false)} className="mt-[22px] w-full rounded-[9px] bg-primary py-3 text-center text-sm font-semibold text-white">
               Update trip
             </button>
@@ -1538,4 +1550,16 @@ function InsuranceDetailModal({
         </div>
     </Dialog>
   );
+}
+
+function extractApiErrorMessage(error: unknown, fallback: string): string {
+  if (!error || typeof error !== 'object' || !('response' in error)) return fallback;
+  const body = (error as { response?: { data?: unknown } }).response?.data;
+  if (!body || typeof body !== 'object') return fallback;
+  const nested = (body as { errors?: unknown }).errors;
+  const source = (nested && typeof nested === 'object' ? nested : body) as Record<string, unknown>;
+  const messages = Object.values(source)
+    .flat()
+    .filter((v): v is string => typeof v === 'string');
+  return messages.length > 0 ? messages.join(' ') : fallback;
 }

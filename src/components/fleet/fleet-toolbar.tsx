@@ -45,9 +45,9 @@ export function FleetToolbar({
   useClickOutside(panelRef, () => setOpen(false), open);
 
   return (
-    <div className="mb-8 flex flex-col items-start justify-between gap-5 md:flex-row md:items-start">
+    <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:mb-8 sm:gap-5 md:flex-row md:items-start">
       <div className="flex flex-col gap-3">
-        <h1 className="text-[23px] font-semibold tracking-[-0.01em] text-ink">{heading}</h1>
+        <h1 className="text-[20px] font-semibold tracking-[-0.01em] text-ink sm:text-[23px]">{heading}</h1>
         {isFiltered && (
           <div className="inline-flex items-center gap-2 self-start rounded-full border border-primary-border bg-primary-soft py-[6px] pr-2 pl-[14px]">
             <span className="text-[13px] font-medium text-secondary">
