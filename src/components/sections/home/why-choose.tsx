@@ -56,7 +56,7 @@ export function WhyChoose({ eyebrow, title, description, ctaLabel, image }: WhyC
         </div>
         {image ? (
           <div
-            className="h-[400px] rounded-[18px] bg-cover bg-center"
+            className="mx-auto h-[260px] w-full max-w-[420px] rounded-[18px] bg-cover bg-center sm:h-[300px] lg:h-[340px]"
             style={{ backgroundImage: `url('${image}')` }}
           />
         ) : null}
