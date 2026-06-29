@@ -16,14 +16,19 @@ export function CtaBand({ eyebrow, title, description, ctaLabel, backgroundImage
   // Image stays the visual focus — just a very subtle dark wash on
   // top so the white copy stays legible on bright photos. The
   // tenant's image is the bg, not the brand color or a flat panel.
-  const bg = backgroundImage
-    ? `linear-gradient(rgba(0,0,0,0.32), rgba(0,0,0,0.32)), url('${backgroundImage}')`
-    : 'rgb(238,239,243)';
+  const bgStyle: React.CSSProperties = backgroundImage
+    ? {
+        backgroundImage: `linear-gradient(rgba(0,0,0,0.32), rgba(0,0,0,0.32)), url('${backgroundImage}')`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+      }
+    : { backgroundColor: 'rgb(238,239,243)' };
   return (
     <section id="contact" className="mx-auto max-w-[1200px] px-6 pt-[24px] pb-[76px]">
       <div
-        className="relative overflow-hidden rounded-[22px] bg-cover bg-center px-[32px] py-[64px] text-center"
-        style={{ background: bg }}
+        className="relative overflow-hidden rounded-[22px] px-[32px] py-[64px] text-center"
+        style={bgStyle}
       >
         <div className="relative mx-auto max-w-[600px]">
           <div className="mb-[14px] text-[12px] font-semibold tracking-[0.08em] text-white/80 uppercase">{eyebrow}</div>

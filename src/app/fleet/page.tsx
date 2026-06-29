@@ -221,8 +221,8 @@ export default function FleetPage() {
                 const unavailable = unavailableIds.has(v.id);
                 const weeklyPct = weeklyDiscountPct(v);
                 return (
-                  <div key={v.id}>
-                    <div className={cn((unavailable || isAvailabilityLoading) && 'pointer-events-none opacity-50')}>
+                  <div key={v.id} className="flex h-full flex-col">
+                    <div className={cn('flex-1', (unavailable || isAvailabilityLoading) && 'pointer-events-none opacity-50')}>
                       <CarCard
                         vehicle={v}
                         badge={weeklyPct > 0 ? `${weeklyPct}% OFF WEEKLY` : undefined}

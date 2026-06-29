@@ -26,7 +26,7 @@ export function CarCard({ vehicle, badge, oldPrice, bookingQuery }: CarCardProps
   return (
     <Link
       href={href}
-      className="group flex flex-col overflow-hidden rounded-[16px] border border-card-border bg-white transition-shadow hover:shadow-[var(--shadow-card)]"
+      className="group flex h-full flex-col overflow-hidden rounded-[16px] border border-card-border bg-white transition-shadow hover:shadow-[var(--shadow-card)]"
     >
       <div className="relative aspect-[16/11] overflow-hidden">
         <div
