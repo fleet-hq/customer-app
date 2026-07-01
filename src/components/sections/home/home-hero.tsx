@@ -8,10 +8,21 @@ interface HomeHeroProps {
    *  renders against a solid brand-secondary backdrop, no bundled
    *  placeholder image. */
   backgroundImage?: string;
+  /** Phone-only override — when set, viewports <640px show this image
+   *  instead of ``backgroundImage`` so operators can supply a narrower
+   *  crop where a landscape desktop image would center-crop badly. */
+  mobileBackgroundImage?: string;
 }
 
-export function HomeHero({ pill, headingLines, subheading, backgroundImage }: HomeHeroProps) {
+export function HomeHero({
+  pill,
+  headingLines,
+  subheading,
+  backgroundImage,
+  mobileBackgroundImage,
+}: HomeHeroProps) {
   const hasBg = !!backgroundImage;
+  const hasMobileBg = !!mobileBackgroundImage;
   return (
     <section
       className="relative flex min-h-[500px] flex-col items-center justify-center px-6 pt-[100px] pb-[135px] text-center md:min-h-[580px] md:pt-[124px] md:pb-[184px]"
@@ -19,8 +30,14 @@ export function HomeHero({ pill, headingLines, subheading, backgroundImage }: Ho
     >
       {hasBg ? (
         <>
+          {hasMobileBg ? (
+            <div
+              className="absolute inset-0 bg-cover sm:hidden"
+              style={{ backgroundImage: `url('${mobileBackgroundImage}')`, backgroundPosition: 'center 42%' }}
+            />
+          ) : null}
           <div
-            className="absolute inset-0 bg-cover"
+            className={`absolute inset-0 bg-cover ${hasMobileBg ? 'hidden sm:block' : ''}`}
             style={{ backgroundImage: `url('${backgroundImage}')`, backgroundPosition: 'center 42%' }}
           />
           <div className="absolute inset-0 bg-black/15" />

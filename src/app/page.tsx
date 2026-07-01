@@ -69,6 +69,11 @@ export default function HomePage() {
   const cta = sections.cta;
   const ctaVisible = !!(cta?.title || cta?.description || cta?.cta_label);
 
+  // When the super-admin hasn't populated any body content yet, the
+  // page would otherwise be just "header → search bar → footer"
+  // sandwiched together, which reads as broken. Show the same
+  // "Site setup in progress" placeholder we use for unmapped hosts,
+  // inline this time so the header/footer still render normally.
   const hasAnyBodyContent =
     heroHasCopy ||
     !!images.hero ||
@@ -97,6 +102,7 @@ export default function HomePage() {
           headingLines={(hero?.heading_lines ?? []).map(co)}
           subheading={co(hero?.subheading ?? '')}
           backgroundImage={images.hero ?? undefined}
+          mobileBackgroundImage={images.hero_mobile ?? undefined}
         />
       ) : null}
 

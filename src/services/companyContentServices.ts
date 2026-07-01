@@ -44,6 +44,7 @@ export interface FooterPayload {
 
 export interface ImagesPayload {
   hero: string | null;
+  hero_mobile: string | null;
   why_choose: string | null;
   cta_background: string | null;
   feature_banners: (string | null)[];
