@@ -42,6 +42,30 @@ function weeklyDiscountPct(v: { discounts?: { unitType: string; percentage: numb
   return best;
 }
 
+/** Best-applicable discount % for a given trip duration, mirroring the
+ *  backend's per-booking tier logic (bookings/services.py). Trips ≤23
+ *  hours are hourly and only hour tiers apply; longer trips use the
+ *  higher of the day tier or week tier. Returns 0 when nothing
+ *  qualifies. */
+function applicableDiscountPct(
+  discounts: { unitType: string; units: number; percentage: number }[] | undefined,
+  hours: number | undefined,
+): number {
+  if (!discounts?.length || !hours || hours <= 0) return 0;
+  const isHourly = hours <= 23;
+  const days = Math.ceil(hours / 24);
+  const weeks = Math.floor(days / 7);
+  let best = 0;
+  for (const d of discounts) {
+    const qualifies = isHourly
+      ? d.unitType === 'hour' && hours >= d.units
+      : (d.unitType === 'day' && days >= d.units) ||
+        (d.unitType === 'week' && weeks >= d.units);
+    if (qualifies && d.percentage > best) best = d.percentage;
+  }
+  return best;
+}
+
 const slugify = (s: string) =>
   s.toLowerCase().trim().replace(/&/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
@@ -75,6 +99,19 @@ export default function FleetPage() {
       if (value) params.set(key, value);
     });
     return params.toString();
+  }, [searchParams]);
+
+  const selectedHours = useMemo(() => {
+    const pickupDate = searchParams.get('pickupDate');
+    const returnDate = searchParams.get('returnDate');
+    if (!pickupDate || !returnDate) return undefined;
+    const pickupTime = searchParams.get('pickupTime') || '00:00';
+    const returnTime = searchParams.get('returnTime') || '00:00';
+    const a = new Date(`${pickupDate}T${pickupTime}`);
+    const b = new Date(`${returnDate}T${returnTime}`);
+    if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime())) return undefined;
+    const diffHrs = (b.getTime() - a.getTime()) / (60 * 60 * 1000);
+    return diffHrs > 0 ? diffHrs : undefined;
   }, [searchParams]);
 
   const locationAddressById = useMemo(() => {
@@ -219,20 +256,21 @@ export default function FleetPage() {
             <div className={FLEET_GRID_CLASS}>
               {vehicles.map((v) => {
                 const unavailable = unavailableIds.has(v.id);
-                const weeklyPct = weeklyDiscountPct(v);
+                const discountPct = applicableDiscountPct(v.discounts, selectedHours);
                 return (
-                  <div key={v.id} className="flex h-full flex-col">
-                    <div className={cn('flex-1', (unavailable || isAvailabilityLoading) && 'pointer-events-none opacity-50')}>
+                  <div key={v.id} className="relative flex h-full flex-col">
+                    <div className={cn('flex-1', (unavailable || isAvailabilityLoading) && 'pointer-events-none opacity-60')}>
                       <CarCard
                         vehicle={v}
-                        badge={weeklyPct > 0 ? `${weeklyPct}% OFF WEEKLY` : undefined}
                         bookingQuery={bookingQuery}
+                        hours={selectedHours}
+                        discountPct={discountPct}
                       />
                     </div>
                     {unavailable && (
-                      <div className="mt-2 text-center text-[11.5px] font-medium text-danger">
-                        Unavailable for selected dates
-                      </div>
+                      <span className="pointer-events-none absolute top-[10px] right-[10px] rounded-full border border-danger/25 bg-white/95 px-[10px] py-[3px] text-[10px] font-semibold tracking-[0.02em] text-danger shadow-sm">
+                        Unavailable
+                      </span>
                     )}
                   </div>
                 );

@@ -25,6 +25,21 @@ interface Section {
   paras?: string[];
 }
 
+function TermsSkeleton() {
+  return (
+    <div className="flex flex-col gap-9" aria-busy="true" aria-label="Loading terms">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="flex flex-col gap-[14px]">
+          <div className="h-[18px] w-[220px] rounded-md bg-subtle animate-pulse" />
+          <div className="h-[14px] w-full rounded bg-subtle animate-pulse" />
+          <div className="h-[14px] w-[92%] rounded bg-subtle animate-pulse" />
+          <div className="h-[14px] w-[85%] rounded bg-subtle animate-pulse" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function SectionBlock({ sec }: { sec: Section }) {
   return (
     <div>
@@ -75,7 +90,7 @@ function TermsContent() {
   );
   const { data: apiAgreement } = useAgreementByBooking(ready ? bookingId! : undefined);
   const { data: company } = useCompanySettings();
-  const { data: template } = useDefaultAgreementTemplate();
+  const { data: template, isLoading: templateLoading } = useDefaultAgreementTemplate();
 
   const agreement = useMemo<AgreementData | null>(() => {
     if (!isBound || !bookingData) return null;
@@ -257,13 +272,14 @@ function TermsContent() {
   const intro =
     template?.description ||
     'Our fleet is clean, reliable, and ready for the road. Please review the agreement below before confirming your reservation — no surprises, no hidden fees.';
-  const sections: Section[] =
-    template && template.clauses.length > 0
-      ? template.clauses.map((c) => ({ heading: c.title, html: c.content }))
-      : DEFAULT_TERMS_SECTIONS.map((sec) => ({
-          heading: sec.heading,
-          paras: sec.paras.map((p) => withCompany(p, tenant.name)),
-        }));
+  const sections: Section[] = templateLoading
+    ? []
+    : template && template.clauses.length > 0
+    ? template.clauses.map((c) => ({ heading: c.title, html: c.content }))
+    : DEFAULT_TERMS_SECTIONS.map((sec) => ({
+        heading: sec.heading,
+        paras: sec.paras.map((p) => withCompany(p, tenant.name)),
+      }));
 
   return (
     <div className="flex min-h-screen flex-col bg-white text-ink">
@@ -282,11 +298,15 @@ function TermsContent() {
 
         <div className="my-7 h-px bg-hairline" />
 
-        <div className="flex flex-col gap-9">
-          {sections.map((sec) => (
-            <SectionBlock key={sec.heading} sec={sec} />
-          ))}
-        </div>
+        {templateLoading ? (
+          <TermsSkeleton />
+        ) : (
+          <div className="flex flex-col gap-9">
+            {sections.map((sec) => (
+              <SectionBlock key={sec.heading} sec={sec} />
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );
