@@ -24,7 +24,7 @@ export function WhyChoose({ eyebrow, title, description, ctaLabel, image }: WhyC
             : 'mx-auto max-w-[640px]'
         }
       >
-        <div>
+        <div className={image ? 'lg:pl-[100px]' : ''}>
           {eyebrow ? (
             <div className="mb-[11px] text-[12px] font-semibold tracking-[0.05em] text-primary uppercase">
               {eyebrow}
