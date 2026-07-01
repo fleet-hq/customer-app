@@ -58,7 +58,7 @@ export function WhyChoose({ eyebrow, title, description, ctaLabel, image }: WhyC
           <img
             src={image}
             alt=""
-            className="mx-auto block h-auto w-full max-w-[360px] rounded-[18px] object-contain"
+            className="mx-auto block h-auto w-full max-w-[240px] rounded-[18px] object-contain sm:max-w-[260px] lg:max-w-[280px]"
           />
         ) : null}
       </div>
