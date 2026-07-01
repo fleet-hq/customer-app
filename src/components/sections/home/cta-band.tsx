@@ -13,24 +13,18 @@ interface CtaBandProps {
 }
 
 export function CtaBand({ eyebrow, title, description, ctaLabel, backgroundImage }: CtaBandProps) {
-  // Image stays the visual focus, but on mobile the container is tall
-  // and narrow — ``cover`` would crop the photo to its center. Switch
-  // to ``contain`` on small screens so the full image stays visible,
-  // and split the dark wash into its own absolute layer so the
-  // gradient still spans the whole container even when the image is
-  // letterboxed.
+  // Image cover-fills the CTA on all breakpoints; dark overlay keeps
+  // the white copy legible over bright photos. Uses backgroundImage
+  // (not background: shorthand) + explicit bg-cover/center/no-repeat
+  // classes so Tailwind's utilities aren't reset by the inline style.
   return (
     <section id="contact" className="mx-auto max-w-[1200px] px-6 pt-[24px] pb-[76px]">
       <div
         className={
-          'relative overflow-hidden rounded-[22px] px-[32px] py-[64px] text-center bg-center bg-no-repeat ' +
-          (backgroundImage ? 'bg-contain sm:bg-cover bg-[#1a1a1a]' : '')
+          'relative overflow-hidden rounded-[22px] px-[32px] py-[48px] sm:py-[64px] text-center bg-cover bg-center bg-no-repeat ' +
+          (backgroundImage ? '' : 'bg-[rgb(238,239,243)]')
         }
-        style={
-          backgroundImage
-            ? { backgroundImage: `url('${backgroundImage}')` }
-            : { backgroundColor: 'rgb(238,239,243)' }
-        }
+        style={backgroundImage ? { backgroundImage: `url('${backgroundImage}')` } : undefined}
       >
         {backgroundImage && (
           <div className="pointer-events-none absolute inset-0 bg-black/30" aria-hidden="true" />
