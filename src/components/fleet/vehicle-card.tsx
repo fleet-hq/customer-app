@@ -27,7 +27,7 @@ export function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
       </Link>
 
       <div className="flex flex-1 flex-col p-[18px]">
-        <Link href={paths.checkout(vehicle.id)} className="text-[16px] font-semibold text-secondary">
+        <Link href={paths.checkout(vehicle.id)} className="text-[16px] font-semibold text-ink">
           {vehicle.name}
         </Link>
 

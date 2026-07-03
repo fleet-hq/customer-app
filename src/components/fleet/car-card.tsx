@@ -86,7 +86,7 @@ export function CarCard({ vehicle, badge, oldPrice, bookingQuery, hours, discoun
       </div>
 
       <div className="flex flex-1 flex-col p-[16px]">
-        <div className="truncate text-[15px] leading-none font-semibold text-primary">{vehicle.name}</div>
+        <div className="truncate text-[15px] leading-none font-semibold text-ink">{vehicle.name}</div>
         {vehicle.location && (
           <div className="mt-[5px] truncate text-[11.5px] text-muted">
             {vehicle.location}
