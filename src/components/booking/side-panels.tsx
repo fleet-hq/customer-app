@@ -26,6 +26,7 @@ export function buildNextSteps(args: {
   insuranceVerified: boolean;
   showInsurance: boolean;
   agreementHref: string;
+  agreementSigned: boolean;
   onIdVerify: () => void;
   idPending: boolean;
   idError: string | null;
@@ -36,10 +37,12 @@ export function buildNextSteps(args: {
 }): NextStep[] {
   const steps: NextStep[] = [
     {
-      done: true,
-      title: 'Vehicle booked',
-      desc: 'Confirmed — details are in your inbox.',
-      cta: 'View agreement',
+      done: args.agreementSigned,
+      title: 'Rental agreement',
+      desc: args.agreementSigned
+        ? 'Signed — thanks. A copy is on your booking page.'
+        : 'Review and sign your rental agreement to complete your booking.',
+      cta: args.agreementSigned ? 'View agreement' : 'Sign now',
       ctaHref: args.agreementHref,
     },
     {

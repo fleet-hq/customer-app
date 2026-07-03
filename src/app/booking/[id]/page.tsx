@@ -16,6 +16,7 @@ import { NextSteps, TripPhotos, buildNextSteps } from '@/components/booking/side
 import { useBookingDetails } from '@/hooks/useBooking';
 import { useBookingBalance } from '@/hooks/useBookingBalance';
 import { useBookingImages } from '@/hooks/useTripImages';
+import { useAgreementByBooking } from '@/hooks/useAgreements';
 import {
   useVerificationStatus,
   useCreateIdentityVerification,
@@ -50,6 +51,7 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
   const fetchId = tokenReady ? id : undefined;
 
   const { data: booking, isLoading, isError } = useBookingDetails(fetchId);
+  const { data: agreementApi } = useAgreementByBooking(fetchId);
   const { data: balance } = useBookingBalance(!!fetchId, id);
   const { data: bookingImages = [] } = useBookingImages(fetchId);
   const { data: verificationStatus } = useVerificationStatus(fetchId);
@@ -202,8 +204,19 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
   const showPaymentDue = outstanding > 0;
 
   const idVerified = (verificationStatus?.idVerification ?? booking.verifications.idVerification) === 'verified';
-  const insuranceVerified =
-    (verificationStatus?.insuranceVerification ?? booking.verifications.insuranceVerification) === 'verified';
+  const insuranceStatusRaw =
+    verificationStatus?.insuranceVerification ?? booking.verifications.insuranceVerification;
+  const insuranceVerified = insuranceStatusRaw === 'verified';
+  // "Link sent" survives page reload: any of Modives' in-flight
+  // states (linksent / verifying) means the magic link has already
+  // gone out and re-triggering would duplicate the customer's inbox
+  // and charge us for a second verification. Combine with the local
+  // ``insuranceSent`` flag so the button flips instantly after the
+  // mutation resolves (before the next 30s status poll).
+  const insuranceLinkAlreadySent =
+    insuranceSent ||
+    insuranceStatusRaw === 'linksent' ||
+    insuranceStatusRaw === 'verifying';
 
   const holdMsLeft = holdExpiresAt ? new Date(holdExpiresAt).getTime() - nowMs : null;
   const holdExpired = holdMsLeft != null && holdMsLeft <= 0;
@@ -235,12 +248,13 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
     insuranceVerified,
     showInsurance: showInsuranceStep,
     agreementHref: paths.terms + '?bookingId=' + id + (token ? '&token=' + token : ''),
+    agreementSigned: !!agreementApi?.signatureImage,
     onIdVerify: handleIdVerify,
     idPending,
     idError,
     onInsuranceVerify: handleInsuranceVerify,
     insurancePending,
-    insuranceSent,
+    insuranceSent: insuranceLinkAlreadySent,
     insuranceError,
   });
 

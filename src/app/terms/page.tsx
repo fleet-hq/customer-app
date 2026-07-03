@@ -179,9 +179,30 @@ function TermsContent() {
       try {
         await submitBookingSignature(bookingId!, signature);
         router.push(backHref);
-      } catch {
+      } catch (e: unknown) {
         setSaving(false);
-        setError('We could not save your signature. Please try again, or re-open this page from the link we emailed you.');
+        const err = e as { response?: { status?: number; data?: Record<string, unknown> } };
+        const status = err?.response?.status;
+        const data = err?.response?.data;
+        const detailFromData = ((): string | null => {
+          if (!data || typeof data !== 'object') return null;
+          const flat = Object.values(data).flat().filter((v) => typeof v === 'string') as string[];
+          return flat.length ? flat.join(' ') : null;
+        })();
+        if (status === 400 && detailFromData?.toLowerCase().includes('already exists')) {
+          router.push(backHref);
+          return;
+        }
+        if (status === 401 || status === 403) {
+          setError('Your booking link has expired. Please re-open this page from the link we emailed you.');
+          return;
+        }
+        console.error('[submitBookingSignature] failed', { status, data });
+        setError(
+          detailFromData
+            ? `We could not save your signature: ${detailFromData}`
+            : 'We could not save your signature. Please try again, or re-open this page from the link we emailed you.',
+        );
       }
     };
 
