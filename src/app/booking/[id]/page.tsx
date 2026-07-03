@@ -113,7 +113,14 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
     // calls inside a mutation callback are consistently popup-blocked.
     // The window sits on ``about:blank`` until Stripe's session URL
     // comes back, then we redirect it.
-    const verifyWindow = window.open("", "_blank", "noopener,noreferrer");
+    //
+    // We deliberately do NOT pass ``noopener``/``noreferrer`` here —
+    // both cause ``window.open`` to return null, which was leaving the
+    // blank placeholder tab orphaned. Instead we null out
+    // ``verifyWindow.opener`` right after the redirect to sever the
+    // tabnabbing surface manually; the target is Stripe Identity so the
+    // trust boundary is fine.
+    const verifyWindow = window.open("", "_blank");
     createIdVerification(
       { customerId: booking.customerId },
       {
@@ -123,11 +130,17 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
             return;
           }
           if (verifyWindow && !verifyWindow.closed) {
+            try {
+              verifyWindow.opener = null;
+            } catch {
+              // Cross-origin write can throw once the URL loads — safe to
+              // swallow because at that point we've already handed off.
+            }
             verifyWindow.location.href = data.url;
           } else {
-            // Popup was blocked or the user closed it — fall back to
-            // opening in a fresh tab (still not the same tab, so a
-            // half-completed booking flow isn't destroyed).
+            // Placeholder tab was blocked or closed by the user — fall
+            // back to a fresh tab. Still never the current tab, so the
+            // half-completed booking flow is preserved either way.
             window.open(data.url, "_blank", "noopener,noreferrer");
           }
         },
