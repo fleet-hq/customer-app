@@ -108,13 +108,33 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
   const handleIdVerify = () => {
     if (!booking) return;
     setIdError(null);
+    // Open the target window synchronously in this click handler so
+    // the browser keeps the user-gesture context; async ``window.open``
+    // calls inside a mutation callback are consistently popup-blocked.
+    // The window sits on ``about:blank`` until Stripe's session URL
+    // comes back, then we redirect it.
+    const verifyWindow = window.open("", "_blank", "noopener,noreferrer");
     createIdVerification(
       { customerId: booking.customerId },
       {
         onSuccess: (data) => {
-          if (data.url) window.location.href = data.url;
+          if (!data.url) {
+            verifyWindow?.close();
+            return;
+          }
+          if (verifyWindow && !verifyWindow.closed) {
+            verifyWindow.location.href = data.url;
+          } else {
+            // Popup was blocked or the user closed it — fall back to
+            // opening in a fresh tab (still not the same tab, so a
+            // half-completed booking flow isn't destroyed).
+            window.open(data.url, "_blank", "noopener,noreferrer");
+          }
         },
-        onError: () => setIdError('Failed to start verification. Please try again.'),
+        onError: () => {
+          verifyWindow?.close();
+          setIdError("Failed to start verification. Please try again.");
+        },
       },
     );
   };
