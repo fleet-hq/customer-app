@@ -536,8 +536,27 @@ function transformBooking(api: ApiBooking): BookingDetails {
         }
       : null,
     verifications: {
-      idVerification: 'pending',
-      insuranceVerification: 'pending',
+      // Read from the same booking-detail payload so the first paint
+      // reflects the real verification state — otherwise the customer
+      // page briefly showed the Verify Insurance button as clickable
+      // even when Modives had already emailed the renter, and each
+      // click burned another verification credit while spamming their
+      // inbox with a fresh magic link. The parallel useVerificationStatus
+      // hook resolves ~1s later; without seeding from booking here,
+      // that gap was the whole flash-of-clickable-button window.
+      idVerification: (api as unknown as { id_verification_status?: string })
+        .id_verification_status ?? 'pending',
+      insuranceVerification: (() => {
+        const raw = (
+          api as unknown as {
+            insurance_verification_status?:
+              | string
+              | { status?: string; [k: string]: unknown };
+          }
+        ).insurance_verification_status;
+        if (typeof raw === 'string') return raw || 'pending';
+        return (raw && raw.status) || 'pending';
+      })(),
     },
     bookingRef: api.booking_reference || String(api.id),
     totalPrice: api.total_price != null ? String(api.total_price) : '',

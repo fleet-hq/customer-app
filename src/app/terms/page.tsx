@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
 import { BackLink } from '@/components/ui/back-link';
 import { Download, Check } from '@/components/ui/icons';
@@ -64,6 +65,7 @@ function SectionBlock({ sec }: { sec: Section }) {
 
 function TermsContent() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const tenant = useTenant();
   const searchParams = useSearchParams();
   const bookingId = searchParams.get('bookingId');
@@ -178,6 +180,24 @@ function TermsContent() {
       setError('');
       try {
         await submitBookingSignature(bookingId!, signature);
+        // Seed the agreement-by-booking cache with the fresh
+        // signature and invalidate so the booking page renders the
+        // "Rental agreement · Done" state on first paint after
+        // navigation. Without this, the booking page mounted with
+        // the old cached agreement (signatureImage: null) and the
+        // customer had to hard-reload to see the row flip to signed.
+        queryClient.setQueryData(
+          ['agreement-by-booking', bookingId],
+          (prev: AgreementData | null | undefined) => ({
+            ...(prev ?? {}),
+            signatureImage: signature,
+            signedAt: new Date().toISOString(),
+            status: 'signed',
+          }),
+        );
+        queryClient.invalidateQueries({
+          queryKey: ['agreement-by-booking', bookingId],
+        });
         router.push(backHref);
       } catch (e: unknown) {
         setSaving(false);
