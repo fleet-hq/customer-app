@@ -182,33 +182,96 @@ export function Invoice({
   charges?: BillingChargeRow[];
 }) {
   const inv = booking.invoice;
-  const rentalLines = inv.items.map((item) => ({
-    label: item.name,
-    sub: `${item.quantity} × ${money(item.pricePerDay)} / ${item.unit ?? 'day'}`,
-    amount: item.quantity * item.pricePerDay,
-  }));
   const extraLines = inv.extras.map((e) => ({ label: e.name, amount: e.price }));
   const grandTotal = total ?? inv.total;
 
-  // Filter to charges the customer should see as a separate line on
-  // their invoice — i.e. real add-ons the customer paid on top of the
-  // rental (damage fees, late fees, admin-added manual charges). We
-  // deliberately EXCLUDE modification-related charges because after an
-  // extend/reduce/swap the executor recomputes booking.total_price, so
-  // the rental line already reflects the new day count and the mod
-  // charge amount is baked into the grand total. Showing it again as
-  // a separate "Trip extend — Paid $74.20" line was making the invoice
-  // math not add up (Rental + Additional + Tax != Total).
+  // Ledger-backed modification charges (tax-inclusive amounts as the
+  // customer was actually billed). Each becomes its own sub-line under
+  // Rental so the invoice reads: original booking + each extension =
+  // total, matching the customer's mental model.
+  const modCharges = (charges ?? []).filter((c) => {
+    if (c.is_voided || c.status === 'voided') return false;
+    if (c.status !== 'paid' && c.status !== 'partially_paid') return false;
+    const type = c.type;
+    return (
+      type === 'modification_charge' ||
+      (type === 'manual' && looksLikeModification(c.description))
+    );
+  });
+
+  // Non-modification paid ledger charges (damage fees, admin-added
+  // manual items, etc.) still surface in their own "Additional
+  // charges" section below Rental.
   const additionalCharges = (charges ?? []).filter((c) => {
     if (c.is_voided || c.status === 'voided') return false;
+    if (c.status !== 'paid' && c.status !== 'partially_paid') return false;
     const type = c.type;
-    const isModification =
+    if (type === 'booking_fee' || type === 'insurance_premium') return false;
+    const isMod =
       type === 'modification_charge' ||
       (type === 'manual' && looksLikeModification(c.description));
-    if (isModification) return false;
-    if (type === 'booking_fee' || type === 'insurance_premium') return false;
-    return c.status === 'paid' || c.status === 'partially_paid';
+    return !isMod;
   });
+
+  // Derive the tax rate the backend applied to the recomputed booking,
+  // so we can back out the tax baked into each ledger mod amount.
+  const currentRentalPretax = inv.items.reduce(
+    (s, i) => s + i.quantity * i.pricePerDay,
+    0,
+  );
+  const extrasPretax = extraLines.reduce((s, e) => s + e.amount, 0);
+  const taxableBase =
+    currentRentalPretax + inv.insurancePremium + extrasPretax - inv.discount;
+  const taxRate = taxableBase > 0 ? inv.tax / taxableBase : 0;
+
+  const modChargesTotalTaxInc = modCharges.reduce(
+    (s, c) => s + Number(c.amount),
+    0,
+  );
+  const modPretax =
+    taxRate > 0 ? modChargesTotalTaxInc / (1 + taxRate) : modChargesTotalTaxInc;
+  const modTaxOnly = Math.max(0, modChargesTotalTaxInc - modPretax);
+
+  // Adjust rental item quantities down to reflect the ORIGINAL booking
+  // (before mods). Distribute the pretax reduction proportionally
+  // across items. Bookings typically have one rental item so this
+  // collapses to a simple subtract.
+  const rentalReduction = Math.min(currentRentalPretax, modPretax);
+  const rentalLines =
+    modCharges.length > 0 && rentalReduction > 0 && inv.items.length > 0
+      ? (() => {
+          let remaining = rentalReduction;
+          return inv.items.map((item, idx) => {
+            const itemTotal = item.quantity * item.pricePerDay;
+            const isLast = idx === inv.items.length - 1;
+            const share = isLast
+              ? remaining
+              : (itemTotal / currentRentalPretax) * rentalReduction;
+            remaining -= share;
+            const newTotal = Math.max(0, itemTotal - share);
+            const adjQty =
+              item.pricePerDay > 0 ? newTotal / item.pricePerDay : item.quantity;
+            const isWhole = Math.abs(adjQty - Math.round(adjQty)) < 0.05;
+            const qtyLabel = isWhole
+              ? Math.round(adjQty).toString()
+              : adjQty.toFixed(2);
+            return {
+              label: item.name,
+              sub: `${qtyLabel} × ${money(item.pricePerDay)} / ${item.unit ?? 'day'}`,
+              amount: newTotal,
+            };
+          });
+        })()
+      : inv.items.map((item) => ({
+          label: item.name,
+          sub: `${item.quantity} × ${money(item.pricePerDay)} / ${item.unit ?? 'day'}`,
+          amount: item.quantity * item.pricePerDay,
+        }));
+
+  // Subtract the tax portion baked into the mod charge lines so the
+  // Tax row reflects only the base rental + extras/insurance tax.
+  const displayTax = Math.max(0, inv.tax - modTaxOnly);
+  const displayTaxAndFees = displayTax + inv.fees + inv.locationCharges;
 
   return (
     <div className="rounded-2xl border border-card-border bg-white p-4 sm:p-6">
@@ -234,6 +297,25 @@ export function Invoice({
       {rentalLines.map((line, i) => (
         <InvoiceRow key={`r-${i}`} label={line.label} sub={line.sub} amount={money(line.amount)} />
       ))}
+      {modCharges.map((c) => {
+        const label = c.description || 'Trip modification';
+        return (
+          <div key={c.id} className="mt-2 flex items-start justify-between text-[13px]">
+            <div className="min-w-0">
+              <div className="font-medium text-ink">{label}</div>
+              <div className="mt-px text-[11.5px] text-faint">
+                {c.status === 'paid' ? 'Paid' : 'Partial'}
+                {c.created_at
+                  ? ` · ${new Date(c.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+                  : ''}
+              </div>
+            </div>
+            <span className="font-medium text-ink tabular-nums">
+              {money(Number(c.amount))}
+            </span>
+          </div>
+        );
+      })}
 
       {inv.insurancePremium > 0 && (
         <>
@@ -305,7 +387,7 @@ export function Invoice({
       <div className="flex items-center justify-between text-[13px]">
         <span className="text-muted">Sales tax &amp; surcharges</span>
         <span className="font-medium text-ink">
-          {inv.tax + inv.fees + inv.locationCharges > 0 ? money(inv.tax + inv.fees + inv.locationCharges) : 'Included'}
+          {displayTaxAndFees > 0 ? money(displayTaxAndFees) : 'Included'}
         </span>
       </div>
       <div className="my-4 h-px bg-card-border" />
