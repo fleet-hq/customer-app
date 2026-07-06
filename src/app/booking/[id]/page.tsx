@@ -316,6 +316,7 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
               paid={isPaid && !isCancelled}
               onPay={showPaymentDue ? handlePay : undefined}
               payLoading={payLoading}
+              charges={balance?.charges ?? []}
             />
           </div>
 

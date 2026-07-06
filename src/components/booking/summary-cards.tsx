@@ -1,6 +1,24 @@
 import { Download } from '@/components/ui/icons';
 import { money } from '@/lib/utils';
 import type { BookingDetails } from '@/services/bookingServices';
+import type { BillingChargeRow } from '@/services/billingServices';
+
+// Reason strings written by the admin extend/reduce/swap flows so we
+// can label modification-related paid charges more helpfully than the
+// raw "Additional charge" fallback.
+const MODIFICATION_REASON_PATTERNS = [
+  /trip\s*extend/i,
+  /trip\s*reduce/i,
+  /trip\s*modification/i,
+  /extend.*modification/i,
+  /reduce.*modification/i,
+  /swap.*modification/i,
+];
+
+function looksLikeModification(reason?: string | null): boolean {
+  if (!reason) return false;
+  return MODIFICATION_REASON_PATTERNS.some((r) => r.test(reason));
+}
 
 const PLACEHOLDER_IMAGE = '/images/car-cherokee.png';
 
@@ -149,12 +167,19 @@ export function Invoice({
   paid = false,
   onPay,
   payLoading = false,
+  charges,
 }: {
   booking: BookingDetails;
   total?: number;
   paid?: boolean;
   onPay?: () => void;
   payLoading?: boolean;
+  /** Full billing charge list from `useBookingBalance`. Paid
+   *  modification / manual charges are surfaced as an "Additional
+   *  charges" section below the rental, so the customer can see
+   *  what they were billed for after the admin ran an extension or
+   *  added an ad-hoc charge. */
+  charges?: BillingChargeRow[];
 }) {
   const inv = booking.invoice;
   const rentalLines = inv.items.map((item) => ({
@@ -164,6 +189,20 @@ export function Invoice({
   }));
   const extraLines = inv.extras.map((e) => ({ label: e.name, amount: e.price }));
   const grandTotal = total ?? inv.total;
+
+  // Filter to modification-related charges the customer should see on
+  // their invoice: paid mod/manual, or partially-paid ones (so any
+  // amount actually charged shows up). Booking-fee, insurance-premium
+  // etc are already covered by the standard rental/insurance rows.
+  const additionalCharges = (charges ?? []).filter((c) => {
+    if (c.is_voided || c.status === 'voided') return false;
+    const type = c.type;
+    const isModOrManual =
+      type === 'modification_charge' ||
+      (type === 'manual' && looksLikeModification(c.description));
+    if (!isModOrManual) return false;
+    return c.status === 'paid' || c.status === 'partially_paid';
+  });
 
   return (
     <div className="rounded-2xl border border-card-border bg-white p-4 sm:p-6">
@@ -205,6 +244,35 @@ export function Invoice({
           {extraLines.map((line, i) => (
             <InvoiceRow key={`e-${i}`} label={line.label} amount={money(line.amount)} />
           ))}
+        </>
+      )}
+
+      {additionalCharges.length > 0 && (
+        <>
+          {divider}
+          <Group title="Additional charges" />
+          {additionalCharges.map((c) => {
+            const label = c.description || 'Trip modification';
+            return (
+              <div key={c.id} className="flex items-start justify-between text-[13px]">
+                <div className="flex flex-wrap items-center gap-[7px]">
+                  <span className="font-medium text-ink">{label}</span>
+                  <span
+                    className={
+                      c.status === 'paid'
+                        ? 'rounded-full bg-green-bg-2 px-[7px] py-[2px] text-[10px] font-semibold text-success'
+                        : 'rounded-full bg-amber-bg px-[7px] py-[2px] text-[10px] font-semibold text-amber-text-2'
+                    }
+                  >
+                    {c.status === 'paid' ? 'Paid' : 'Partial'}
+                  </span>
+                </div>
+                <span className="font-semibold text-ink tabular-nums">
+                  {money(Number(c.amount))}
+                </span>
+              </div>
+            );
+          })}
         </>
       )}
 
