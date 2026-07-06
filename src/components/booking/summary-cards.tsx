@@ -190,17 +190,23 @@ export function Invoice({
   const extraLines = inv.extras.map((e) => ({ label: e.name, amount: e.price }));
   const grandTotal = total ?? inv.total;
 
-  // Filter to modification-related charges the customer should see on
-  // their invoice: paid mod/manual, or partially-paid ones (so any
-  // amount actually charged shows up). Booking-fee, insurance-premium
-  // etc are already covered by the standard rental/insurance rows.
+  // Filter to charges the customer should see as a separate line on
+  // their invoice — i.e. real add-ons the customer paid on top of the
+  // rental (damage fees, late fees, admin-added manual charges). We
+  // deliberately EXCLUDE modification-related charges because after an
+  // extend/reduce/swap the executor recomputes booking.total_price, so
+  // the rental line already reflects the new day count and the mod
+  // charge amount is baked into the grand total. Showing it again as
+  // a separate "Trip extend — Paid $74.20" line was making the invoice
+  // math not add up (Rental + Additional + Tax != Total).
   const additionalCharges = (charges ?? []).filter((c) => {
     if (c.is_voided || c.status === 'voided') return false;
     const type = c.type;
-    const isModOrManual =
+    const isModification =
       type === 'modification_charge' ||
       (type === 'manual' && looksLikeModification(c.description));
-    if (!isModOrManual) return false;
+    if (isModification) return false;
+    if (type === 'booking_fee' || type === 'insurance_premium') return false;
     return c.status === 'paid' || c.status === 'partially_paid';
   });
 
