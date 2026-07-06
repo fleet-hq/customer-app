@@ -331,6 +331,18 @@ export interface BookingDetails {
     reduce: boolean;
     extend: boolean;
   };
+  /** Approved modification requests with a positive price_difference —
+   *  each one becomes an invoice sub-line under Rental so the customer
+   *  sees their original booking + each extension as separate items.
+   *  Sourced from the booking API (guaranteed populated) rather than
+   *  the billing ledger which may be empty for tenants with the
+   *  dual-write flag disabled. */
+  extensionMods: {
+    id: number;
+    type: string;
+    priceDifference: number;
+    createdAt: string;
+  }[];
 }
 
 // Format a stored UTC ISO as the tenant-local date string used on the
@@ -563,6 +575,14 @@ function transformBooking(api: ApiBooking): BookingDetails {
     paymentStatus: api.payment_status || '',
     holdExpiresAt: api.hold_expires_at ?? null,
     canModify: api.can_modify || { cancel: false, swap: false, reduce: false, extend: false },
+    extensionMods: (Array.isArray((api as any).modification_requests) ? (api as any).modification_requests : [])
+      .filter((m: any) => m?.status === 'approved' && Number(m?.price_difference || 0) > 0)
+      .map((m: any) => ({
+        id: Number(m.id),
+        type: String(m.type ?? m.request_type ?? 'modification'),
+        priceDifference: Number(m.price_difference || 0),
+        createdAt: String(m.created_at ?? ''),
+      })),
   };
 }
 

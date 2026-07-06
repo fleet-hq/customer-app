@@ -185,19 +185,16 @@ export function Invoice({
   const extraLines = inv.extras.map((e) => ({ label: e.name, amount: e.price }));
   const grandTotal = total ?? inv.total;
 
-  // Ledger-backed modification charges (tax-inclusive amounts as the
-  // customer was actually billed). Each becomes its own sub-line under
-  // Rental so the invoice reads: original booking + each extension =
-  // total, matching the customer's mental model.
-  const modCharges = (charges ?? []).filter((c) => {
-    if (c.is_voided || c.status === 'voided') return false;
-    if (c.status !== 'paid' && c.status !== 'partially_paid') return false;
-    const type = c.type;
-    return (
-      type === 'modification_charge' ||
-      (type === 'manual' && looksLikeModification(c.description))
-    );
-  });
+  // Extension charges from the booking API's modification_requests —
+  // guaranteed populated regardless of the billing.dual_write feature
+  // flag. Each becomes its own sub-line under Rental at its actual
+  // tax-inclusive charge amount, so the customer sees "3 days rental
+  // + Trip extend $X" instead of the recomputed 4-day rental line.
+  const extensionMods = booking.extensionMods ?? [];
+  const modChargesTotalTaxInc = extensionMods.reduce(
+    (s, m) => s + Number(m.priceDifference || 0),
+    0,
+  );
 
   // Non-modification paid ledger charges (damage fees, admin-added
   // manual items, etc.) still surface in their own "Additional
@@ -214,20 +211,25 @@ export function Invoice({
   });
 
   // Derive the tax rate the backend applied to the recomputed booking,
-  // so we can back out the tax baked into each ledger mod amount.
+  // so we can back out the tax baked into each mod's price_difference.
+  // Match the backend's taxable base (rental + extras + insurance +
+  // fees + location − discount) — the applicable_amount out of
+  // PricingService.tax_details. Using only rental would break the rate
+  // whenever fees/location are taxed too.
   const currentRentalPretax = inv.items.reduce(
     (s, i) => s + i.quantity * i.pricePerDay,
     0,
   );
   const extrasPretax = extraLines.reduce((s, e) => s + e.amount, 0);
   const taxableBase =
-    currentRentalPretax + inv.insurancePremium + extrasPretax - inv.discount;
+    currentRentalPretax +
+    extrasPretax +
+    inv.insurancePremium +
+    inv.fees +
+    inv.locationCharges -
+    inv.discount;
   const taxRate = taxableBase > 0 ? inv.tax / taxableBase : 0;
 
-  const modChargesTotalTaxInc = modCharges.reduce(
-    (s, c) => s + Number(c.amount),
-    0,
-  );
   const modPretax =
     taxRate > 0 ? modChargesTotalTaxInc / (1 + taxRate) : modChargesTotalTaxInc;
   const modTaxOnly = Math.max(0, modChargesTotalTaxInc - modPretax);
@@ -238,7 +240,7 @@ export function Invoice({
   // collapses to a simple subtract.
   const rentalReduction = Math.min(currentRentalPretax, modPretax);
   const rentalLines =
-    modCharges.length > 0 && rentalReduction > 0 && inv.items.length > 0
+    extensionMods.length > 0 && rentalReduction > 0 && inv.items.length > 0
       ? (() => {
           let remaining = rentalReduction;
           return inv.items.map((item, idx) => {
@@ -297,21 +299,33 @@ export function Invoice({
       {rentalLines.map((line, i) => (
         <InvoiceRow key={`r-${i}`} label={line.label} sub={line.sub} amount={money(line.amount)} />
       ))}
-      {modCharges.map((c) => {
-        const label = c.description || 'Trip modification';
+      {extensionMods.map((m) => {
+        const label =
+          m.type === 'extend'
+            ? 'Trip extension'
+            : m.type === 'reduce'
+              ? 'Trip reduction'
+              : m.type === 'swap'
+                ? 'Vehicle swap'
+                : m.type === 'date_change'
+                  ? 'Date change'
+                  : 'Trip modification';
         return (
-          <div key={c.id} className="mt-2 flex items-start justify-between text-[13px]">
+          <div key={m.id} className="mt-2 flex items-start justify-between text-[13px]">
             <div className="min-w-0">
               <div className="font-medium text-ink">{label}</div>
-              <div className="mt-px text-[11.5px] text-faint">
-                {c.status === 'paid' ? 'Paid' : 'Partial'}
-                {c.created_at
-                  ? ` · ${new Date(c.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
-                  : ''}
-              </div>
+              {m.createdAt && (
+                <div className="mt-px text-[11.5px] text-faint">
+                  {new Date(m.createdAt).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                  })}
+                </div>
+              )}
             </div>
             <span className="font-medium text-ink tabular-nums">
-              {money(Number(c.amount))}
+              {money(m.priceDifference)}
             </span>
           </div>
         );
