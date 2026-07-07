@@ -12,7 +12,8 @@ import { Dialog } from '@/components/ui/dialog';
 import { DateDealsCallout } from '@/components/booking/date-deals-callout';
 import { RentalBreakdown } from '@/components/booking/rental-breakdown';
 import { DEFAULT_TRIP } from '@/lib/mock-data';
-import { useFleet, useInsuranceOptions, useStartBookingCheckout, useCompanyLocations, useFleetUnavailableRanges } from '@/hooks';
+import { useFleet, useInsuranceOptions, useManualInsurancePackagesForTenant, useStartBookingCheckout, useCompanyLocations, useFleetUnavailableRanges } from '@/hooks';
+import ProtectionSection from '@/components/checkout/protection-section';
 import { useBookingInvoice } from '@/hooks/useBookingInvoice';
 import { useDefaultTaxProfile } from '@/hooks/useTaxProfiles';
 import { useBookingVerificationPolicy, useStartVerificationFirstBooking } from '@/hooks/useBookingPolicy';
@@ -96,7 +97,8 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const { data: insuranceOptions } = useInsuranceOptions();
+  const { data: insuranceOptions, isLoading: insuranceOptionsLoading } = useInsuranceOptions();
+  const { data: manualInsurancePackages } = useManualInsurancePackagesForTenant();
   const { data: companyLocations } = useCompanyLocations();
   const defaultLoc = useDefaultLocation();
   const startCheckout = useStartBookingCheckout();
@@ -114,6 +116,25 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   const errorBannerRef = useRef<HTMLDivElement>(null);
 
   const [selectedInsurance, setSelectedInsurance] = useState<Set<string>>(new Set());
+  const [selectedManualIds, setSelectedManualIds] = useState<Set<number>>(new Set());
+  const [insuranceTab, setInsuranceTab] = useState<'bonzah' | 'custom'>('bonzah');
+  useEffect(() => {
+    const mandatoryIds = (manualInsurancePackages ?? [])
+      .filter((p) => p.isMandatory)
+      .map((p) => p.id);
+    if (mandatoryIds.length === 0) return;
+    setSelectedManualIds((prev) => {
+      const next = new Set(prev);
+      let changed = false;
+      for (const id of mandatoryIds) {
+        if (!next.has(id)) {
+          next.add(id);
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [manualInsurancePackages]);
   const [extras, setExtras] = useState<Record<string, number>>({});
   const [promoApplied, setPromoApplied] = useState(false);
   const [promoCode, setPromoCode] = useState('');
@@ -207,6 +228,11 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
     [vehicle],
   );
 
+  const selectedManualPackages = useMemo(() => {
+    const list = manualInsurancePackages ?? [];
+    return list.filter((p) => selectedManualIds.has(p.id));
+  }, [manualInsurancePackages, selectedManualIds]);
+
   const { pricing, extraInvoiceItems, insuranceLabel } = useBookingInvoice({
     vehicleData,
     rentalDays: days,
@@ -215,6 +241,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
     dropoffDate: returnDate,
     selectedInsurance,
     insuranceOptions: insuranceOptions ?? [],
+    selectedManualPackages,
     selectedExtras,
     companyLocations: companyLocations ?? [],
     pickupLocationId: pickupLocId,
@@ -270,10 +297,12 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
     pricing.locationCharges,
   ]);
 
-  if (isLoading) {
+  if (isLoading || insuranceOptionsLoading) {
     return (
       <div className="flex min-h-screen flex-col bg-white text-ink">
-        <div className="mx-auto flex w-full max-w-[1180px] flex-1 items-center justify-center px-6 py-24 text-center text-muted">Loading vehicle…</div>
+        <div className="mx-auto flex w-full max-w-[1180px] flex-1 items-center justify-center px-6 py-24 text-center text-muted">
+          {isLoading ? 'Loading vehicle…' : 'Fetching insurance quotes…'}
+        </div>
       </div>
     );
   }
@@ -422,6 +451,8 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
       void 0;
     }
 
+    const manualIds = Array.from(selectedManualIds);
+
     if (freshPolicyMode === 'before') {
       const sharedPayload = {
         first_name: firstName,
@@ -439,6 +470,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
         rcli_cover: selectedInsurance.has('rcli'),
         sli_cover: selectedInsurance.has('sli'),
         pai_cover: selectedInsurance.has('pai'),
+        ...(manualIds.length > 0 ? { manual_insurance_package_ids: manualIds } : {}),
         extras: activeExtraItems.length > 0 ? activeExtraItems : [],
         fuel_pre_purchase: false,
         return_car_to_different_branch: false,
@@ -478,6 +510,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
         rcli_cover: selectedInsurance.has('rcli'),
         sli_cover: selectedInsurance.has('sli'),
         pai_cover: selectedInsurance.has('pai'),
+        ...(manualIds.length > 0 ? { manual_insurance_package_ids: manualIds } : {}),
         extras: activeExtraItems.length > 0 ? activeExtraItems : undefined,
         ...(promoApplied && promoCode ? { discount_code: promoCode, promo_code: promoCode } : {}),
         success_url: `${origin}/booking/success?session_id={CHECKOUT_SESSION_ID}`,
@@ -653,84 +686,28 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               </>
             )}
 
-            {plans.length > 0 && (
-              <>
-            <h3 ref={protectionRef} className="mb-3 text-[15px] font-semibold text-ink">
-              Protection
-            </h3>
-            <div className="mb-[26px] grid grid-cols-1 gap-[10px] sm:grid-cols-2">
-              {plans.map((p) => {
-                const sel = selectedInsurance.has(p.id);
-                const disabled = isInsuranceDisabled(p.id);
-                const hasDetail = !!INSURANCE_DETAILS[p.id];
-                return (
-                  <div
-                    key={p.id}
-                    onClick={() => {
-                      if (disabled) return;
-                      if (hasDetail) setDetailId(p.id);
-                      else toggleInsurance(p.id);
-                    }}
-                    className={cn(
-                      'relative flex flex-col rounded-[12px] p-[14px] transition-colors',
-                      disabled
-                        ? 'cursor-not-allowed border border-line bg-subtle opacity-70'
-                        : sel
-                          ? 'cursor-pointer border-[1.5px] border-primary bg-primary-soft'
-                          : 'cursor-pointer border border-line bg-white',
-                    )}
-                  >
-                    {recommendedPlanId === p.id && !disabled && (
-                      <span className="absolute right-3 top-3 rounded-[5px] bg-primary px-[7px] py-[3px] text-[8.5px] font-bold uppercase tracking-[0.03em] text-white">
-                        Recommended
-                      </span>
-                    )}
-                    <div className="flex items-center gap-[9px]">
-                      <span
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (!disabled) toggleInsurance(p.id);
-                        }}
-                        className={cn(
-                          'flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-[5px] border-[1.5px]',
-                          sel ? 'border-primary bg-primary' : 'border-control bg-white',
-                        )}
-                      >
-                        {sel && <Check size={12} strokeWidth={3} className="text-white" />}
-                      </span>
-                      <span className="text-[13.5px] font-semibold text-ink">{p.title}</span>
-                    </div>
-                    <div className="mt-[9px] flex-1 text-[12px] leading-[1.5] text-muted">{p.description}</div>
-                    <div className={cn('mt-3 text-[16px] font-bold', sel ? 'text-primary' : 'text-ink')}>
-                      {p.price === 0 ? '$0.00' : money(p.price)}
-                      <span className="text-[11px] font-normal text-muted">{p.price === 0 ? '' : '/day'}</span>
-                    </div>
-                    {disabled ? (
-                      <div className="mt-3 border-t border-hairline pt-[10px]">
-                        <span className="inline-flex items-center rounded bg-amber-bg border border-amber-border px-[7px] py-[3px] text-[10px] font-semibold text-amber-text-2">
-                          Requires RCLI
-                        </span>
-                      </div>
-                    ) : hasDetail ? (
-                      <div className={cn('mt-3 border-t pt-[10px]', sel ? 'border-primary-border' : 'border-hairline')}>
-                        <span
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDetailId(p.id);
-                          }}
-                          className="inline-flex cursor-pointer items-center gap-[5px] text-[11.5px] font-semibold text-primary"
-                        >
-                          <Info size={13} strokeWidth={2} />
-                          See what&apos;s covered
-                        </span>
-                      </div>
-                    ) : null}
-                  </div>
-                );
-              })}
-            </div>
-              </>
-            )}
+            <ProtectionSection
+              headingRef={protectionRef}
+              bonzahPlans={plans}
+              manualPackages={manualInsurancePackages ?? []}
+              selectedBonzah={selectedInsurance}
+              selectedManualIds={selectedManualIds}
+              activeTab={insuranceTab}
+              onTabChange={setInsuranceTab}
+              onToggleBonzah={toggleInsurance}
+              onToggleManual={(id) =>
+                setSelectedManualIds((prev) => {
+                  const next = new Set(prev);
+                  if (next.has(id)) next.delete(id);
+                  else next.add(id);
+                  return next;
+                })
+              }
+              onOpenBonzahDetail={setDetailId}
+              isBonzahDisabled={isInsuranceDisabled}
+              hasBonzahDetail={(id) => !!INSURANCE_DETAILS[id]}
+              recommendedBonzahId={recommendedPlanId ?? undefined}
+            />
 
             {vehicle.extras.length > 0 && (
               <>
@@ -871,15 +848,24 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               <span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-muted">Insurance{insuranceLabel ? ` (${insuranceLabel})` : ''}</span>
               <span onClick={scrollProtection} className="cursor-pointer text-[11px] font-semibold text-primary">Change</span>
             </div>
-            {selectedPlans.length > 0 ? (
+            {selectedPlans.length > 0 || selectedManualPackages.length > 0 ? (
               <div className="flex flex-col gap-[10px]">
                 {selectedPlans.map((p) => (
-                  <div key={p.id} className="flex items-start justify-between text-[13px]">
+                  <div key={`bonzah-${p.id}`} className="flex items-start justify-between text-[13px]">
                     <div>
                       <div className="font-medium text-ink">{p.title}</div>
                       <div className="mt-px text-[11.5px] text-muted">{money(p.price)} × {days} days</div>
                     </div>
                     <span className="font-medium text-ink">{money(p.totalPrice ?? p.price * days)}</span>
+                  </div>
+                ))}
+                {selectedManualPackages.map((pkg) => (
+                  <div key={`manual-${pkg.id}`} className="flex items-start justify-between text-[13px]">
+                    <div>
+                      <div className="font-medium text-ink">{pkg.title}</div>
+                      <div className="mt-px text-[11.5px] text-muted">{money(pkg.dailyRate)} × {days} days</div>
+                    </div>
+                    <span className="font-medium text-ink">{money(pkg.dailyRate * days)}</span>
                   </div>
                 ))}
               </div>

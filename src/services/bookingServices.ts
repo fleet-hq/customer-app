@@ -40,10 +40,22 @@ export interface ApiInsuranceOption {
   recommended: boolean;
 }
 
+export interface ApiManualInsurancePackage {
+  id: number;
+  coverage_type: string;
+  custom_type_label: string;
+  title: string;
+  description: string;
+  daily_rate: string | number;
+  hourly_rate: string | number;
+  is_mandatory: boolean;
+}
+
 interface ApiInsuranceResponse {
   has_bonzah_account: boolean;
   insurance_options: ApiInsuranceOption[];
   total_price: number;
+  manual_insurance_packages?: ApiManualInsurancePackage[];
 }
 
 // Transformed for frontend
@@ -54,6 +66,21 @@ export interface InsuranceOption {
   totalPrice?: number;
   description?: string;
   features: string[];
+}
+
+/** Renter-facing manual package as returned by the extended
+ *  ``/api/bookings/public/insurance-options/`` endpoint. Priced in
+ *  dollars per day; the customer app displays a running per-package
+ *  total based on the booking length. */
+export interface ManualInsurancePackage {
+  id: number;
+  coverageType: string;
+  customTypeLabel: string;
+  title: string;
+  description: string;
+  dailyRate: number;
+  hourlyRate: number;
+  isMandatory: boolean;
 }
 
 function transformInsuranceOption(api: ApiInsuranceOption): InsuranceOption {
@@ -67,6 +94,19 @@ function transformInsuranceOption(api: ApiInsuranceOption): InsuranceOption {
   };
 }
 
+function transformManualPackage(api: ApiManualInsurancePackage): ManualInsurancePackage {
+  return {
+    id: Number(api.id),
+    coverageType: String(api.coverage_type),
+    customTypeLabel: String(api.custom_type_label ?? ''),
+    title: String(api.title),
+    description: String(api.description ?? ''),
+    dailyRate: Number(api.daily_rate),
+    hourlyRate: Number(api.hourly_rate),
+    isMandatory: !!api.is_mandatory,
+  };
+}
+
 // Fetch insurance options (public endpoint).
 // When the booking window is known we pass it through so Bonzah
 // quotes per-day rates for THOSE dates / drop_off_time — otherwise
@@ -76,6 +116,31 @@ export async function getInsuranceOptions(args?: {
   pickupDatetime?: string;
   dropoffDatetime?: string;
 }): Promise<InsuranceOption[]> {
+  const bundle = await getInsuranceOptionsBundle(args);
+  return bundle.bonzahOptions;
+}
+
+/** Full insurance-options response, keeping Bonzah + manual package
+ *  lists separate so the checkout can render tabs when the tenant has
+ *  both providers enabled. Returns an empty bundle on network errors
+ *  (matches the legacy fallback so the UI can still show the "I have
+ *  my own insurance" option). */
+export interface InsuranceOptionsBundle {
+  hasBonzah: boolean;
+  bonzahOptions: InsuranceOption[];
+  manualPackages: ManualInsurancePackage[];
+}
+
+export async function getInsuranceOptionsBundle(args?: {
+  pickupDatetime?: string;
+  dropoffDatetime?: string;
+}): Promise<InsuranceOptionsBundle> {
+  const ownInsurance: InsuranceOption = {
+    id: 'own',
+    title: 'I have my own insurance',
+    price: 0,
+    features: ['Use your personal coverage'],
+  };
   try {
     const dateParams: Record<string, string> = {};
     if (args?.pickupDatetime) dateParams.pickup_datetime = args.pickupDatetime;
@@ -87,27 +152,46 @@ export async function getInsuranceOptions(args?: {
         headers: { 'Content-Type': 'application/json' },
       }
     );
-    const ownInsurance: InsuranceOption = {
-      id: 'own',
-      title: 'I have my own insurance',
-      price: 0,
-      features: ['Use your personal coverage'],
-    };
-
-    const apiOptions = Array.isArray(res.data.insurance_options)
+    const hasBonzah = !!res.data.has_bonzah_account;
+    const bonzahOptions = Array.isArray(res.data.insurance_options)
       ? res.data.insurance_options.map(transformInsuranceOption)
       : [];
-
-    return [ownInsurance, ...apiOptions];
+    const manualPackages = Array.isArray(res.data.manual_insurance_packages)
+      ? res.data.manual_insurance_packages.map(transformManualPackage)
+      : [];
+    return {
+      hasBonzah,
+      bonzahOptions: hasBonzah ? [ownInsurance, ...bonzahOptions] : [ownInsurance],
+      manualPackages,
+    };
   } catch {
-    return [
+    return {
+      hasBonzah: false,
+      bonzahOptions: [ownInsurance],
+      manualPackages: [],
+    };
+  }
+}
+
+/** Lightweight tenant-scoped manual packages fetch. Doesn't go through
+ *  the Bonzah insurance-options endpoint (which waits on a live quote
+ *  round-trip), so the Custom tab hydrates immediately even while
+ *  Bonzah is still resolving. Public endpoint keyed off the tenant
+ *  domain via ``getDomainParams``. */
+export async function getManualInsurancePackagesForTenant(): Promise<ManualInsurancePackage[]> {
+  try {
+    const res = await axios.get<{ packages: ApiManualInsurancePackage[] }>(
+      `${API_URL}/api/insurance/public/manual-packages-by-domain/`,
       {
-        id: 'own',
-        title: 'I have my own insurance',
-        price: 0,
-        features: ['Use your personal coverage'],
-      },
-    ];
+        params: getDomainParams(),
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
+    return Array.isArray(res.data?.packages)
+      ? res.data.packages.map(transformManualPackage)
+      : [];
+  } catch {
+    return [];
   }
 }
 
@@ -343,6 +427,24 @@ export interface BookingDetails {
     priceDifference: number;
     createdAt: string;
   }[];
+  /** Frozen tenant-managed insurance packages the renter picked at
+   *  checkout. Snapshots so the invoice keeps rendering the exact
+   *  title / coverage / rate the renter agreed to even after the
+   *  tenant edits the source package. */
+  manualInsuranceSelections: {
+    id: number;
+    packageId: number | null;
+    coverageType: string;
+    customTypeLabel: string;
+    title: string;
+    description: string;
+    dailyRate: number;
+    totalCharged: number;
+  }[];
+  /** Sum of ``totalCharged`` across ``manualInsuranceSelections``.
+   *  Convenience field so the invoice can back out tax without
+   *  re-summing on every render. */
+  manualInsuranceTotal: number;
 }
 
 // Format a stored UTC ISO as the tenant-local date string used on the
@@ -583,6 +685,20 @@ function transformBooking(api: ApiBooking): BookingDetails {
         priceDifference: Number(m.price_difference || 0),
         createdAt: String(m.created_at ?? ''),
       })),
+    manualInsuranceSelections: (Array.isArray((api as any).manual_insurance_selections)
+      ? (api as any).manual_insurance_selections
+      : []
+    ).map((s: any) => ({
+      id: Number(s.id),
+      packageId: s.package_id != null ? Number(s.package_id) : null,
+      coverageType: String(s.coverage_type ?? ''),
+      customTypeLabel: String(s.custom_type_label ?? ''),
+      title: String(s.title ?? ''),
+      description: String(s.description ?? ''),
+      dailyRate: Number(s.daily_rate ?? 0),
+      totalCharged: Number(s.total_charged ?? 0),
+    })),
+    manualInsuranceTotal: Number((api as any).manual_insurance_total ?? 0),
   };
 }
 
@@ -645,6 +761,10 @@ export interface CreateBookingPayload {
   rcli_cover: boolean;
   sli_cover: boolean;
   pai_cover: boolean;
+  /** Tenant-managed manual insurance packages the renter picked.
+   *  Optional, stacks alongside Bonzah when both providers are
+   *  enabled. Snapshots are frozen on the backend at booking create. */
+  manual_insurance_package_ids?: number[];
   extras?: { id: number; quantity: number }[];
   discount_code?: string;
   promo_code?: string;
@@ -703,6 +823,9 @@ export async function startBookingCheckout(
     rcli_cover: payload.rcli_cover,
     sli_cover: payload.sli_cover,
     pai_cover: payload.pai_cover,
+    ...(payload.manual_insurance_package_ids && payload.manual_insurance_package_ids.length > 0
+      ? { manual_insurance_package_ids: payload.manual_insurance_package_ids }
+      : {}),
     ...(payload.promo_code ? { promo_code: payload.promo_code } : {}),
     success_url: payload.success_url,
     cancel_url: payload.cancel_url,
@@ -783,6 +906,9 @@ export async function createBooking(payload: CreateBookingPayload): Promise<{ id
       rcli_cover: payload.rcli_cover,
       sli_cover: payload.sli_cover,
       pai_cover: payload.pai_cover,
+      ...(payload.manual_insurance_package_ids && payload.manual_insurance_package_ids.length > 0
+        ? { manual_insurance_package_ids: payload.manual_insurance_package_ids }
+        : {}),
       ...(payload.promo_code ? { promo_code: payload.promo_code } : {}),
     };
 

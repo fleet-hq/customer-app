@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { calculateTax } from '@/types/vehicle';
 import type { TaxProfile, VehicleExtra } from '@/types/vehicle';
-import type { InsuranceOption } from '@/services/bookingServices';
+import type { InsuranceOption, ManualInsurancePackage } from '@/services/bookingServices';
 import type { Location } from '@/services/locationServices';
 import { calculateBasePrice, type RateUnit } from '@/lib/api-pricing';
 
@@ -79,6 +79,10 @@ export interface UseBookingInvoiceParams {
   dropoffDate?: string;
   selectedInsurance: Set<string>;
   insuranceOptions: InsuranceOption[];
+  /** Tenant-managed insurance packages the renter selected (may be
+   *  empty). Priced per-day; each contributes ``dailyRate * days`` to
+   *  the checkout preview. */
+  selectedManualPackages?: ManualInsurancePackage[];
   selectedExtras: Record<string, { enabled: boolean; quantity: number }>;
   companyLocations: Location[];
   pickupLocationId: string | null;
@@ -101,6 +105,7 @@ export function useBookingInvoice({
   rentalHours,
   selectedInsurance,
   insuranceOptions,
+  selectedManualPackages,
   selectedExtras,
   companyLocations,
   pickupLocationId,
@@ -142,6 +147,13 @@ export function useBookingInvoice({
         if (option) insuranceCost += option.totalPrice ?? option.price * rentalDays;
       });
     }
+    let manualInsuranceCost = 0;
+    if (selectedManualPackages && selectedManualPackages.length > 0) {
+      for (const pkg of selectedManualPackages) {
+        manualInsuranceCost += (pkg.dailyRate || 0) * rentalDays;
+      }
+    }
+    insuranceCost += manualInsuranceCost;
 
     // Extras cost
     let extrasCost = 0;
@@ -229,7 +241,7 @@ export function useBookingInvoice({
       tax, total, deposit, bookingFee,
       rateUnit: basePrice.unit,
     };
-  }, [vehicleData, rentalDays, basePrice, appliedDiscount, selectedInsurance, insuranceOptions, selectedExtras, extras, companyLocations, pickupLocationId, dropoffLocationId, defaultTaxProfile]);
+  }, [vehicleData, rentalDays, basePrice, appliedDiscount, selectedInsurance, insuranceOptions, selectedManualPackages, selectedExtras, extras, companyLocations, pickupLocationId, dropoffLocationId, defaultTaxProfile]);
 
   const invoiceItems = useMemo<InvoiceItem[]>(() => {
     if (!vehicleData || !basePrice) return [];

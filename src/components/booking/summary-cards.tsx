@@ -270,6 +270,13 @@ export function Invoice({
           amount: item.quantity * item.pricePerDay,
         }));
 
+  // Frozen tenant-managed insurance selections. Shown as their own
+  // rows under an "Insurance" group so the renter can see each package
+  // and what it cost. Backend already folded ``manualInsuranceTotal``
+  // into ``inv.total`` via PricingService, so no further arithmetic
+  // is needed here — displaying them is purely additive to the UI.
+  const manualInsuranceSelections = booking.manualInsuranceSelections ?? [];
+
   // Subtract the tax portion baked into the mod charge lines so the
   // Tax row reflects only the base rental + extras/insurance tax.
   const displayTax = Math.max(0, inv.tax - modTaxOnly);
@@ -330,6 +337,29 @@ export function Invoice({
           </div>
         );
       })}
+
+      {manualInsuranceSelections.length > 0 && (
+        <>
+          {divider}
+          <Group title="Insurance" />
+          {manualInsuranceSelections.map((s) => {
+            const label = s.customTypeLabel || s.coverageType;
+            return (
+              <div key={s.id} className="mt-1 flex items-start justify-between text-[13px]">
+                <div className="min-w-0">
+                  <div className="font-medium text-ink">{s.title}</div>
+                  <div className="mt-px text-[11.5px] text-faint">
+                    {label}
+                  </div>
+                </div>
+                <span className="font-medium text-ink tabular-nums">
+                  {money(s.totalCharged)}
+                </span>
+              </div>
+            );
+          })}
+        </>
+      )}
 
       {inv.insurancePremium > 0 && (
         <>

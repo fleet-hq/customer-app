@@ -11,6 +11,8 @@ export {
 export { useAgreement, useAgreementByBooking, useCompanySettings, useAcceptAgreement, useDefaultAgreementTemplate } from './useAgreements';
 export {
   useInsuranceOptions,
+  useInsuranceOptionsBundle,
+  useManualInsurancePackagesForTenant,
   useBookingDetails,
   useCreateBooking,
   useStartBookingCheckout,

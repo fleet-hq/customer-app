@@ -3,6 +3,8 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
 import {
   getInsuranceOptions,
+  getInsuranceOptionsBundle,
+  getManualInsurancePackagesForTenant,
   getBookingById,
   createBooking,
   startBookingCheckout,
@@ -23,6 +25,35 @@ export const useInsuranceOptions = (args?: {
       args?.dropoffDatetime ?? null,
     ],
     queryFn: () => getInsuranceOptions(args),
+    staleTime: 5 * 60 * 1000,
+  });
+
+/** Full insurance bundle — Bonzah options + manual packages together.
+ *  Use this on the checkout page so the tabs render both providers
+ *  when the tenant has enabled each. Wrapping the same underlying
+ *  endpoint as ``useInsuranceOptions`` so we don't double-fetch. */
+export const useInsuranceOptionsBundle = (args?: {
+  pickupDatetime?: string;
+  dropoffDatetime?: string;
+}) =>
+  useQuery({
+    queryKey: [
+      'insuranceOptionsBundle',
+      args?.pickupDatetime ?? null,
+      args?.dropoffDatetime ?? null,
+    ],
+    queryFn: () => getInsuranceOptionsBundle(args),
+    staleTime: 5 * 60 * 1000,
+  });
+
+/** Tenant-scoped manual insurance packages — dedicated fast endpoint
+ *  that doesn't wait on Bonzah's live-quote call. Use this alongside
+ *  ``useInsuranceOptions`` so the Custom tab hydrates as soon as the
+ *  DB round-trip finishes, without blocking on Bonzah. */
+export const useManualInsurancePackagesForTenant = () =>
+  useQuery({
+    queryKey: ['manualInsurancePackagesForTenant'],
+    queryFn: () => getManualInsurancePackagesForTenant(),
     staleTime: 5 * 60 * 1000,
   });
 
