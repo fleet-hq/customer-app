@@ -26,6 +26,7 @@ import { todayISO } from '@/lib/time-slots';
 import { cn, money, rentalDays } from '@/lib/utils';
 import { buildUnavailabilityIndex, slotsBlockedOn } from '@/lib/unavailable-slots';
 import { paths } from '@/lib/paths';
+import { useEmbedBridge } from '@/hooks';
 
 const PLACEHOLDER_IMAGE = '/images/vehicles/car_placeholder.png';
 
@@ -96,6 +97,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   const { carId } = use(params);
   const router = useRouter();
   const searchParams = useSearchParams();
+  const embed = useEmbedBridge();
 
   const { data: insuranceOptions, isLoading: insuranceOptionsLoading } = useInsuranceOptions();
   const { data: manualInsurancePackages } = useManualInsurancePackagesForTenant();
@@ -480,6 +482,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
       };
       startVerification.mutate(sharedPayload as Record<string, unknown>, {
         onSuccess: (data) => {
+          if (embed.embedded) embed.reportBookingComplete(data.booking_id);
           window.location.href = `/booking/${data.booking_id}?token=${encodeURIComponent(data.access_token)}`;
         },
         onError: (error: unknown) => {
@@ -516,6 +519,11 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
         success_url: `${origin}/booking/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${origin}/checkout/${carId}`,
       });
+      if (embed.embedded) {
+        embed.handoff(data.checkout_url);
+        window.top?.location.assign(data.checkout_url);
+        return;
+      }
       window.location.href = data.checkout_url;
     } catch (error) {
       setCheckoutError(

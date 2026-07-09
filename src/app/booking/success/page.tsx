@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { getBookingBySession, BookingNotReadyYet } from '@/services/bookingServices';
 import { setBookingToken } from '@/utils/booking-token';
 import { paths } from '@/lib/paths';
+import { useEmbedBridge } from '@/hooks';
 
 const POLL_INTERVAL_MS = 2000;
 const MAX_ATTEMPTS = 10;
@@ -12,6 +13,7 @@ const MAX_ATTEMPTS = 10;
 function SuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const embed = useEmbedBridge();
   const sessionId = searchParams.get('session_id') || '';
   const [phase, setPhase] = useState<'loading' | 'processing' | 'error'>('loading');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -37,6 +39,7 @@ function SuccessContent() {
           const booking = await getBookingBySession(sessionId);
           if (cancelled) return;
           if (booking.access_token) setBookingToken(booking.access_token);
+          if (embed.embedded) embed.reportBookingComplete(booking.booking_id);
           router.replace(`${paths.booking(String(booking.booking_id))}?token=${encodeURIComponent(booking.access_token)}`);
           return;
         } catch (err) {
