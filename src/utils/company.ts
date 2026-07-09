@@ -21,10 +21,10 @@ export function isDevelopment(): boolean {
 // callers that don't yet have a tenant in scope.
 export function getDomain(override?: string | null): string | undefined {
   if (override) return override;
-  if (CONFIGURED_DOMAIN) return CONFIGURED_DOMAIN;
   if (typeof window !== 'undefined' && !isDevelopment()) {
     return window.location.hostname;
   }
+  if (CONFIGURED_DOMAIN) return CONFIGURED_DOMAIN;
   return undefined;
 }
 

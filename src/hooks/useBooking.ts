@@ -8,6 +8,7 @@ import {
   getBookingById,
   createBooking,
   startBookingCheckout,
+  startEmbedBookingPayment,
   getBookingDrivers,
   createBookingDriver,
   type CreateBookingPayload,
@@ -74,6 +75,13 @@ export const useCreateBooking = () =>
 export const useStartBookingCheckout = () =>
   useMutation({
     mutationFn: (payload: StartCheckoutPayload) => startBookingCheckout(payload),
+  });
+
+// Embed / Stripe Elements variant. Returns a PaymentIntent client_secret
+// for in-iframe card entry instead of a hosted-checkout URL.
+export const useStartEmbedBookingPayment = () =>
+  useMutation({
+    mutationFn: (payload: CreateBookingPayload) => startEmbedBookingPayment(payload),
   });
 
 export const useBookingDrivers = (bookingId?: string | number) =>

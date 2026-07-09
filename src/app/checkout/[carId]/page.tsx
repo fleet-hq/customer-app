@@ -12,7 +12,8 @@ import { Dialog } from '@/components/ui/dialog';
 import { DateDealsCallout } from '@/components/booking/date-deals-callout';
 import { RentalBreakdown } from '@/components/booking/rental-breakdown';
 import { DEFAULT_TRIP } from '@/lib/mock-data';
-import { useFleet, useInsuranceOptions, useManualInsurancePackagesForTenant, useStartBookingCheckout, useCompanyLocations, useFleetUnavailableRanges } from '@/hooks';
+import { useFleet, useInsuranceOptions, useManualInsurancePackagesForTenant, useStartBookingCheckout, useStartEmbedBookingPayment, useCompanyLocations, useFleetUnavailableRanges } from '@/hooks';
+import { EmbedPaymentPanel } from '@/components/checkout/embed-payment-panel';
 import ProtectionSection from '@/components/checkout/protection-section';
 import { useBookingInvoice } from '@/hooks/useBookingInvoice';
 import { useDefaultTaxProfile } from '@/hooks/useTaxProfiles';
@@ -26,6 +27,7 @@ import { todayISO } from '@/lib/time-slots';
 import { cn, money, rentalDays } from '@/lib/utils';
 import { buildUnavailabilityIndex, slotsBlockedOn } from '@/lib/unavailable-slots';
 import { paths } from '@/lib/paths';
+import { useEmbedBridge } from '@/hooks';
 
 const PLACEHOLDER_IMAGE = '/images/vehicles/car_placeholder.png';
 
@@ -96,12 +98,22 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   const { carId } = use(params);
   const router = useRouter();
   const searchParams = useSearchParams();
+  const embed = useEmbedBridge();
 
   const { data: insuranceOptions, isLoading: insuranceOptionsLoading } = useInsuranceOptions();
   const { data: manualInsurancePackages } = useManualInsurancePackagesForTenant();
   const { data: companyLocations } = useCompanyLocations();
   const defaultLoc = useDefaultLocation();
   const startCheckout = useStartBookingCheckout();
+  const startEmbedPayment = useStartEmbedBookingPayment();
+  const [embedIntent, setEmbedIntent] = useState<null | {
+    clientSecret: string;
+    publishableKey: string;
+    stripeAccountId: string;
+    amount: string;
+    currency: string;
+    pendingId: string;
+  }>(null);
   const { data: verificationPolicy } = useBookingVerificationPolicy();
   const startVerification = useStartVerificationFirstBooking();
   const { data: unavailableRanges = [] } = useFleetUnavailableRanges(carId);
@@ -480,6 +492,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
       };
       startVerification.mutate(sharedPayload as Record<string, unknown>, {
         onSuccess: (data) => {
+          if (embed.embedded) embed.reportBookingComplete(data.booking_id);
           window.location.href = `/booking/${data.booking_id}?token=${encodeURIComponent(data.access_token)}`;
         },
         onError: (error: unknown) => {
@@ -491,28 +504,51 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
       return;
     }
 
+    const commonPayload = {
+      fleet_id: Number(vehicle.id),
+      customer: {
+        first_name: firstName,
+        last_name: lastName,
+        email: fields.email.trim(),
+        phone_no: fields.phone.trim().slice(0, 15),
+        license_no: licenseNo,
+      },
+      pickup_datetime: pickupDatetime,
+      dropoff_datetime: dropoffDatetime,
+      pickup_location_id: pickupLocationId,
+      dropoff_location_id: dropoffLocationId,
+      insurance_selected: insuranceSelected,
+      cdw_cover: selectedInsurance.has('cdw'),
+      rcli_cover: selectedInsurance.has('rcli'),
+      sli_cover: selectedInsurance.has('sli'),
+      pai_cover: selectedInsurance.has('pai'),
+      ...(manualIds.length > 0 ? { manual_insurance_package_ids: manualIds } : {}),
+      extras: activeExtraItems.length > 0 ? activeExtraItems : undefined,
+      ...(promoApplied && promoCode ? { discount_code: promoCode, promo_code: promoCode } : {}),
+    };
+
+    if (embed.embedded) {
+      try {
+        const data = await startEmbedPayment.mutateAsync(commonPayload);
+        setEmbedIntent({
+          clientSecret: data.client_secret,
+          publishableKey: data.publishable_key,
+          stripeAccountId: data.stripe_account_id,
+          amount: data.amount,
+          currency: data.currency,
+          pendingId: data.pending_id,
+        });
+      } catch (error) {
+        setCheckoutError(
+          extractApiErrorMessage(error, 'We couldn’t start checkout. Please check your details and try again.'),
+        );
+      }
+      return;
+    }
+
     try {
       const data = await startCheckout.mutateAsync({
-        fleet_id: Number(vehicle.id),
-        customer: {
-          first_name: firstName,
-          last_name: lastName,
-          email: fields.email.trim(),
-          phone_no: fields.phone.trim().slice(0, 15),
-          license_no: licenseNo,
-        },
-        pickup_datetime: pickupDatetime,
-        dropoff_datetime: dropoffDatetime,
-        pickup_location_id: pickupLocationId,
-        dropoff_location_id: dropoffLocationId,
-        insurance_selected: insuranceSelected,
-        cdw_cover: selectedInsurance.has('cdw'),
-        rcli_cover: selectedInsurance.has('rcli'),
-        sli_cover: selectedInsurance.has('sli'),
-        pai_cover: selectedInsurance.has('pai'),
-        ...(manualIds.length > 0 ? { manual_insurance_package_ids: manualIds } : {}),
-        extras: activeExtraItems.length > 0 ? activeExtraItems : undefined,
-        ...(promoApplied && promoCode ? { discount_code: promoCode, promo_code: promoCode } : {}),
+        ...commonPayload,
         success_url: `${origin}/booking/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${origin}/checkout/${carId}`,
       });
@@ -576,6 +612,23 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   return (
     <div className="bg-white text-ink">
       <div className="mx-auto max-w-[1180px] px-6 pt-[22px] pb-28 lg:pb-16">
+        {embedIntent ? (
+          <div className="mb-6">
+            <EmbedPaymentPanel
+              clientSecret={embedIntent.clientSecret}
+              publishableKey={embedIntent.publishableKey}
+              stripeAccountId={embedIntent.stripeAccountId}
+              returnUrl={`${origin}/booking/success?session_id=${embedIntent.pendingId}`}
+              amount={embedIntent.amount}
+              currency={embedIntent.currency}
+              onCancel={() => setEmbedIntent(null)}
+              onSuccess={() => {
+                if (embed.embedded) embed.reportBookingComplete(0);
+                setEmbedIntent(null);
+              }}
+            />
+          </div>
+        ) : null}
         <div className="mb-4 flex items-center justify-between gap-4">
           <BackLink href={paths.fleet}>Back to fleet</BackLink>
         </div>

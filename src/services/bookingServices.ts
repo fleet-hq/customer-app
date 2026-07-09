@@ -798,6 +798,54 @@ export interface StartCheckoutResponse {
   currency: string;
 }
 
+export interface StartEmbedPaymentResponse {
+  pending_id: string;
+  client_secret: string;
+  publishable_key: string;
+  stripe_account_id: string;
+  amount: string;
+  currency: string;
+  expires_at: string;
+}
+
+export async function startEmbedBookingPayment(
+  payload: CreateBookingPayload,
+): Promise<StartEmbedPaymentResponse> {
+  const domainParams = getDomainParams();
+  const body = {
+    first_name: payload.customer.first_name,
+    last_name: payload.customer.last_name,
+    email: payload.customer.email,
+    phone: payload.customer.phone_no.slice(0, 15),
+    ...(payload.customer.license_no ? { license_no: payload.customer.license_no } : {}),
+    fleet_id: payload.fleet_id,
+    pickup_location_id: payload.pickup_location_id,
+    dropoff_location_id: payload.dropoff_location_id || payload.pickup_location_id,
+    pickup_datetime: payload.pickup_datetime,
+    dropoff_datetime: payload.dropoff_datetime,
+    extras: payload.extras || [],
+    additional_drivers: 0,
+    fuel_pre_purchase: false,
+    return_car_to_different_branch: false,
+    notes: '',
+    insurance_selected: payload.insurance_selected,
+    cdw_cover: payload.cdw_cover,
+    rcli_cover: payload.rcli_cover,
+    sli_cover: payload.sli_cover,
+    pai_cover: payload.pai_cover,
+    ...(payload.manual_insurance_package_ids && payload.manual_insurance_package_ids.length > 0
+      ? { manual_insurance_package_ids: payload.manual_insurance_package_ids }
+      : {}),
+    ...(payload.promo_code ? { promo_code: payload.promo_code } : {}),
+  };
+  const res = await axios.post<StartEmbedPaymentResponse>(
+    `${API_URL}/api/bookings/public/start-embed-payment/`,
+    body,
+    { params: domainParams, headers: { 'Content-Type': 'application/json' } },
+  );
+  return res.data;
+}
+
 export async function startBookingCheckout(
   payload: StartCheckoutPayload,
 ): Promise<StartCheckoutResponse> {

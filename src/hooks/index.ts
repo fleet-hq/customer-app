@@ -16,6 +16,7 @@ export {
   useBookingDetails,
   useCreateBooking,
   useStartBookingCheckout,
+  useStartEmbedBookingPayment,
   useBookingDrivers,
   useCreateBookingDriver,
 } from './useBooking';
@@ -27,3 +28,5 @@ export { useBookingImages, useBookingImagesByType, useUploadTripImage, useUpload
 export { useDefaultTaxProfile } from './useTaxProfiles';
 export { useBookingInvoice } from './useBookingInvoice';
 export type { BookingPricing, InvoiceItem, ExtraInvoiceItem, BookingInvoiceResult } from './useBookingInvoice';
+export { useEmbedBridge } from './useEmbedBridge';
+export type { EmbedBridgeApi } from './useEmbedBridge';
