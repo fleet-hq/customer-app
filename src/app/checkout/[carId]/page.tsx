@@ -157,6 +157,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   const [errors, setErrors] = useState<Partial<Record<keyof Fields, string>>>({});
   const [checkoutError, setCheckoutError] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [termsModalOpen, setTermsModalOpen] = useState(false);
 
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
@@ -1155,14 +1156,17 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               </span>
               <span className="text-[11.5px] leading-[1.5] text-muted">
                 I have read and accept the rental information and the{' '}
-                <Link
-                  href={paths.terms}
-                  target="_blank"
-                  onClick={(e) => e.stopPropagation()}
-                  className="font-semibold text-primary underline"
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setTermsModalOpen(true);
+                  }}
+                  className="font-semibold text-primary underline bg-transparent border-0 p-0 cursor-pointer"
                 >
                   Terms &amp; Conditions
-                </Link>
+                </button>
                 . I confirm that I am booking a prepaid rate, where the entire price of the
                 reservation will be immediately debited from the payment method I have provided.
               </span>
@@ -1356,6 +1360,85 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               Update trip
             </button>
       </Dialog>
+
+      {termsModalOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Terms & Conditions"
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setTermsModalOpen(false)}
+        >
+          <div
+            className="flex max-h-[85vh] w-full max-w-[640px] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-[#e2e8f0] px-6 py-4">
+              <h2 className="text-[16px] font-semibold text-ink">Terms &amp; Conditions</h2>
+              <button
+                type="button"
+                onClick={() => setTermsModalOpen(false)}
+                className="rounded-lg border border-[#e2e8f0] bg-white px-3 py-1.5 text-[13px] font-medium text-ink hover:bg-[#f1f5f9]"
+                aria-label="Close"
+              >
+                Close
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-6 py-5 text-[13px] leading-[1.6] text-[#334155]">
+              <p className="mb-3">
+                By completing this reservation you agree to the rental agreement between you and the
+                rental company. The following applies to every booking:
+              </p>
+              <ol className="mb-3 list-decimal pl-5 space-y-2">
+                <li>
+                  <strong>Payment.</strong> The full rental amount is charged immediately upon
+                  booking. Cancellations follow the rental company&apos;s cancellation policy.
+                </li>
+                <li>
+                  <strong>Driver requirements.</strong> The primary renter must be present at
+                  pickup with a valid driver&apos;s license, a matching credit card, and any
+                  documents required for identity or insurance verification.
+                </li>
+                <li>
+                  <strong>Vehicle use.</strong> The vehicle is provided in good working condition
+                  and must be returned in the same condition, excluding normal wear. Damage,
+                  cleaning, or fuel charges may apply on return.
+                </li>
+                <li>
+                  <strong>Mileage.</strong> Rentals include the mileage stated on the booking.
+                  Overage charges apply at the rate shown on this page.
+                </li>
+                <li>
+                  <strong>Insurance and coverage.</strong> Any optional coverage purchased at
+                  checkout is subject to the underlying provider&apos;s policy documents,
+                  including exclusions and deductibles.
+                </li>
+                <li>
+                  <strong>Modifications and refunds.</strong> Changes to pickup / dropoff dates
+                  or vehicle are subject to availability and pricing at the time of the change.
+                  Refunds follow the operator&apos;s cancellation policy.
+                </li>
+              </ol>
+              <p className="text-[12px] text-muted">
+                Full rental agreement is provided at pickup and must be signed prior to receiving
+                the vehicle.
+              </p>
+            </div>
+            <div className="border-t border-[#e2e8f0] px-6 py-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setTermsAccepted(true);
+                  setTermsModalOpen(false);
+                }}
+                className="w-full rounded-[10px] bg-primary py-3 text-[13px] font-semibold text-white"
+              >
+                I understand
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
