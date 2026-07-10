@@ -22,6 +22,15 @@ export function isDevelopment(): boolean {
 export function getDomain(override?: string | null): string | undefined {
   if (override) return override;
   if (typeof window !== 'undefined' && !isDevelopment()) {
+    // Widget-only clients (Rentel-style) open our shared hosted checkout
+    // at fleethq-book.vercel.app with ?tenant=<slug> in the URL. That
+    // hostname isn't registered as anyone's CompanyDomain, so client-side
+    // API calls scoped by ?domain= would 404. Prefer the ?tenant= param
+    // when present — mirrors the server-side middleware that promotes the
+    // same value onto x-fleethq-tenant-slug for getCurrentTenant.
+    const params = new URLSearchParams(window.location.search);
+    const tenantParam = params.get('tenant');
+    if (tenantParam) return tenantParam.toLowerCase();
     return window.location.hostname;
   }
   if (CONFIGURED_DOMAIN) return CONFIGURED_DOMAIN;
