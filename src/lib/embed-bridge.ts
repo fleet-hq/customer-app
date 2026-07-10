@@ -78,10 +78,33 @@ export const startAutoResize = (target: HTMLElement | null = document.body): (()
   if (!target) return () => undefined;
   stopAutoResize();
   resizeTarget = target;
+
+  // Runaway-growth guard. The parent resizes the iframe to whatever height
+  // we post, but a page whose body inherits 100vh (min-height, flex-grow,
+  // sticky footers) grows to fill the new size, so the next measurement
+  // reports a larger height and we loop up to the parent's max cap. Filter
+  // noise: only post when the change is meaningful, debounce, and stop
+  // when the same height is seen three times in a row.
+  let lastPosted = 0;
+  let repeatCount = 0;
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+  const MIN_DELTA = 12;
+  const DEBOUNCE_MS = 120;
+
   resizeObserver = new ResizeObserver((entries) => {
     for (const entry of entries) {
-      const height = entry.contentRect.height + 8;
-      notifyResize(height);
+      const measured = Math.ceil(entry.contentRect.height);
+      if (Math.abs(measured - lastPosted) < MIN_DELTA) {
+        repeatCount += 1;
+        if (repeatCount > 3) return;
+      } else {
+        repeatCount = 0;
+      }
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        lastPosted = measured;
+        notifyResize(measured + 8);
+      }, DEBOUNCE_MS);
     }
   });
   resizeObserver.observe(target);
