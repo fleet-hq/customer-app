@@ -69,6 +69,21 @@ async function fetchTenantByHost(host: string): Promise<Tenant> {
  *  otherwise the bare ``host`` header. */
 export const getCurrentTenant = cache(async (): Promise<Tenant> => {
   const h = await headers();
+  // Widget-only clients open our shared checkout at fleethq-book.vercel.app;
+  // middleware promotes ``?tenant=<slug>`` from the URL onto this header so
+  // we can identify the tenant without a Host-header match against a
+  // registered CompanyDomain. Tenants at their own domain never carry
+  // this header and go through the Host path unchanged.
+  const paramSlug = (h.get('x-fleethq-tenant-slug') ?? '').toLowerCase();
+  if (paramSlug) {
+    const cached = unstable_cache(
+      () => fetchTenantByHost(paramSlug),
+      ['tenant', paramSlug],
+      { tags: [TENANT_TAG, tenantTag(paramSlug)], revalidate: CACHE_REVALIDATE_SECONDS },
+    );
+    return cached();
+  }
+
   const host = (h.get('x-forwarded-host') ?? h.get('host') ?? '').toLowerCase();
   if (!host) {
     throw new TenantNotFoundError('');
