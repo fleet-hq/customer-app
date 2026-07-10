@@ -176,6 +176,55 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   const [returnDate, setReturnDate] = useState(urlReturnDate ?? DEFAULT_TRIP.returnDate);
   const [returnTime, setReturnTime] = useState(urlReturnTime ?? DEFAULT_TRIP.returnTime);
 
+  // Persist form fields to sessionStorage so a reload (or a widget parent
+  // reload that remounts the iframe) doesn't wipe what the customer just
+  // typed. sessionStorage is per-origin — same origin as this page — so
+  // it survives across iframe remounts.
+  const persistKey = `fhq-checkout-form:${carId}`;
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const raw = window.sessionStorage.getItem(persistKey);
+      if (!raw) return;
+      const saved = JSON.parse(raw) as {
+        fields?: Fields;
+        selectedInsurance?: string[];
+        extras?: Record<string, number>;
+        promoCode?: string;
+        promoInput?: string;
+        termsAccepted?: boolean;
+      };
+      if (saved.fields) setFields(saved.fields);
+      if (Array.isArray(saved.selectedInsurance)) setSelectedInsurance(new Set(saved.selectedInsurance));
+      if (saved.extras) setExtras(saved.extras);
+      if (saved.promoCode) setPromoCode(saved.promoCode);
+      if (saved.promoInput) setPromoInput(saved.promoInput);
+      if (typeof saved.termsAccepted === 'boolean') setTermsAccepted(saved.termsAccepted);
+    } catch {
+      /* corrupt entry — ignore */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [persistKey]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      window.sessionStorage.setItem(
+        persistKey,
+        JSON.stringify({
+          fields,
+          selectedInsurance: Array.from(selectedInsurance),
+          extras,
+          promoCode,
+          promoInput,
+          termsAccepted,
+        }),
+      );
+    } catch {
+      /* quota / private mode — silently drop */
+    }
+  }, [persistKey, fields, selectedInsurance, extras, promoCode, promoInput, termsAccepted]);
+
   const fleetTz = useMemo(() => {
     const fromLoc = companyLocations?.find((l) => String(l.id) === pickupLocId)?.timezone;
     return fromLoc ?? defaultLoc?.timezone ?? null;
@@ -493,6 +542,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
       startVerification.mutate(sharedPayload as Record<string, unknown>, {
         onSuccess: (data) => {
           if (embed.embedded) embed.reportBookingComplete(data.booking_id);
+          try { window.sessionStorage.removeItem(persistKey); } catch { /* ignore */ }
           window.location.href = `/booking/${data.booking_id}?token=${encodeURIComponent(data.access_token)}`;
         },
         onError: (error: unknown) => {
