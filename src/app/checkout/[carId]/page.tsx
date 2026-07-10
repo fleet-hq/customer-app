@@ -706,7 +706,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
             <div className="mb-[14px] flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-[21px] font-semibold tracking-[-0.01em] text-secondary">
-                  {vehicle.name} {vehicle.year}
+                  {vehicle.name}
                 </h2>
                 <div className="mt-[5px] flex items-center gap-2 text-[12.5px] text-muted">
                   <span>Plate {vehicle.licensePlate}</span>
