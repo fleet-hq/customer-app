@@ -34,7 +34,13 @@ async function EmbedSearchContent({
   return (
     <div className="w-full">
       <SearchEmbedDropdownBoost />
-      <div className={bare ? 'w-full' : 'mx-auto max-w-[1180px] px-4 py-4'}>
+      <div
+        className={
+          bare
+            ? 'mx-auto w-full max-w-[1180px] px-3 py-2'
+            : 'mx-auto max-w-[1180px] px-4 py-4'
+        }
+      >
         <SearchBar variant="hero" bareContainer={bare} />
       </div>
     </div>
