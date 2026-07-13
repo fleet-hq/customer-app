@@ -8,17 +8,32 @@ import { SearchBar } from '@/components/search/search-bar';
  * it, so a partner site (Rentel-style) can iframe an authentic-looking
  * filter bar into their own hero.
  *
- * The route is fully public and inherits the app layout's tenant
- * resolution + LayoutChrome hiding (already keyed on ``?embed=1``), so
- * no additional gating is needed.
+ * ``?bare=1`` drops the outer white card so the partner's own hero
+ * background shows through.
  */
-export default function EmbedSearchPage() {
+export default function EmbedSearchPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ bare?: string }>;
+}) {
+  return (
+    <Suspense fallback={<div className="h-[120px] w-full animate-pulse rounded-2xl bg-slate-100" />}>
+      <EmbedSearchContent searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function EmbedSearchContent({
+  searchParams,
+}: {
+  searchParams: Promise<{ bare?: string }>;
+}) {
+  const params = await searchParams;
+  const bare = params.bare === '1';
   return (
     <div className="w-full">
-      <div className="mx-auto max-w-[1180px] px-4 py-4">
-        <Suspense fallback={<div className="h-[120px] w-full animate-pulse rounded-2xl bg-slate-100" />}>
-          <SearchBar variant="hero" />
-        </Suspense>
+      <div className={bare ? 'w-full' : 'mx-auto max-w-[1180px] px-4 py-4'}>
+        <SearchBar variant="hero" bareContainer={bare} />
       </div>
     </div>
   );

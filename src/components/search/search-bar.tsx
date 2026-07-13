@@ -14,9 +14,15 @@ import { DateTimeField } from './date-time-field';
 
 interface SearchBarProps {
   variant?: 'hero' | 'compact';
+  /** Drop the outer white card (background / border / shadow / padding).
+   *  Used by the widget /search route embedded on partner sites — those
+   *  partners style their own container in Webflow/Wix/etc., so the
+   *  extra card would double up. Off by default so kaysgroove et al.
+   *  still get the standard hero card. */
+  bareContainer?: boolean;
 }
 
-export function SearchBar({ variant = 'hero' }: SearchBarProps) {
+export function SearchBar({ variant = 'hero', bareContainer = false }: SearchBarProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -275,7 +281,13 @@ export function SearchBar({ variant = 'hero' }: SearchBarProps) {
 
   return (
     <div ref={rootRef} className="w-full">
-      <div className="rounded-xl border border-card-border bg-white px-5 pt-5 pb-4 shadow-[var(--shadow-card)] md:px-8 md:pt-6">
+      <div
+        className={cn(
+          bareContainer
+            ? 'px-0 pt-0 pb-0'
+            : 'rounded-xl border border-card-border bg-white px-5 pt-5 pb-4 shadow-[var(--shadow-card)] md:px-8 md:pt-6',
+        )}
+      >
         <div className="flex flex-col gap-3 md:flex-row md:items-center">
           <LocationField which="pickup" />
           <div
