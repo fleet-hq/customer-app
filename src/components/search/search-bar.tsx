@@ -124,7 +124,21 @@ export function SearchBar({ variant = 'hero', bareContainer = false }: SearchBar
     if (isEmbedded() && embedRedirect) {
       try {
         const target = new URL(embedRedirect);
-        for (const [k, v] of params.entries()) target.searchParams.set(k, v);
+        const FORWARD_KEYS = [
+          'pickupLocId',
+          'dropoffLocId',
+          'pickupDate',
+          'pickupTime',
+          'returnDate',
+          'returnTime',
+          'pickup',
+          'dropoff',
+          'location',
+        ];
+        for (const key of FORWARD_KEYS) {
+          const v = params.get(key);
+          if (v) target.searchParams.set(key, v);
+        }
         requestHandoff(target.toString());
         return;
       } catch {
