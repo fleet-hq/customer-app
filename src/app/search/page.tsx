@@ -29,19 +29,17 @@ async function EmbedSearchContent({
 }: {
   searchParams: Promise<{ bare?: string }>;
 }) {
-  const params = await searchParams;
-  const bare = params.bare === '1';
+  await searchParams;
+  // Always keep SearchBar's own rounded white card so the widget matches
+  // the customer-central hero on every tenant's home page. The paired
+  // ``?bare=1`` handling in LayoutChrome takes care of dropping the
+  // <main> element's white fill so the partner's own hero background
+  // still shows through around the card.
   return (
     <div className="w-full">
       <SearchEmbedDropdownBoost />
-      <div
-        className={
-          bare
-            ? 'mx-auto w-full max-w-[1180px] px-6 py-3 sm:px-8'
-            : 'mx-auto max-w-[1180px] px-4 py-4'
-        }
-      >
-        <SearchBar variant="hero" bareContainer={bare} />
+      <div className="mx-auto w-full max-w-[1180px] px-4 py-4 sm:px-6">
+        <SearchBar variant="hero" />
       </div>
     </div>
   );
