@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { paths } from '@/lib/paths';
+import { isEmbedded, requestHandoff } from '@/lib/embed-bridge';
 import { DEFAULT_TRIP } from '@/lib/mock-data';
 import { todayISO } from '@/lib/time-slots';
 import { useCompanyLocations } from '@/hooks';
@@ -106,6 +107,25 @@ export function SearchBar({ variant = 'hero' }: SearchBarProps) {
     params.set('pickupTime', pickupTime);
     params.set('returnDate', returnDate);
     params.set('returnTime', returnTime);
+
+    // Widget context: when rendered inside a partner's iframe with an
+    // embed_redirect param, hand off to that URL in the top window so the
+    // customer lands on the partner's own Book Now page (which itself
+    // embeds our /fleet catalog). Fall through to internal navigation for
+    // the standard customer-central flow — existing tenants on their own
+    // domains are completely untouched.
+    const embedRedirect = searchParams.get('embed_redirect');
+    if (isEmbedded() && embedRedirect) {
+      try {
+        const target = new URL(embedRedirect);
+        for (const [k, v] of params.entries()) target.searchParams.set(k, v);
+        requestHandoff(target.toString());
+        return;
+      } catch {
+        /* malformed redirect URL — fall through to router.push */
+      }
+    }
+
     router.push(`${paths.fleet}?${params.toString()}`);
   };
 
