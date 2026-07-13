@@ -23,10 +23,17 @@ export function LayoutChrome({ children }: { children: ReactNode }) {
       (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
     );
 
+  // ``?embed=bare`` (or the paired ``?bare=1`` used by /search) drops the
+  // main element's white fill so the partner site's own background shows
+  // through the iframe. Regular embeds keep the white so per-page content
+  // reads as designed.
+  const bareBackground =
+    searchParams.get('bare') === '1' || searchParams.get('embed') === 'bare';
+
   return (
     <>
       {!hideChrome && <Header />}
-      <main className="bg-white text-ink">{children}</main>
+      <main className={bareBackground ? 'text-ink' : 'bg-white text-ink'}>{children}</main>
       {!hideChrome && <Footer />}
     </>
   );
