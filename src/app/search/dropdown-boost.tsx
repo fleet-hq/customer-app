@@ -68,9 +68,12 @@ export function SearchEmbedDropdownBoost() {
       );
     };
 
+    const pendingTimers: number[] = [];
     const schedule = () => {
-      if (raf) return;
-      raf = window.requestAnimationFrame(compute);
+      if (!raf) raf = window.requestAnimationFrame(compute);
+      pendingTimers.push(window.setTimeout(compute, 60));
+      pendingTimers.push(window.setTimeout(compute, 160));
+      pendingTimers.push(window.setTimeout(compute, 320));
     };
 
     const observer = new MutationObserver(schedule);
@@ -82,16 +85,23 @@ export function SearchEmbedDropdownBoost() {
     window.addEventListener('resize', schedule);
     window.addEventListener('scroll', schedule, true);
     document.addEventListener('focusin', schedule, true);
+    document.addEventListener('pointerdown', schedule, true);
+    document.addEventListener('pointerup', schedule, true);
     document.addEventListener('click', schedule, true);
+    document.addEventListener('keyup', schedule, true);
     schedule();
 
     return () => {
       observer.disconnect();
       if (raf) window.cancelAnimationFrame(raf);
+      pendingTimers.forEach((t) => window.clearTimeout(t));
       window.removeEventListener('resize', schedule);
       window.removeEventListener('scroll', schedule, true);
       document.removeEventListener('focusin', schedule, true);
+      document.removeEventListener('pointerdown', schedule, true);
+      document.removeEventListener('pointerup', schedule, true);
       document.removeEventListener('click', schedule, true);
+      document.removeEventListener('keyup', schedule, true);
     };
   }, []);
 
