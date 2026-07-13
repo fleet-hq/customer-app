@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import { SearchBar } from '@/components/search/search-bar';
+import { SearchEmbedDropdownBoost } from './dropdown-boost';
 
 /**
  * Standalone search-bar route used exclusively by the embed widget
@@ -32,6 +33,7 @@ async function EmbedSearchContent({
   const bare = params.bare === '1';
   return (
     <div className="w-full">
+      <SearchEmbedDropdownBoost />
       <div className={bare ? 'w-full' : 'mx-auto max-w-[1180px] px-4 py-4'}>
         <SearchBar variant="hero" bareContainer={bare} />
       </div>
