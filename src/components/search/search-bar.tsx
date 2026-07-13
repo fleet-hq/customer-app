@@ -284,7 +284,7 @@ export function SearchBar({ variant = 'hero', bareContainer = false }: SearchBar
       <div
         className={cn(
           bareContainer
-            ? 'px-0 pt-0 pb-0'
+            ? 'rounded-xl border border-card-border px-5 pt-5 pb-4 md:px-8 md:pt-6'
             : 'rounded-xl border border-card-border bg-white px-5 pt-5 pb-4 shadow-[var(--shadow-card)] md:px-8 md:pt-6',
         )}
       >
