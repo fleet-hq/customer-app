@@ -4,22 +4,24 @@ import { useEffect } from 'react';
 
 const NAMESPACE = 'fleethq:embed';
 
-/**
- * The SearchBar's date-time picker renders its calendar overlay with
- * ``position: fixed`` inside the iframe. Fixed elements aren't part of
- * document flow, so bumping ``body.minHeight`` doesn't actually change
- * the body's rendered height, and the standard ResizeObserver bridge
- * never sees a change worth posting. The iframe stays at its closed-
- * state height and clips the calendar.
- *
- * Bypass the flow-based bridge entirely: watch the DOM for open
- * overlays and post a ``resize`` message straight to the widget parent
- * with the required height. The <fleethq-page-embed> host reads that
- * message and grows the iframe until the calendar fits.
- *
- * Mounted only from the embed /search route, so tenants using the
- * SearchBar at their own domain (kaysgroove et al.) are untouched.
- */
+const OVERLAY_SELECTORS = [
+  '[role="dialog"]',
+  '[role="listbox"]',
+  '[role="menu"]',
+  '[role="grid"]',
+  '[data-radix-popper-content-wrapper]',
+  '[data-radix-portal]',
+  '[data-headlessui-portal]',
+  '[data-slot="popover-content"]',
+  '[data-slot="calendar"]',
+  '[data-state="open"]',
+  '.rdp',
+  '[class*="Calendar" i]',
+  '[class*="Popover" i]',
+  '[class*="Picker" i]',
+  '[class*="Dropdown" i]',
+].join(', ');
+
 export function SearchEmbedDropdownBoost() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -28,20 +30,36 @@ export function SearchEmbedDropdownBoost() {
     let raf = 0;
     let lastPosted = 0;
 
+    const scanElement = (el: HTMLElement, maxBottom: number): number => {
+      const style = window.getComputedStyle(el);
+      if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') {
+        return maxBottom;
+      }
+      const rect = el.getBoundingClientRect();
+      if (rect.width < 20 || rect.height < 20) return maxBottom;
+      const bottom = rect.bottom + window.scrollY;
+      return bottom > maxBottom ? bottom : maxBottom;
+    };
+
     const compute = () => {
       raf = 0;
-      const openOverlays = document.querySelectorAll<HTMLElement>(
-        '[role="dialog"], [role="listbox"], [role="menu"]',
-      );
       let maxBottom = document.body.scrollHeight;
-      openOverlays.forEach((el) => {
-        if (el.offsetParent === null) return;
-        const rect = el.getBoundingClientRect();
-        if (rect.width === 0 || rect.height === 0) return;
-        const absoluteBottom = rect.bottom + window.scrollY;
-        if (absoluteBottom > maxBottom) maxBottom = absoluteBottom;
+
+      document.querySelectorAll<HTMLElement>(OVERLAY_SELECTORS).forEach((el) => {
+        maxBottom = scanElement(el, maxBottom);
       });
-      const needed = Math.ceil(maxBottom + 24);
+
+      Array.from(document.body.children).forEach((child) => {
+        if (!(child instanceof HTMLElement)) return;
+        const cs = window.getComputedStyle(child);
+        if (cs.position !== 'fixed' && cs.position !== 'absolute') return;
+        maxBottom = scanElement(child, maxBottom);
+        child.querySelectorAll<HTMLElement>('*').forEach((desc) => {
+          maxBottom = scanElement(desc, maxBottom);
+        });
+      });
+
+      const needed = Math.ceil(maxBottom + 48);
       if (Math.abs(needed - lastPosted) < 8) return;
       lastPosted = needed;
       window.parent.postMessage(
@@ -63,6 +81,8 @@ export function SearchEmbedDropdownBoost() {
     });
     window.addEventListener('resize', schedule);
     window.addEventListener('scroll', schedule, true);
+    document.addEventListener('focusin', schedule, true);
+    document.addEventListener('click', schedule, true);
     schedule();
 
     return () => {
@@ -70,6 +90,8 @@ export function SearchEmbedDropdownBoost() {
       if (raf) window.cancelAnimationFrame(raf);
       window.removeEventListener('resize', schedule);
       window.removeEventListener('scroll', schedule, true);
+      document.removeEventListener('focusin', schedule, true);
+      document.removeEventListener('click', schedule, true);
     };
   }, []);
 
