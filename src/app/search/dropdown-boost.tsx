@@ -2,43 +2,52 @@
 
 import { useEffect } from 'react';
 
+const NAMESPACE = 'fleethq:embed';
+
 /**
- * Inside a widget iframe, the SearchBar's date-time picker and
- * location listboxes render as absolutely-positioned overlays. Their
- * height is not part of ``document.body``'s natural flow, so
- * ``ResizeObserver`` on body never reports a taller size when they open
- * — the parent iframe stays capped at the small closed-state height and
- * clips the dropdown.
+ * The SearchBar's date-time picker renders its calendar overlay with
+ * ``position: fixed`` inside the iframe. Fixed elements aren't part of
+ * document flow, so bumping ``body.minHeight`` doesn't actually change
+ * the body's rendered height, and the standard ResizeObserver bridge
+ * never sees a change worth posting. The iframe stays at its closed-
+ * state height and clips the calendar.
  *
- * This component runs a MutationObserver on the body and, whenever any
- * open floating panel (``[role="listbox"]`` / ``[role="dialog"]`` /
- * ``.absolute``) becomes visible, sets ``body.style.minHeight`` to
- * cover its bottom edge. That change bubbles through the resize bridge
- * → parent grows the iframe → dropdown is fully visible.
+ * Bypass the flow-based bridge entirely: watch the DOM for open
+ * overlays and post a ``resize`` message straight to the widget parent
+ * with the required height. The <fleethq-page-embed> host reads that
+ * message and grows the iframe until the calendar fits.
  *
- * Rendered only on the embed ``/search`` route, so kaysgroove and other
- * tenants using SearchBar at their own domain are untouched.
+ * Mounted only from the embed /search route, so tenants using the
+ * SearchBar at their own domain (kaysgroove et al.) are untouched.
  */
 export function SearchEmbedDropdownBoost() {
   useEffect(() => {
-    const CLOSED_MIN = 220;
+    if (typeof window === 'undefined') return;
+    if (window.parent === window) return;
+
     let raf = 0;
+    let lastPosted = 0;
 
     const compute = () => {
       raf = 0;
-      const candidates = document.querySelectorAll<HTMLElement>(
-        '[role="listbox"], [role="dialog"], [role="menu"], .absolute',
+      const openOverlays = document.querySelectorAll<HTMLElement>(
+        '[role="dialog"], [role="listbox"], [role="menu"]',
       );
-      let maxBottom = 0;
-      candidates.forEach((el) => {
+      let maxBottom = document.body.scrollHeight;
+      openOverlays.forEach((el) => {
         if (el.offsetParent === null) return;
         const rect = el.getBoundingClientRect();
         if (rect.width === 0 || rect.height === 0) return;
-        const bottom = rect.bottom + window.scrollY;
-        if (bottom > maxBottom) maxBottom = bottom;
+        const absoluteBottom = rect.bottom + window.scrollY;
+        if (absoluteBottom > maxBottom) maxBottom = absoluteBottom;
       });
-      const needed = Math.max(CLOSED_MIN, Math.ceil(maxBottom + 32));
-      document.body.style.minHeight = `${needed}px`;
+      const needed = Math.ceil(maxBottom + 24);
+      if (Math.abs(needed - lastPosted) < 8) return;
+      lastPosted = needed;
+      window.parent.postMessage(
+        { namespace: NAMESPACE, payload: { type: 'resize', height: needed } },
+        '*',
+      );
     };
 
     const schedule = () => {
@@ -52,7 +61,6 @@ export function SearchEmbedDropdownBoost() {
       childList: true,
       subtree: true,
     });
-
     window.addEventListener('resize', schedule);
     window.addEventListener('scroll', schedule, true);
     schedule();
@@ -62,7 +70,6 @@ export function SearchEmbedDropdownBoost() {
       if (raf) window.cancelAnimationFrame(raf);
       window.removeEventListener('resize', schedule);
       window.removeEventListener('scroll', schedule, true);
-      document.body.style.minHeight = '';
     };
   }, []);
 

@@ -37,7 +37,7 @@ async function EmbedSearchContent({
       <div
         className={
           bare
-            ? 'mx-auto w-full max-w-[1180px] px-3 py-2'
+            ? 'mx-auto w-full max-w-[1180px] px-6 py-3 sm:px-8'
             : 'mx-auto max-w-[1180px] px-4 py-4'
         }
       >
