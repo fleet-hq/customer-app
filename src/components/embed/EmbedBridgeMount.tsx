@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { useEmbedBridge } from "@/hooks";
-import { isEmbedded, notifyResize } from "@/lib/embed-bridge";
+import { isEmbedded, notifyResize, requestScrollIntoView } from "@/lib/embed-bridge";
 
 const EMBED_CLASS = "fleethq-embedded";
 
@@ -21,6 +21,7 @@ export function EmbedBridgeMount() {
 
   useEffect(() => {
     if (!isEmbedded()) return;
+    requestScrollIntoView();
     const timers = [40, 160, 360, 720].map((delay) =>
       window.setTimeout(() => {
         const h = Math.ceil(document.body.getBoundingClientRect().height);

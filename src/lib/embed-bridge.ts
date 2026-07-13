@@ -9,7 +9,8 @@ type Outbound =
   | { type: "navigate"; url: string }
   | { type: "booking-complete"; bookingId: number; referenceNumber?: string; url?: string }
   | { type: "booking-error"; message: string; code?: string }
-  | { type: "handoff"; url: string };
+  | { type: "handoff"; url: string }
+  | { type: "scroll-into-view" };
 
 type Inbound =
   | { type: "hello"; version: string; tenant: string }
@@ -55,6 +56,8 @@ export const notifyBookingError = (message: string, code?: string): void => {
 };
 
 export const requestHandoff = (url: string): void => post({ type: "handoff", url });
+
+export const requestScrollIntoView = (): void => post({ type: "scroll-into-view" });
 
 type InboundListener = (msg: Inbound, event: MessageEvent) => void;
 
