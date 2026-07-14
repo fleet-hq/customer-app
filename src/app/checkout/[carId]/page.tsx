@@ -485,7 +485,14 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
     return e;
   };
 
-  const reserve = async () => {
+  const reserve = async (providerOverride?: 'stripe' | 'square') => {
+    const providerToUse: 'stripe' | 'square' | undefined =
+      providerOverride ??
+      (enabledProviders.length > 1 ? selectedProvider : enabledProviders[0]);
+    if (providerOverride) {
+      providerTouchedRef.current = true;
+      setSelectedProvider(providerOverride);
+    }
     const e = validate();
     setErrors(e);
     if (Object.keys(e).length > 0) return;
@@ -608,7 +615,10 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
       try {
         const data = await startEmbedPayment.mutateAsync({
           payload: commonPayload,
-          provider: enabledProviders.length > 1 ? selectedProvider : undefined,
+          provider:
+            enabledProviders.length > 1
+              ? providerToUse ?? selectedProvider
+              : undefined,
         });
         setEmbedIntent({
           provider: (data.provider as 'stripe' | 'square') || 'stripe',
@@ -1152,34 +1162,6 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               </>
             )}
 
-            {enabledProviders.length > 1 && (
-              <div className="mt-4">
-                <p className="text-[12px] font-semibold text-ink">Payment method</p>
-                <div className="mt-2 grid grid-cols-2 gap-2">
-                  {enabledProviders.map((p) => {
-                    const isSelected = selectedProvider === p;
-                    return (
-                      <button
-                        key={p}
-                        type="button"
-                        onClick={() => {
-                          providerTouchedRef.current = true;
-                          setSelectedProvider(p);
-                        }}
-                        className={`rounded-[10px] border px-3 py-[10px] text-[12px] font-medium transition-colors ${
-                          isSelected
-                            ? 'border-primary bg-primary/10 text-primary'
-                            : 'border-card-border bg-white text-ink hover:border-ink/40'
-                        }`}
-                      >
-                        Card ({p === 'stripe' ? 'Stripe' : 'Square'})
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
             {(hasErrors || checkoutError) && (
               <div
                 ref={errorBannerRef}
@@ -1190,13 +1172,69 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               </div>
             )}
 
-            <button
-              onClick={reserve}
-              disabled={startCheckout.isPending || startVerification.isPending || !termsAccepted}
-              className="mt-[14px] block w-full cursor-pointer rounded-[10px] bg-primary py-[13px] text-center text-sm font-bold text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {startCheckout.isPending || startVerification.isPending ? 'Starting checkout…' : 'Reserve Now'}
-            </button>
+            {enabledProviders.length > 1 ? (
+              // Multi-provider mode: each brand tile IS the CTA — no
+              // separate "Reserve Now" button. Tapping a tile locks in
+              // that provider, kicks off the reserve flow, and shows a
+              // spinner over the tile you clicked.
+              <div className="mt-[14px]">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.05em] text-muted">
+                  Reserve with
+                </p>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  {enabledProviders.map((p) => {
+                    const isPending =
+                      (startEmbedPayment.isPending || startCheckout.isPending || startVerification.isPending) &&
+                      selectedProvider === p;
+                    const anyPending =
+                      startEmbedPayment.isPending || startCheckout.isPending || startVerification.isPending;
+                    return (
+                      <button
+                        key={p}
+                        type="button"
+                        disabled={anyPending || !termsAccepted}
+                        onClick={() => reserve(p)}
+                        className="group relative flex items-center gap-3 rounded-[12px] border border-card-border bg-white px-4 py-3 text-left transition-all hover:border-ink/40 hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        <img
+                          src={`/icons/payments/${p}.svg`}
+                          alt={p === 'stripe' ? 'Stripe' : 'Square'}
+                          width={40}
+                          height={40}
+                          className="h-10 w-10 flex-shrink-0 rounded-[8px]"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[13px] font-semibold text-ink">
+                            {p === 'stripe' ? 'Stripe' : 'Square'}
+                          </p>
+                          <p className="text-[11px] text-muted">Card, wallet</p>
+                        </div>
+                        {isPending && (
+                          <span className="absolute inset-0 flex items-center justify-center rounded-[12px] bg-white/70 text-[12px] font-semibold text-primary">
+                            Starting checkout…
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                {!termsAccepted && (
+                  <p className="mt-2 text-[11px] text-muted">
+                    Accept the terms below to enable payment.
+                  </p>
+                )}
+              </div>
+            ) : (
+              <button
+                onClick={() => reserve()}
+                disabled={startCheckout.isPending || startVerification.isPending || startEmbedPayment.isPending || !termsAccepted}
+                className="mt-[14px] block w-full cursor-pointer rounded-[10px] bg-primary py-[13px] text-center text-sm font-bold text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {startCheckout.isPending || startVerification.isPending || startEmbedPayment.isPending
+                  ? 'Starting checkout…'
+                  : 'Reserve Now'}
+              </button>
+            )}
 
             <label className="mt-[13px] flex cursor-pointer items-center gap-[10px]">
               <input
@@ -1253,11 +1291,11 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
         </div>
         <button
           type="button"
-          onClick={reserve}
-          disabled={startCheckout.isPending || startVerification.isPending || !termsAccepted}
+          onClick={() => reserve()}
+          disabled={startCheckout.isPending || startVerification.isPending || startEmbedPayment.isPending || !termsAccepted}
           className="flex-1 rounded-[10px] bg-primary py-3 text-center text-sm font-bold text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {startCheckout.isPending || startVerification.isPending ? 'Starting…' : 'Reserve Now'}
+          {startCheckout.isPending || startVerification.isPending || startEmbedPayment.isPending ? 'Starting…' : 'Reserve Now'}
         </button>
       </div>
       {galleryOpen && (
