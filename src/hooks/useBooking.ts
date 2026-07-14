@@ -124,5 +124,8 @@ export const usePublicPaymentProviders = () =>
   useQuery({
     queryKey: ['publicPaymentProviders'],
     queryFn: () => getPublicPaymentProviders(),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 60 * 1000,
+    // Refetch when the customer returns to the tab so an admin toggling
+    // a provider off mid-checkout is reflected without a page reload.
+    refetchOnWindowFocus: true,
   });

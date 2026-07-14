@@ -110,13 +110,23 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   const enabledProviders = providersData?.providers ?? [];
   const defaultProvider = providersData?.default ?? 'stripe';
   const [selectedProvider, setSelectedProvider] = useState<'stripe' | 'square'>(defaultProvider);
-  // Keep the selected provider in sync when the fetched default arrives
-  // after first paint (react-query resolution is async).
+  // Track whether the user has manually clicked a tile in the picker.
+  // Prevents the sync effect from clobbering an explicit selection when
+  // the server default arrives late.
+  const providerTouchedRef = useRef(false);
   useEffect(() => {
     if (!providersData) return;
-    // If the current selection isn't actually enabled anymore, reset
-    // to the fetched default so we don't POST an invalid provider.
+    // If the user's current selection is no longer enabled (admin
+    // toggled it off mid-session), snap back to the server default —
+    // even if they had touched the picker earlier.
     if (!providersData.providers.includes(selectedProvider)) {
+      setSelectedProvider(providersData.default);
+      providerTouchedRef.current = false;
+      return;
+    }
+    // Otherwise adopt the server default only if the user hasn't
+    // touched the picker yet.
+    if (!providerTouchedRef.current && selectedProvider !== providersData.default) {
       setSelectedProvider(providersData.default);
     }
   }, [providersData, selectedProvider]);
@@ -1152,14 +1162,17 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                       <button
                         key={p}
                         type="button"
-                        onClick={() => setSelectedProvider(p)}
+                        onClick={() => {
+                          providerTouchedRef.current = true;
+                          setSelectedProvider(p);
+                        }}
                         className={`rounded-[10px] border px-3 py-[10px] text-[12px] font-medium transition-colors ${
                           isSelected
                             ? 'border-primary bg-primary/10 text-primary'
                             : 'border-card-border bg-white text-ink hover:border-ink/40'
                         }`}
                       >
-                        {p === 'stripe' ? 'Pay with Stripe' : 'Pay with Square'}
+                        Card ({p === 'stripe' ? 'Stripe' : 'Square'})
                       </button>
                     );
                   })}
