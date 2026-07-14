@@ -1191,7 +1191,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                       type="button"
                       disabled={anyPending || !termsAccepted}
                       onClick={() => reserve(p)}
-                      className="flex w-full items-center justify-center gap-3 rounded-[10px] bg-primary py-[13px] text-center text-sm font-bold text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
+                      className="flex w-full items-center justify-center gap-3 rounded-[10px] border border-[#e2e8f0] bg-[#f8fafc] py-[13px] text-center text-sm font-semibold text-ink transition-colors hover:bg-[#f1f5f9] hover:border-[#cbd5e1] disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       <img
                         src={`/icons/payments/${p}.svg`}
