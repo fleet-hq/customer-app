@@ -1191,20 +1191,34 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                       type="button"
                       disabled={anyPending || !termsAccepted}
                       onClick={() => reserve(p)}
-                      className="flex w-full items-center justify-center gap-3 rounded-[10px] border border-[#e2e8f0] bg-[#f8fafc] py-[13px] text-center text-sm font-semibold text-ink transition-colors hover:bg-[#f1f5f9] hover:border-[#cbd5e1] disabled:cursor-not-allowed disabled:opacity-60"
+                      className="grid w-full grid-cols-[36px_1fr_16px] items-center gap-4 rounded-[12px] border border-[#e5e7eb] bg-white px-4 py-[14px] text-left transition-all hover:border-[#111827] hover:shadow-[0_1px_2px_rgba(0,0,0,0.04)] disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       <img
                         src={`/icons/payments/${p}.svg`}
                         alt=""
-                        width={22}
-                        height={22}
-                        className="h-[22px] w-[22px] flex-shrink-0 rounded-[5px]"
+                        width={32}
+                        height={32}
+                        className="h-8 w-8 rounded-[7px]"
                       />
-                      <span>
+                      <span className="text-[13px] font-semibold text-[#111827]">
                         {isPending
                           ? 'Starting checkout…'
                           : `Reserve with ${p === 'stripe' ? 'Stripe' : 'Square'}`}
                       </span>
+                      <svg
+                        aria-hidden="true"
+                        viewBox="0 0 24 24"
+                        width={16}
+                        height={16}
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="text-[#9ca3af]"
+                      >
+                        <polyline points="9 18 15 12 9 6" />
+                      </svg>
                     </button>
                   );
                 })}
