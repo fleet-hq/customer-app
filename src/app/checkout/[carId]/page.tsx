@@ -1173,53 +1173,43 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
             )}
 
             {enabledProviders.length > 1 ? (
-              // Multi-provider mode: each brand tile IS the CTA — no
-              // separate "Reserve Now" button. Tapping a tile locks in
-              // that provider, kicks off the reserve flow, and shows a
-              // spinner over the tile you clicked.
-              <div className="mt-[14px]">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.05em] text-muted">
-                  Reserve with
-                </p>
-                <div className="mt-2 grid grid-cols-2 gap-2">
-                  {enabledProviders.map((p) => {
-                    const isPending =
-                      (startEmbedPayment.isPending || startCheckout.isPending || startVerification.isPending) &&
-                      selectedProvider === p;
-                    const anyPending =
-                      startEmbedPayment.isPending || startCheckout.isPending || startVerification.isPending;
-                    return (
-                      <button
-                        key={p}
-                        type="button"
-                        disabled={anyPending || !termsAccepted}
-                        onClick={() => reserve(p)}
-                        className="group relative flex items-center gap-3 rounded-[12px] border border-card-border bg-white px-4 py-3 text-left transition-all hover:border-ink/40 hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        <img
-                          src={`/icons/payments/${p}.svg`}
-                          alt={p === 'stripe' ? 'Stripe' : 'Square'}
-                          width={40}
-                          height={40}
-                          className="h-10 w-10 flex-shrink-0 rounded-[8px]"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[13px] font-semibold text-ink">
-                            {p === 'stripe' ? 'Stripe' : 'Square'}
-                          </p>
-                          <p className="text-[11px] text-muted">Card, wallet</p>
-                        </div>
-                        {isPending && (
-                          <span className="absolute inset-0 flex items-center justify-center rounded-[12px] bg-white/70 text-[12px] font-semibold text-primary">
-                            Starting checkout…
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
+              // Multi-provider mode: each provider is its own full-
+              // width primary CTA button, stacked vertically — same
+              // shape/weight as the Reserve Now button so it reads as
+              // "click to reserve using this method" rather than a
+              // secondary preference toggle.
+              <div className="mt-[14px] flex flex-col gap-2">
+                {enabledProviders.map((p) => {
+                  const isPending =
+                    (startEmbedPayment.isPending || startCheckout.isPending || startVerification.isPending) &&
+                    selectedProvider === p;
+                  const anyPending =
+                    startEmbedPayment.isPending || startCheckout.isPending || startVerification.isPending;
+                  return (
+                    <button
+                      key={p}
+                      type="button"
+                      disabled={anyPending || !termsAccepted}
+                      onClick={() => reserve(p)}
+                      className="flex w-full items-center justify-center gap-3 rounded-[10px] bg-primary py-[13px] text-center text-sm font-bold text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <img
+                        src={`/icons/payments/${p}.svg`}
+                        alt=""
+                        width={22}
+                        height={22}
+                        className="h-[22px] w-[22px] flex-shrink-0 rounded-[5px]"
+                      />
+                      <span>
+                        {isPending
+                          ? 'Starting checkout…'
+                          : `Reserve with ${p === 'stripe' ? 'Stripe' : 'Square'}`}
+                      </span>
+                    </button>
+                  );
+                })}
                 {!termsAccepted && (
-                  <p className="mt-2 text-[11px] text-muted">
+                  <p className="text-[11px] text-muted">
                     Accept the terms below to enable payment.
                   </p>
                 )}
