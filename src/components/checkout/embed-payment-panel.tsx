@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js';
 import { loadStripe, type Stripe, type StripeElementsOptions } from '@stripe/stripe-js';
 
@@ -11,6 +11,10 @@ interface EmbedPaymentPanelProps {
   clientSecret: string;
   publishableKey: string;
   stripeAccountId: string;
+  /** UUID of the PendingBookingCheckout row this payment belongs to.
+   *  Stripe surfaces it in metadata; Square posts it back with the
+   *  tokenized card so the backend can pair source_id ↔ pending row. */
+  pendingId: string;
   returnUrl: string;
   amount: string;
   currency: string;
@@ -149,36 +153,134 @@ function StripeConfirmForm({
 }
 
 // ─────────────────────────────────────────────────────────────────
-// Square implementation (Phase 1b will wire the Web Payments SDK)
+// Square implementation (Web Payments SDK)
 // ─────────────────────────────────────────────────────────────────
 
+const SQUARE_SDK_SANDBOX = 'https://sandbox.web.squarecdn.com/v1/square.js';
+const SQUARE_SDK_PRODUCTION = 'https://web.squarecdn.com/v1/square.js';
+
+let squareLoaderPromise: Promise<typeof window.Square | null> | null = null;
+function loadSquareSdk(environment: 'sandbox' | 'production'): Promise<typeof window.Square | null> {
+  if (typeof window === 'undefined') return Promise.resolve(null);
+  if (window.Square) return Promise.resolve(window.Square);
+  if (squareLoaderPromise) return squareLoaderPromise;
+  squareLoaderPromise = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = environment === 'production' ? SQUARE_SDK_PRODUCTION : SQUARE_SDK_SANDBOX;
+    script.async = true;
+    script.onload = () => resolve(window.Square ?? null);
+    script.onerror = () => reject(new Error('Failed to load Square Web Payments SDK.'));
+    document.head.appendChild(script);
+  });
+  return squareLoaderPromise;
+}
+
 function SquarePanel(props: EmbedPaymentPanelProps) {
-  // Phase 1b will load Web Payments SDK from web.squarecdn.com and
-  // mount Square.payments(applicationId, locationId).card() here, then
-  // call POST /api/payments/square/create-payment/ with the tokenized
-  // source_id on submit. For now the panel renders a placeholder so
-  // Square tenants get a clear "coming soon" state rather than a
-  // white screen.
   const applicationId = props.publishableKey || '';
   const locationId = String(props.providerExtra?.location_id ?? '');
+  const environment = (props.providerExtra?.environment as 'sandbox' | 'production') || 'sandbox';
+
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const cardRef = useRef<any>(null);
+  const [ready, setReady] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    let attached: any = null;
+
+    (async () => {
+      if (!applicationId || !locationId) {
+        setError('Square merchant credentials are missing.');
+        return;
+      }
+      try {
+        const Square = await loadSquareSdk(environment);
+        if (cancelled || !Square) return;
+        const payments = Square.payments(applicationId, locationId);
+        const card = await payments.card();
+        if (cancelled) {
+          try { await card.destroy(); } catch { /* ignore */ }
+          return;
+        }
+        await card.attach(containerRef.current!);
+        cardRef.current = card;
+        attached = card;
+        setReady(true);
+      } catch (e: any) {
+        if (!cancelled) setError(e?.message || 'Could not initialise Square card entry.');
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      const c = attached;
+      if (c) {
+        try { c.destroy(); } catch { /* ignore */ }
+      }
+      cardRef.current = null;
+    };
+  }, [applicationId, locationId, environment]);
+
+  const onSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!cardRef.current) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const tokenResult = await cardRef.current.tokenize();
+      if (tokenResult.status !== 'OK' || !tokenResult.token) {
+        const message =
+          tokenResult.errors?.[0]?.message ||
+          'Card details are invalid. Please double-check and try again.';
+        setError(message);
+        setSubmitting(false);
+        return;
+      }
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/payments/square/create-payment/`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          source_id: tokenResult.token,
+          amount: props.amount,
+          currency: props.currency,
+          return_url: props.returnUrl,
+          pending_id: props.pendingId,
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setError(body.detail || body.error || 'Square payment failed. Please try again.');
+        setSubmitting(false);
+        return;
+      }
+      props.onSuccess?.();
+    } catch (e: any) {
+      setError(e?.message || 'Payment failed. Please try again.');
+      setSubmitting(false);
+    }
+  };
 
   return (
     <PaymentPanelShell amount={props.amount} currency={props.currency}>
-      <div className="flex flex-col gap-4">
-        <div className="rounded-md border border-dashed border-[#cbd5e1] bg-[#f8fafc] p-4 text-13 text-muted">
-          Square checkout is being connected. Please contact support to complete this booking, or check
-          back once the merchant has finished onboarding.
-          {process.env.NODE_ENV !== 'production' && (
-            <div className="mt-3 text-11">
-              app_id: <code>{applicationId || '—'}</code> · location_id:{' '}
-              <code>{locationId || '—'}</code>
-            </div>
-          )}
-        </div>
-        <ActionRow onCancel={props.onCancel} submitting={false} disabled />
-      </div>
+      <form onSubmit={onSubmit} className="flex flex-col gap-4">
+        <div
+          ref={containerRef}
+          className="min-h-[90px] rounded-md border border-[#e2e8f0] bg-white p-3"
+        />
+        {error ? <p className="text-13 text-red-600">{error}</p> : null}
+        <ActionRow onCancel={props.onCancel} submitting={submitting} disabled={!ready || submitting} />
+      </form>
     </PaymentPanelShell>
   );
+}
+
+declare global {
+  interface Window {
+    Square?: any;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────

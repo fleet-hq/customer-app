@@ -675,6 +675,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               clientSecret={embedIntent.clientSecret}
               publishableKey={embedIntent.publishableKey}
               stripeAccountId={embedIntent.stripeAccountId}
+              pendingId={embedIntent.pendingId}
               providerExtra={embedIntent.providerExtra}
               returnUrl={`${origin}/booking/success?session_id=${embedIntent.pendingId}`}
               amount={embedIntent.amount}
