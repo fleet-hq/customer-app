@@ -800,9 +800,19 @@ export interface StartCheckoutResponse {
 
 export interface StartEmbedPaymentResponse {
   pending_id: string;
+  /** Payment gateway slug: 'stripe' or 'square'. Falls back to
+   *  'stripe' for backend versions that predate the abstraction. */
+  provider?: 'stripe' | 'square';
   client_secret: string;
   publishable_key: string;
+  /** Legacy field kept populated on the Stripe path for backward
+   *  compatibility. New callers should read ``provider_account_id``. */
   stripe_account_id: string;
+  /** Provider-neutral merchant / connected-account handle. */
+  provider_account_id?: string;
+  /** Provider-specific extras — Square carries location_id +
+   *  environment; Stripe currently sends none. */
+  provider_extra?: Record<string, string | number | boolean | null>;
   amount: string;
   currency: string;
   expires_at: string;

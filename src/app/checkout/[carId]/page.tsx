@@ -107,9 +107,11 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   const startCheckout = useStartBookingCheckout();
   const startEmbedPayment = useStartEmbedBookingPayment();
   const [embedIntent, setEmbedIntent] = useState<null | {
+    provider: 'stripe' | 'square';
     clientSecret: string;
     publishableKey: string;
     stripeAccountId: string;
+    providerExtra: Record<string, string | number | boolean | null>;
     amount: string;
     currency: string;
     pendingId: string;
@@ -582,9 +584,12 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
       try {
         const data = await startEmbedPayment.mutateAsync(commonPayload);
         setEmbedIntent({
+          provider: (data.provider as 'stripe' | 'square') || 'stripe',
           clientSecret: data.client_secret,
           publishableKey: data.publishable_key,
-          stripeAccountId: data.stripe_account_id,
+          stripeAccountId:
+            (data as any).provider_account_id || data.stripe_account_id,
+          providerExtra: (data as any).provider_extra || {},
           amount: data.amount,
           currency: data.currency,
           pendingId: data.pending_id,
@@ -666,9 +671,11 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
         {embedIntent ? (
           <div className="mb-6">
             <EmbedPaymentPanel
+              provider={embedIntent.provider}
               clientSecret={embedIntent.clientSecret}
               publishableKey={embedIntent.publishableKey}
               stripeAccountId={embedIntent.stripeAccountId}
+              providerExtra={embedIntent.providerExtra}
               returnUrl={`${origin}/booking/success?session_id=${embedIntent.pendingId}`}
               amount={embedIntent.amount}
               currency={embedIntent.currency}
