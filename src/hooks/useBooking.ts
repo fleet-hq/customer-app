@@ -9,6 +9,7 @@ import {
   createBooking,
   startBookingCheckout,
   startEmbedBookingPayment,
+  getPublicPaymentProviders,
   getBookingDrivers,
   createBookingDriver,
   type CreateBookingPayload,
@@ -78,10 +79,27 @@ export const useStartBookingCheckout = () =>
   });
 
 // Embed / Stripe Elements variant. Returns a PaymentIntent client_secret
-// for in-iframe card entry instead of a hosted-checkout URL.
+// for in-iframe card entry instead of a hosted-checkout URL. Accepts an
+// optional ``provider`` override so the checkout page's picker can
+// force Stripe or Square even when the other is the tenant default.
 export const useStartEmbedBookingPayment = () =>
   useMutation({
-    mutationFn: (payload: CreateBookingPayload) => startEmbedBookingPayment(payload),
+    mutationFn: (
+      variables: CreateBookingPayload | {
+        payload: CreateBookingPayload;
+        provider?: 'stripe' | 'square';
+      },
+    ) => {
+      const isTuple = variables && typeof variables === 'object' && 'payload' in variables;
+      if (isTuple) {
+        const { payload, provider } = variables as {
+          payload: CreateBookingPayload;
+          provider?: 'stripe' | 'square';
+        };
+        return startEmbedBookingPayment(payload, { provider });
+      }
+      return startEmbedBookingPayment(variables as CreateBookingPayload);
+    },
   });
 
 export const useBookingDrivers = (bookingId?: string | number) =>
@@ -95,4 +113,16 @@ export const useCreateBookingDriver = () =>
   useMutation({
     mutationFn: ({ bookingId, driver }: { bookingId: string | number; driver: { full_name: string; email: string; phone: string } }) =>
       createBookingDriver(bookingId, driver),
+  });
+
+/**
+ * Fetch which payment providers a tenant offers on its public checkout.
+ * Enables the checkout page's Stripe/Square picker to render only when
+ * more than one is enabled.
+ */
+export const usePublicPaymentProviders = () =>
+  useQuery({
+    queryKey: ['publicPaymentProviders'],
+    queryFn: () => getPublicPaymentProviders(),
+    staleTime: 5 * 60 * 1000,
   });

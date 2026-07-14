@@ -12,7 +12,7 @@ import { Dialog } from '@/components/ui/dialog';
 import { DateDealsCallout } from '@/components/booking/date-deals-callout';
 import { RentalBreakdown } from '@/components/booking/rental-breakdown';
 import { DEFAULT_TRIP } from '@/lib/mock-data';
-import { useFleet, useInsuranceOptions, useManualInsurancePackagesForTenant, useStartBookingCheckout, useStartEmbedBookingPayment, useCompanyLocations, useFleetUnavailableRanges } from '@/hooks';
+import { useFleet, useInsuranceOptions, useManualInsurancePackagesForTenant, useStartBookingCheckout, useStartEmbedBookingPayment, useCompanyLocations, useFleetUnavailableRanges, usePublicPaymentProviders } from '@/hooks';
 import { EmbedPaymentPanel } from '@/components/checkout/embed-payment-panel';
 import ProtectionSection from '@/components/checkout/protection-section';
 import { useBookingInvoice } from '@/hooks/useBookingInvoice';
@@ -106,6 +106,20 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   const defaultLoc = useDefaultLocation();
   const startCheckout = useStartBookingCheckout();
   const startEmbedPayment = useStartEmbedBookingPayment();
+  const { data: providersData } = usePublicPaymentProviders();
+  const enabledProviders = providersData?.providers ?? [];
+  const defaultProvider = providersData?.default ?? 'stripe';
+  const [selectedProvider, setSelectedProvider] = useState<'stripe' | 'square'>(defaultProvider);
+  // Keep the selected provider in sync when the fetched default arrives
+  // after first paint (react-query resolution is async).
+  useEffect(() => {
+    if (!providersData) return;
+    // If the current selection isn't actually enabled anymore, reset
+    // to the fetched default so we don't POST an invalid provider.
+    if (!providersData.providers.includes(selectedProvider)) {
+      setSelectedProvider(providersData.default);
+    }
+  }, [providersData, selectedProvider]);
   const [embedIntent, setEmbedIntent] = useState<null | {
     provider: 'stripe' | 'square';
     clientSecret: string;
@@ -582,7 +596,10 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
 
     if (embed.embedded) {
       try {
-        const data = await startEmbedPayment.mutateAsync(commonPayload);
+        const data = await startEmbedPayment.mutateAsync({
+          payload: commonPayload,
+          provider: enabledProviders.length > 1 ? selectedProvider : undefined,
+        });
         setEmbedIntent({
           provider: (data.provider as 'stripe' | 'square') || 'stripe',
           clientSecret: data.client_secret,
@@ -1123,6 +1140,31 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                 </div>
                 <div className="mt-[6px] text-[11px] leading-[1.5] text-muted">Refundable hold, collected separately at pick-up.</div>
               </>
+            )}
+
+            {enabledProviders.length > 1 && (
+              <div className="mt-4">
+                <p className="text-[12px] font-semibold text-ink">Payment method</p>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  {enabledProviders.map((p) => {
+                    const isSelected = selectedProvider === p;
+                    return (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => setSelectedProvider(p)}
+                        className={`rounded-[10px] border px-3 py-[10px] text-[12px] font-medium transition-colors ${
+                          isSelected
+                            ? 'border-primary bg-primary/10 text-primary'
+                            : 'border-card-border bg-white text-ink hover:border-ink/40'
+                        }`}
+                      >
+                        {p === 'stripe' ? 'Pay with Stripe' : 'Pay with Square'}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             )}
 
             {(hasErrors || checkoutError) && (

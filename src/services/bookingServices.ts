@@ -820,6 +820,7 @@ export interface StartEmbedPaymentResponse {
 
 export async function startEmbedBookingPayment(
   payload: CreateBookingPayload,
+  options: { provider?: 'stripe' | 'square' } = {},
 ): Promise<StartEmbedPaymentResponse> {
   const domainParams = getDomainParams();
   const body = {
@@ -847,11 +848,26 @@ export async function startEmbedBookingPayment(
       ? { manual_insurance_package_ids: payload.manual_insurance_package_ids }
       : {}),
     ...(payload.promo_code ? { promo_code: payload.promo_code } : {}),
+    ...(options.provider ? { provider: options.provider } : {}),
   };
   const res = await axios.post<StartEmbedPaymentResponse>(
     `${API_URL}/api/bookings/public/start-embed-payment/`,
     body,
     { params: domainParams, headers: { 'Content-Type': 'application/json' } },
+  );
+  return res.data;
+}
+
+export interface PublicPaymentProvidersResponse {
+  providers: Array<'stripe' | 'square'>;
+  default: 'stripe' | 'square';
+}
+
+export async function getPublicPaymentProviders(): Promise<PublicPaymentProvidersResponse> {
+  const domainParams = getDomainParams();
+  const res = await axios.get<PublicPaymentProvidersResponse>(
+    `${API_URL}/api/companies/public/payment-providers/`,
+    { params: domainParams },
   );
   return res.data;
 }

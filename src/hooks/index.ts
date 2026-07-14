@@ -19,6 +19,7 @@ export {
   useStartEmbedBookingPayment,
   useBookingDrivers,
   useCreateBookingDriver,
+  usePublicPaymentProviders,
 } from './useBooking';
 export { useCompanyLocations } from './useLocations';
 export { useStripePublishableKey, useCreateCheckoutSession, useCreatePaymentIntent } from './useStripe';
