@@ -368,14 +368,34 @@ function DepositConsent({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <label className="flex items-start gap-2 rounded-md border border-[#e2e8f0] bg-[#f9fafb] p-3 text-13 leading-snug text-ink">
+    <label className="mt-[13px] flex cursor-pointer items-center gap-[10px]">
       <input
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="mt-[3px] h-4 w-4 shrink-0 accent-primary"
+        className="sr-only"
       />
-      <span>{copy}</span>
+      <span
+        className={`inline-flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-[5px] border-[1.5px] ${
+          checked ? 'border-primary bg-primary' : 'border-control bg-white'
+        }`}
+      >
+        {checked && (
+          <svg
+            width="11"
+            height="11"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#fff"
+            strokeWidth={3.2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M20 6 9 17l-5-5" />
+          </svg>
+        )}
+      </span>
+      <span className="text-[11.5px] leading-[1.5] text-muted">{copy}</span>
     </label>
   );
 }
