@@ -788,6 +788,7 @@ interface CreateBookingResponse {
 export interface StartCheckoutPayload extends CreateBookingPayload {
   success_url: string;
   cancel_url: string;
+  provider?: 'stripe' | 'square';
 }
 
 export interface StartCheckoutResponse {
@@ -901,6 +902,7 @@ export async function startBookingCheckout(
       ? { manual_insurance_package_ids: payload.manual_insurance_package_ids }
       : {}),
     ...(payload.promo_code ? { promo_code: payload.promo_code } : {}),
+    ...(payload.provider ? { provider: payload.provider } : {}),
     success_url: payload.success_url,
     cancel_url: payload.cancel_url,
   };

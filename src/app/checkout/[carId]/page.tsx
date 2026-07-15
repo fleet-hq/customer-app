@@ -577,7 +577,16 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
         onSuccess: (data) => {
           if (embed.embedded) embed.reportBookingComplete(data.booking_id);
           try { window.sessionStorage.removeItem(persistKey); } catch { /* ignore */ }
-          window.location.href = `/booking/${data.booking_id}?token=${encodeURIComponent(data.access_token)}`;
+          // Thread the selected provider through the URL so the
+          // /booking/[id] page can pass it to /start-verification-payment/
+          // when the customer finally clicks Pay. Without this, the
+          // pay step defaults to Company.payment_provider and ignores
+          // the tile the customer picked here.
+          const providerQs =
+            providerToUse && enabledProviders.length > 1
+              ? `&provider=${encodeURIComponent(providerToUse)}`
+              : '';
+          window.location.href = `/booking/${data.booking_id}?token=${encodeURIComponent(data.access_token)}${providerQs}`;
         },
         onError: (error: unknown) => {
           setCheckoutError(
@@ -644,6 +653,9 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
         ...commonPayload,
         success_url: `${origin}/booking/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${origin}/checkout/${carId}`,
+        ...(enabledProviders.length > 1 && providerToUse
+          ? { provider: providerToUse }
+          : {}),
       });
       window.location.href = data.checkout_url;
     } catch (error) {

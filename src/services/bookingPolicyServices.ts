@@ -68,6 +68,7 @@ export async function startVerificationFirstPayment(
   accessToken: string,
   successUrl: string,
   cancelUrl: string,
+  provider?: 'stripe' | 'square',
 ): Promise<StartVerificationPaymentResponse> {
   const domainParams = getDomainParams();
   try {
@@ -77,6 +78,7 @@ export async function startVerificationFirstPayment(
         access_token: accessToken,
         success_url: successUrl,
         cancel_url: cancelUrl,
+        ...(provider ? { provider } : {}),
       },
       { params: domainParams, headers: { 'Content-Type': 'application/json' } },
     );

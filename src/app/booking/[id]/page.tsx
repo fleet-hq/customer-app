@@ -38,7 +38,11 @@ import { money } from '@/lib/utils';
 
 export default function BookingPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const token = useSearchParams().get('token');
+  const searchParams = useSearchParams();
+  const token = searchParams.get('token');
+  const providerParam = searchParams.get('provider');
+  const providerOverride: 'stripe' | 'square' | undefined =
+    providerParam === 'stripe' || providerParam === 'square' ? providerParam : undefined;
   const [tokenReady, setTokenReady] = useState(!token);
 
   useEffect(() => {
@@ -92,6 +96,7 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
                 accessToken: token,
                 successUrl,
                 cancelUrl,
+                provider: providerOverride,
               })
             ).checkout_url
           : (

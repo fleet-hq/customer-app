@@ -34,16 +34,19 @@ export const useStartVerificationFirstPayment = () =>
       accessToken,
       successUrl,
       cancelUrl,
+      provider,
     }: {
       bookingId: number;
       accessToken: string;
       successUrl: string;
       cancelUrl: string;
+      provider?: 'stripe' | 'square';
     }) =>
       startVerificationFirstPayment(
         bookingId,
         accessToken,
         successUrl,
         cancelUrl,
+        provider,
       ),
   });
