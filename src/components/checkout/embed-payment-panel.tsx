@@ -283,7 +283,7 @@ function SquarePanel(props: EmbedPaymentPanelProps) {
         }
       }
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/payments/square/create-payment/`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/payments/square/create-payment/`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
