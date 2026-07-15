@@ -309,6 +309,19 @@ function SquarePanel(props: EmbedPaymentPanelProps) {
         setSubmitting(false);
         return;
       }
+      // Square Web Payments SDK doesn't auto-redirect the way Stripe's
+      // confirmPayment does — we have to do it. Response carries the
+      // booking id + access_token so we can navigate straight to the
+      // confirmation view without another server round-trip.
+      const data = await res.json().catch(() => ({}));
+      const bookingId = data?.booking_id;
+      const accessToken = data?.access_token;
+      if (bookingId && accessToken) {
+        window.location.href =
+          `/booking/${bookingId}?token=${encodeURIComponent(accessToken)}`;
+        return;
+      }
+      window.location.href = `/booking/success?session_id=${encodeURIComponent(props.pendingId)}`;
       props.onSuccess?.();
     } catch (e: any) {
       setError(e?.message || 'Payment failed. Please try again.');
