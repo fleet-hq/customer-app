@@ -32,6 +32,9 @@ interface EmbedPaymentPanelProps {
    *  claim window. Stripe uses SetupIntent automatically post-payment
    *  and ignores this. */
   depositAmount?: number;
+  /** Tenant display name — interpolated into the deposit-consent copy
+   *  the renter authorizes ("I authorize <tenant> to charge..."). */
+  tenantName?: string;
 }
 
 const APPEARANCE = {
@@ -187,11 +190,20 @@ function SquarePanel(props: EmbedPaymentPanelProps) {
   const locationId = String(props.providerExtra?.location_id ?? '');
   const environment = (props.providerExtra?.environment as 'sandbox' | 'production') || 'sandbox';
 
+  const depositAmount = props.depositAmount ?? 0;
+  const requiresConsent = depositAmount > 0;
+  const consentCopy = buildDepositConsentCopy({
+    tenantName: props.tenantName,
+    amount: depositAmount,
+    currency: props.currency,
+  });
+
   const containerRef = useRef<HTMLDivElement | null>(null);
   const cardRef = useRef<any>(null);
   const [ready, setReady] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [consentChecked, setConsentChecked] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -233,6 +245,10 @@ function SquarePanel(props: EmbedPaymentPanelProps) {
   const onSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!cardRef.current) return;
+    if (requiresConsent && !consentChecked) {
+      setError('Please authorize the deposit hold to continue.');
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
@@ -269,7 +285,14 @@ function SquarePanel(props: EmbedPaymentPanelProps) {
           currency: props.currency,
           return_url: props.returnUrl,
           pending_id: props.pendingId,
-          ...(saveCardSourceId ? { save_card_source_id: saveCardSourceId } : {}),
+          ...(saveCardSourceId
+            ? {
+                save_card_source_id: saveCardSourceId,
+                consent_ack: true,
+                consent_copy: consentCopy,
+                consent_at: new Date().toISOString(),
+              }
+            : {}),
         }),
       });
       if (!res.ok) {
@@ -292,10 +315,58 @@ function SquarePanel(props: EmbedPaymentPanelProps) {
           ref={containerRef}
           className="min-h-[90px] rounded-md border border-[#e2e8f0] bg-white p-3"
         />
+        {requiresConsent ? (
+          <DepositConsent
+            copy={consentCopy}
+            checked={consentChecked}
+            onChange={setConsentChecked}
+          />
+        ) : null}
         {error ? <p className="text-13 text-red-600">{error}</p> : null}
-        <ActionRow onCancel={props.onCancel} submitting={submitting} disabled={!ready || submitting} />
+        <ActionRow
+          onCancel={props.onCancel}
+          submitting={submitting}
+          disabled={!ready || submitting || (requiresConsent && !consentChecked)}
+        />
       </form>
     </PaymentPanelShell>
+  );
+}
+
+function buildDepositConsentCopy(args: {
+  tenantName?: string;
+  amount: number;
+  currency: string;
+}): string {
+  const tenant = (args.tenantName || 'the operator').trim();
+  const currency = (args.currency || 'usd').toUpperCase();
+  const amount = Math.round(args.amount);
+  return (
+    `I authorize ${tenant} to securely save my card and charge up to ` +
+    `${currency} ${amount.toLocaleString()} within 7 days after my return ` +
+    `for any damages, additional charges, or fees per the rental terms.`
+  );
+}
+
+function DepositConsent({
+  copy,
+  checked,
+  onChange,
+}: {
+  copy: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <label className="flex items-start gap-2 rounded-md border border-[#e2e8f0] bg-[#f9fafb] p-3 text-13 leading-snug text-ink">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="mt-[3px] h-4 w-4 shrink-0 accent-primary"
+      />
+      <span>{copy}</span>
+    </label>
   );
 }
 

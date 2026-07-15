@@ -28,6 +28,7 @@ import { cn, money, rentalDays } from '@/lib/utils';
 import { buildUnavailabilityIndex, slotsBlockedOn } from '@/lib/unavailable-slots';
 import { paths } from '@/lib/paths';
 import { useEmbedBridge } from '@/hooks';
+import { useTenant } from '@/lib/tenant-context';
 
 const PLACEHOLDER_IMAGE = '/images/vehicles/car_placeholder.png';
 
@@ -99,6 +100,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   const router = useRouter();
   const searchParams = useSearchParams();
   const embed = useEmbedBridge();
+  const tenant = useTenant();
 
   const { data: insuranceOptions, isLoading: insuranceOptionsLoading } = useInsuranceOptions();
   const { data: manualInsurancePackages } = useManualInsurancePackagesForTenant();
@@ -738,6 +740,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               amount={embedIntent.amount}
               currency={embedIntent.currency}
               depositAmount={Number(vehicle?.securityDeposit) || 0}
+              tenantName={tenant?.name}
               onCancel={() => setEmbedIntent(null)}
               onSuccess={() => {
                 if (embed.embedded) embed.reportBookingComplete(0);
