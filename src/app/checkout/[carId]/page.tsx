@@ -620,7 +620,15 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
       ...(promoApplied && promoCode ? { discount_code: promoCode, promo_code: promoCode } : {}),
     };
 
-    if (embed.embedded) {
+    // Force embed (Web Payments SDK on our page) for Square when the
+    // fleet has a security deposit configured. Square hosted checkout
+    // doesn't return a card token, so Cards on File — needed for the
+    // off-session deposit claim after dropoff — is only reachable via
+    // embed. Widget contexts already use embed regardless (embed.embedded).
+    const fleetDeposit = Number(vehicle?.securityDeposit) || 0;
+    const forceEmbedForSquareDeposit =
+      providerToUse === 'square' && fleetDeposit > 0;
+    if (embed.embedded || forceEmbedForSquareDeposit) {
       try {
         const data = await startEmbedPayment.mutateAsync({
           payload: commonPayload,
