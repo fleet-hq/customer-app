@@ -142,6 +142,15 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
     currency: string;
     pendingId: string;
   }>(null);
+  const paymentAnchorRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (embedIntent) {
+      const t = setTimeout(() => {
+        paymentAnchorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 250);
+      return () => clearTimeout(t);
+    }
+  }, [embedIntent]);
   const { data: verificationPolicy } = useBookingVerificationPolicy();
   const startVerification = useStartVerificationFirstBooking();
   const { data: unavailableRanges = [] } = useFleetUnavailableRanges(carId);
@@ -727,28 +736,6 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   return (
     <div className="bg-white text-ink">
       <div className="mx-auto max-w-[1180px] px-6 pt-[22px] pb-28 lg:pb-16">
-        {embedIntent ? (
-          <div className="mb-6">
-            <EmbedPaymentPanel
-              provider={embedIntent.provider}
-              clientSecret={embedIntent.clientSecret}
-              publishableKey={embedIntent.publishableKey}
-              stripeAccountId={embedIntent.stripeAccountId}
-              pendingId={embedIntent.pendingId}
-              providerExtra={embedIntent.providerExtra}
-              returnUrl={`${origin}/booking/success?session_id=${embedIntent.pendingId}`}
-              amount={embedIntent.amount}
-              currency={embedIntent.currency}
-              depositAmount={Number(vehicle?.securityDeposit) || 0}
-              tenantName={tenant?.name}
-              onCancel={() => setEmbedIntent(null)}
-              onSuccess={() => {
-                if (embed.embedded) embed.reportBookingComplete(0);
-                setEmbedIntent(null);
-              }}
-            />
-          </div>
-        ) : null}
         <div className="mb-4 flex items-center justify-between gap-4">
           <BackLink href={paths.fleet}>Back to fleet</BackLink>
         </div>
@@ -960,6 +947,29 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                 {errors.phone && <FieldError>{errors.phone}</FieldError>}
               </div>
             </div>
+
+            {embedIntent ? (
+              <div ref={paymentAnchorRef}>
+                <EmbedPaymentPanel
+                  provider={embedIntent.provider}
+                  clientSecret={embedIntent.clientSecret}
+                  publishableKey={embedIntent.publishableKey}
+                  stripeAccountId={embedIntent.stripeAccountId}
+                  pendingId={embedIntent.pendingId}
+                  providerExtra={embedIntent.providerExtra}
+                  returnUrl={`${origin}/booking/success?session_id=${embedIntent.pendingId}`}
+                  amount={embedIntent.amount}
+                  currency={embedIntent.currency}
+                  depositAmount={Number(vehicle?.securityDeposit) || 0}
+                  tenantName={tenant?.name}
+                  onCancel={() => setEmbedIntent(null)}
+                  onSuccess={() => {
+                    if (embed.embedded) embed.reportBookingComplete(0);
+                    setEmbedIntent(null);
+                  }}
+                />
+              </div>
+            ) : null}
 
           </div>
 

@@ -97,6 +97,8 @@ function StripePanel(props: EmbedPaymentPanelProps) {
       <Elements stripe={stripePromise} options={options}>
         <StripeConfirmForm
           returnUrl={props.returnUrl}
+          amount={props.amount}
+          currency={props.currency}
           onCancel={props.onCancel}
           onSuccess={props.onSuccess}
         />
@@ -107,10 +109,14 @@ function StripePanel(props: EmbedPaymentPanelProps) {
 
 function StripeConfirmForm({
   returnUrl,
+  amount,
+  currency,
   onCancel,
   onSuccess,
 }: {
   returnUrl: string;
+  amount: string;
+  currency: string;
   onCancel: () => void;
   onSuccess?: () => void;
 }) {
@@ -154,6 +160,8 @@ function StripeConfirmForm({
       <PaymentElement options={{ layout: 'tabs' }} />
       {error ? <p className="text-13 text-red-600">{error}</p> : null}
       <ActionRow
+        amount={amount}
+        currency={currency}
         onCancel={onCancel}
         submitting={submitting}
         disabled={!stripe || !elements || !ready || submitting}
@@ -324,6 +332,8 @@ function SquarePanel(props: EmbedPaymentPanelProps) {
         ) : null}
         {error ? <p className="text-13 text-red-600">{error}</p> : null}
         <ActionRow
+          amount={props.amount}
+          currency={props.currency}
           onCancel={props.onCancel}
           submitting={submitting}
           disabled={!ready || submitting || (requiresConsent && !consentChecked)}
@@ -390,10 +400,10 @@ function PaymentPanelShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-[#e2e8f0] bg-white p-5">
-      <div className="mb-4 flex items-baseline justify-between">
-        <h3 className="text-16 font-semibold text-ink">Card details</h3>
-        <span className="text-14 text-muted">Total: {formatMoney(amount, currency)}</span>
+    <div className="mt-6">
+      <div className="mb-3 flex items-baseline justify-between">
+        <h3 className="text-[15px] font-semibold text-ink">Card details</h3>
+        <span className="text-[12px] text-muted">Total {formatMoney(amount, currency)}</span>
       </div>
       {children}
     </div>
@@ -401,30 +411,34 @@ function PaymentPanelShell({
 }
 
 function ActionRow({
+  amount,
+  currency,
   onCancel,
   submitting,
   disabled,
 }: {
+  amount: string;
+  currency: string;
   onCancel: () => void;
   submitting: boolean;
   disabled: boolean;
 }) {
   return (
-    <div className="flex items-center justify-end gap-3 pt-2">
+    <div className="flex items-center justify-between gap-3 pt-1">
       <button
         type="button"
         onClick={onCancel}
         disabled={submitting}
-        className="rounded-[10px] border border-[#e2e8f0] bg-white px-5 py-3 text-14 font-medium text-ink disabled:opacity-60"
+        className="text-[13px] font-medium text-muted hover:text-ink disabled:opacity-60"
       >
-        Cancel
+        Use a different payment
       </button>
       <button
         type="submit"
         disabled={disabled}
-        className="rounded-[10px] bg-primary px-6 py-3 text-14 font-semibold text-white disabled:opacity-60"
+        className="rounded-[10px] bg-primary px-5 py-[10px] text-[14px] font-semibold text-white disabled:opacity-60"
       >
-        {submitting ? 'Processing…' : 'Pay now'}
+        {submitting ? 'Processing…' : `Pay ${formatMoney(amount, currency)}`}
       </button>
     </div>
   );
