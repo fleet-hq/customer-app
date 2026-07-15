@@ -25,6 +25,13 @@ interface EmbedPaymentPanelProps {
    *  path; Square uses `location_id` + `environment` to init the
    *  Web Payments SDK. */
   providerExtra?: Record<string, string | number | boolean | null>;
+  /** Fleet security deposit amount (in the same currency as amount).
+   *  When > 0 on the Square path, the SDK tokenizes the buyer's card
+   *  twice — one token for the booking payment, a second attached to
+   *  Cards on File so the operator can charge for damage during the
+   *  claim window. Stripe uses SetupIntent automatically post-payment
+   *  and ignores this. */
+  depositAmount?: number;
 }
 
 const APPEARANCE = {
@@ -238,6 +245,20 @@ function SquarePanel(props: EmbedPaymentPanelProps) {
         setSubmitting(false);
         return;
       }
+
+      // When the fleet has a security deposit, tokenize the same card
+      // a second time and hand both tokens to the backend. Square's
+      // source tokens are single-use — one for CreatePayment, one for
+      // CreateCard (Cards on File) so the operator can charge for
+      // damage during the claim window without the customer present.
+      let saveCardSourceId: string | null = null;
+      if ((props.depositAmount ?? 0) > 0) {
+        const saveTokenResult = await cardRef.current.tokenize();
+        if (saveTokenResult.status === 'OK' && saveTokenResult.token) {
+          saveCardSourceId = saveTokenResult.token;
+        }
+      }
+
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/payments/square/create-payment/`, {
         method: 'POST',
         credentials: 'include',
@@ -248,6 +269,7 @@ function SquarePanel(props: EmbedPaymentPanelProps) {
           currency: props.currency,
           return_url: props.returnUrl,
           pending_id: props.pendingId,
+          ...(saveCardSourceId ? { save_card_source_id: saveCardSourceId } : {}),
         }),
       });
       if (!res.ok) {

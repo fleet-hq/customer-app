@@ -729,6 +729,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               returnUrl={`${origin}/booking/success?session_id=${embedIntent.pendingId}`}
               amount={embedIntent.amount}
               currency={embedIntent.currency}
+              depositAmount={Number(vehicle?.securityDeposit) || 0}
               onCancel={() => setEmbedIntent(null)}
               onSuccess={() => {
                 if (embed.embedded) embed.reportBookingComplete(0);
