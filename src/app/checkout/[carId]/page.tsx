@@ -794,8 +794,13 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
             {vehicle.description && (
               <>
                 <h3 className="mb-[10px] text-[15px] font-semibold text-ink">About this vehicle</h3>
-                <div className="mb-[26px] text-[13px] leading-[1.7] text-muted">
-                  <p>{vehicle.description}</p>
+                {/* break-words + whitespace-pre-line: long unbroken
+                    tokens (URLs, model numbers, hashtags) wrap
+                    inside the container instead of pushing the
+                    whole page wider than the viewport on phones,
+                    while operator-typed newlines are preserved. */}
+                <div className="mb-[26px] text-[13px] leading-[1.7] text-muted break-words whitespace-pre-line">
+                  {vehicle.description}
                 </div>
               </>
             )}
