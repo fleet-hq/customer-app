@@ -148,7 +148,6 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
 
   const [selectedInsurance, setSelectedInsurance] = useState<Set<string>>(new Set());
   const [selectedManualIds, setSelectedManualIds] = useState<Set<number>>(new Set());
-  const [insuranceTab, setInsuranceTab] = useState<'bonzah' | 'custom'>('bonzah');
   useEffect(() => {
     const mandatoryIds = (manualInsurancePackages ?? [])
       .filter((p) => p.isMandatory)
@@ -807,8 +806,6 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               manualPackages={manualInsurancePackages ?? []}
               selectedBonzah={selectedInsurance}
               selectedManualIds={selectedManualIds}
-              activeTab={insuranceTab}
-              onTabChange={setInsuranceTab}
               onToggleBonzah={toggleInsurance}
               onToggleManual={(id) =>
                 setSelectedManualIds((prev) => {

@@ -7,16 +7,12 @@ import { Check, Info } from '@/components/ui/icons';
 import type { InsuranceOption, ManualInsurancePackage } from '@/services/bookingServices';
 import { cn, money } from '@/lib/utils';
 
-export type InsuranceTab = 'bonzah' | 'custom';
-
 interface Props {
   headingRef?: React.Ref<HTMLHeadingElement>;
   bonzahPlans: InsuranceOption[];
   manualPackages: ManualInsurancePackage[];
   selectedBonzah: Set<string>;
   selectedManualIds: Set<number>;
-  activeTab: InsuranceTab;
-  onTabChange: (tab: InsuranceTab) => void;
   onToggleBonzah: (id: string) => void;
   onToggleManual: (id: number) => void;
   onOpenBonzahDetail: (id: string) => void;
@@ -25,14 +21,19 @@ interface Props {
   recommendedBonzahId?: string;
 }
 
+// Bonzah + manual (tenant-added) insurance packages render in a single
+// flat grid — the customer doesn't care where a package originates
+// from, only what it covers and what it costs. The old two-tab UI
+// (Bonzah / Custom) surfaced an implementation detail. Bonzah plans
+// come first because they carry the "Recommended" affordance; manual
+// packages follow. Section is hidden entirely when neither source has
+// any options.
 export default function ProtectionSection({
   headingRef,
   bonzahPlans,
   manualPackages,
   selectedBonzah,
   selectedManualIds,
-  activeTab,
-  onTabChange,
   onToggleBonzah,
   onToggleManual,
   onOpenBonzahDetail,
@@ -40,79 +41,36 @@ export default function ProtectionSection({
   hasBonzahDetail,
   recommendedBonzahId,
 }: Props): ReactNode {
-  const hasBonzah = bonzahPlans.length > 0;
-  const hasManual = manualPackages.length > 0;
-  if (!hasBonzah && !hasManual) return null;
-
-  const showTabs = hasBonzah && hasManual;
-  const effectiveTab: InsuranceTab = !hasBonzah ? 'custom' : !hasManual ? 'bonzah' : activeTab;
+  if (bonzahPlans.length === 0 && manualPackages.length === 0) return null;
 
   return (
     <>
       <h3 ref={headingRef} className="mb-3 text-[15px] font-semibold text-ink">
         Protection
       </h3>
-      {showTabs && (
-        <div className="mb-3 inline-flex rounded-[10px] border border-line bg-white p-[3px]">
-          <TabButton active={effectiveTab === 'bonzah'} onClick={() => onTabChange('bonzah')}>
-            Bonzah
-          </TabButton>
-          <TabButton active={effectiveTab === 'custom'} onClick={() => onTabChange('custom')}>
-            Custom
-          </TabButton>
-        </div>
-      )}
-      {effectiveTab === 'custom' ? (
-        <div className="mb-[26px] grid grid-cols-1 gap-[10px] sm:grid-cols-2">
-          {manualPackages.map((pkg) => (
-            <ManualCard
-              key={pkg.id}
-              pkg={pkg}
-              selected={selectedManualIds.has(pkg.id)}
-              onToggle={() => onToggleManual(pkg.id)}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="mb-[26px] grid grid-cols-1 gap-[10px] sm:grid-cols-2">
-          {bonzahPlans.map((p) => (
-            <BonzahCard
-              key={p.id}
-              plan={p}
-              selected={selectedBonzah.has(p.id)}
-              disabled={isBonzahDisabled(p.id)}
-              hasDetail={hasBonzahDetail(p.id)}
-              recommended={recommendedBonzahId === p.id}
-              onSelect={() => onToggleBonzah(p.id)}
-              onOpenDetail={() => onOpenBonzahDetail(p.id)}
-            />
-          ))}
-        </div>
-      )}
+      <div className="mb-[26px] grid grid-cols-1 gap-[10px] sm:grid-cols-2">
+        {bonzahPlans.map((p) => (
+          <BonzahCard
+            key={p.id}
+            plan={p}
+            selected={selectedBonzah.has(p.id)}
+            disabled={isBonzahDisabled(p.id)}
+            hasDetail={hasBonzahDetail(p.id)}
+            recommended={recommendedBonzahId === p.id}
+            onSelect={() => onToggleBonzah(p.id)}
+            onOpenDetail={() => onOpenBonzahDetail(p.id)}
+          />
+        ))}
+        {manualPackages.map((pkg) => (
+          <ManualCard
+            key={pkg.id}
+            pkg={pkg}
+            selected={selectedManualIds.has(pkg.id)}
+            onToggle={() => onToggleManual(pkg.id)}
+          />
+        ))}
+      </div>
     </>
-  );
-}
-
-function TabButton({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        'rounded-[8px] px-3 py-[6px] text-[12px] font-semibold transition-colors',
-        active ? 'bg-primary text-white' : 'text-muted hover:text-ink',
-      )}
-    >
-      {children}
-    </button>
   );
 }
 
