@@ -108,30 +108,12 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   const defaultLoc = useDefaultLocation();
   const startCheckout = useStartBookingCheckout();
   const startEmbedPayment = useStartEmbedBookingPayment();
+  // Single-provider policy: the tenant admin enables exactly one
+  // gateway at a time on the Integrations page — customer-central
+  // just uses whatever's on. No picker, no per-request override.
   const { data: providersData } = usePublicPaymentProviders();
-  const enabledProviders = providersData?.providers ?? [];
-  const defaultProvider = providersData?.default ?? 'stripe';
-  const [selectedProvider, setSelectedProvider] = useState<'stripe' | 'square'>(defaultProvider);
-  // Track whether the user has manually clicked a tile in the picker.
-  // Prevents the sync effect from clobbering an explicit selection when
-  // the server default arrives late.
-  const providerTouchedRef = useRef(false);
-  useEffect(() => {
-    if (!providersData) return;
-    // If the user's current selection is no longer enabled (admin
-    // toggled it off mid-session), snap back to the server default —
-    // even if they had touched the picker earlier.
-    if (!providersData.providers.includes(selectedProvider)) {
-      setSelectedProvider(providersData.default);
-      providerTouchedRef.current = false;
-      return;
-    }
-    // Otherwise adopt the server default only if the user hasn't
-    // touched the picker yet.
-    if (!providerTouchedRef.current && selectedProvider !== providersData.default) {
-      setSelectedProvider(providersData.default);
-    }
-  }, [providersData, selectedProvider]);
+  const activeProvider: 'stripe' | 'square' =
+    (providersData?.providers?.[0] as 'stripe' | 'square') ?? 'stripe';
   const [embedIntent, setEmbedIntent] = useState<null | {
     provider: 'stripe' | 'square';
     clientSecret: string;
@@ -496,14 +478,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
     return e;
   };
 
-  const reserve = async (providerOverride?: 'stripe' | 'square') => {
-    const providerToUse: 'stripe' | 'square' | undefined =
-      providerOverride ??
-      (enabledProviders.length > 1 ? selectedProvider : enabledProviders[0]);
-    if (providerOverride) {
-      providerTouchedRef.current = true;
-      setSelectedProvider(providerOverride);
-    }
+  const reserve = async () => {
     const e = validate();
     setErrors(e);
     if (Object.keys(e).length > 0) return;
@@ -588,16 +563,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
         onSuccess: (data) => {
           if (embed.embedded) embed.reportBookingComplete(data.booking_id);
           try { window.sessionStorage.removeItem(persistKey); } catch { /* ignore */ }
-          // Thread the selected provider through the URL so the
-          // /booking/[id] page can pass it to /start-verification-payment/
-          // when the customer finally clicks Pay. Without this, the
-          // pay step defaults to Company.payment_provider and ignores
-          // the tile the customer picked here.
-          const providerQs =
-            providerToUse && enabledProviders.length > 1
-              ? `&provider=${encodeURIComponent(providerToUse)}`
-              : '';
-          window.location.href = `/booking/${data.booking_id}?token=${encodeURIComponent(data.access_token)}${providerQs}`;
+          window.location.href = `/booking/${data.booking_id}?token=${encodeURIComponent(data.access_token)}`;
         },
         onError: (error: unknown) => {
           setCheckoutError(
@@ -631,23 +597,15 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
       ...(promoApplied && promoCode ? { discount_code: promoCode, promo_code: promoCode } : {}),
     };
 
-    // Force embed (Web Payments SDK on our page) for Square when the
-    // fleet has a security deposit configured. Square hosted checkout
-    // doesn't return a card token, so Cards on File — needed for the
-    // off-session deposit claim after dropoff — is only reachable via
-    // embed. Widget contexts already use embed regardless (embed.embedded).
-    const fleetDeposit = Number(vehicle?.securityDeposit) || 0;
-    const forceEmbedForSquareDeposit =
-      providerToUse === 'square' && fleetDeposit > 0;
-    if (embed.embedded || forceEmbedForSquareDeposit) {
+    // Square always uses the embed / Web Payments SDK path — Cards on
+    // File (needed for the off-session deposit claim) requires our own
+    // card entry, not Square hosted. Stripe uses hosted redirect
+    // unless we're already inside a widget iframe. Backend picks the
+    // provider automatically from Company.payment_provider.
+    const useEmbed = embed.embedded || activeProvider === 'square';
+    if (useEmbed) {
       try {
-        const data = await startEmbedPayment.mutateAsync({
-          payload: commonPayload,
-          provider:
-            enabledProviders.length > 1
-              ? providerToUse ?? selectedProvider
-              : undefined,
-        });
+        const data = await startEmbedPayment.mutateAsync({ payload: commonPayload });
         setEmbedIntent({
           provider: (data.provider as 'stripe' | 'square') || 'stripe',
           clientSecret: data.client_secret,
@@ -672,9 +630,6 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
         ...commonPayload,
         success_url: `${origin}/booking/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${origin}/checkout/${carId}`,
-        ...(enabledProviders.length > 1 && providerToUse
-          ? { provider: providerToUse }
-          : {}),
       });
       window.location.href = data.checkout_url;
     } catch (error) {
@@ -1206,73 +1161,15 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               </div>
             )}
 
-            {enabledProviders.length > 1 ? (
-              // Multi-provider mode: each provider is its own full-
-              // width primary CTA button, stacked vertically — same
-              // shape/weight as the Reserve Now button so it reads as
-              // "click to reserve using this method" rather than a
-              // secondary preference toggle.
-              <div className="mt-[14px] flex flex-col gap-2">
-                {enabledProviders.map((p) => {
-                  const isPending =
-                    (startEmbedPayment.isPending || startCheckout.isPending || startVerification.isPending) &&
-                    selectedProvider === p;
-                  const anyPending =
-                    startEmbedPayment.isPending || startCheckout.isPending || startVerification.isPending;
-                  return (
-                    <button
-                      key={p}
-                      type="button"
-                      disabled={anyPending || !termsAccepted}
-                      onClick={() => reserve(p)}
-                      className="grid w-full grid-cols-[36px_1fr_16px] items-center gap-4 rounded-[12px] border border-[#e5e7eb] bg-white px-4 py-[14px] text-left transition-all hover:border-[#111827] hover:shadow-[0_1px_2px_rgba(0,0,0,0.04)] disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      <img
-                        src={`/icons/payments/${p}.svg`}
-                        alt=""
-                        width={32}
-                        height={32}
-                        className="h-8 w-8 rounded-[7px]"
-                      />
-                      <span className="text-[13px] font-semibold text-[#111827]">
-                        {isPending
-                          ? 'Starting checkout…'
-                          : `Reserve with ${p === 'stripe' ? 'Stripe' : 'Square'}`}
-                      </span>
-                      <svg
-                        aria-hidden="true"
-                        viewBox="0 0 24 24"
-                        width={16}
-                        height={16}
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="text-[#9ca3af]"
-                      >
-                        <polyline points="9 18 15 12 9 6" />
-                      </svg>
-                    </button>
-                  );
-                })}
-                {!termsAccepted && (
-                  <p className="text-[11px] text-muted">
-                    Accept the terms below to enable payment.
-                  </p>
-                )}
-              </div>
-            ) : (
-              <button
-                onClick={() => reserve()}
-                disabled={startCheckout.isPending || startVerification.isPending || startEmbedPayment.isPending || !termsAccepted}
-                className="mt-[14px] block w-full cursor-pointer rounded-[10px] bg-primary py-[13px] text-center text-sm font-bold text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {startCheckout.isPending || startVerification.isPending || startEmbedPayment.isPending
-                  ? 'Starting checkout…'
-                  : 'Reserve Now'}
-              </button>
-            )}
+            <button
+              onClick={() => reserve()}
+              disabled={startCheckout.isPending || startVerification.isPending || startEmbedPayment.isPending || !termsAccepted}
+              className="mt-[14px] block w-full cursor-pointer rounded-[10px] bg-primary py-[13px] text-center text-sm font-bold text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {startCheckout.isPending || startVerification.isPending || startEmbedPayment.isPending
+                ? 'Starting checkout…'
+                : 'Reserve Now'}
+            </button>
 
             <label className="mt-[13px] flex cursor-pointer items-center gap-[10px]">
               <input
