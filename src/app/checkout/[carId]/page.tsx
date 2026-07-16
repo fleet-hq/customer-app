@@ -689,7 +689,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
 
   return (
     <div className="bg-white text-ink">
-      <div className="mx-auto max-w-[1180px] px-6 pt-[22px] pb-28 lg:pb-16">
+      <div className="mx-auto max-w-[1180px] px-6 pt-[22px] pb-16">
         <div className="mb-4 flex items-center justify-between gap-4">
           <BackLink href={paths.fleet}>Back to fleet</BackLink>
         </div>
@@ -712,7 +712,12 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
         </div>
 
         <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_350px]">
-          <div>
+          {/* min-w-0 lets this grid child shrink below its content's
+              intrinsic min-content. Without it, a long token in any
+              child (About-this-vehicle description, license plate,
+              vehicle name…) grows the grid track past the viewport
+              on phones and the whole page scrolls horizontally. */}
+          <div className="min-w-0">
             <div className="mb-[14px] flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-[21px] font-semibold tracking-[-0.01em] text-secondary">
@@ -1220,20 +1225,6 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
             </div>
           </div>
         </div>
-      </div>
-      <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-card-border bg-white px-4 py-3 shadow-[var(--shadow-pop)] lg:hidden">
-        <div>
-          <div className="text-[11px] text-muted">Total</div>
-          <div className="text-[18px] font-bold text-secondary">{money(total)}</div>
-        </div>
-        <button
-          type="button"
-          onClick={() => reserve()}
-          disabled={startCheckout.isPending || startVerification.isPending || startEmbedPayment.isPending || !termsAccepted}
-          className="flex-1 rounded-[10px] bg-primary py-3 text-center text-sm font-bold text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {startCheckout.isPending || startVerification.isPending || startEmbedPayment.isPending ? 'Starting…' : 'Reserve Now'}
-        </button>
       </div>
       {galleryOpen && (
         <div
