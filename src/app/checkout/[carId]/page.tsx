@@ -219,7 +219,6 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
         promoCode?: string;
         promoInput?: string;
         termsAccepted?: boolean;
-        rentalAgreementSignature?: string | null;
       };
       if (saved.fields) setFields(saved.fields);
       if (Array.isArray(saved.selectedInsurance)) setSelectedInsurance(new Set(saved.selectedInsurance));
@@ -227,9 +226,6 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
       if (saved.promoCode) setPromoCode(saved.promoCode);
       if (saved.promoInput) setPromoInput(saved.promoInput);
       if (typeof saved.termsAccepted === 'boolean') setTermsAccepted(saved.termsAccepted);
-      if (typeof saved.rentalAgreementSignature === 'string') {
-        setRentalAgreementSignature(saved.rentalAgreementSignature);
-      }
     } catch {
       /* corrupt entry — ignore */
     }
@@ -248,13 +244,12 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
           promoCode,
           promoInput,
           termsAccepted,
-          rentalAgreementSignature,
         }),
       );
     } catch {
       /* quota / private mode — silently drop */
     }
-  }, [persistKey, fields, selectedInsurance, extras, promoCode, promoInput, termsAccepted, rentalAgreementSignature]);
+  }, [persistKey, fields, selectedInsurance, extras, promoCode, promoInput, termsAccepted]);
 
   const fleetTz = useMemo(() => {
     const fromLoc = companyLocations?.find((l) => String(l.id) === pickupLocId)?.timezone;
@@ -629,6 +624,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
     if (useEmbed) {
       try {
         const data = await startEmbedPayment.mutateAsync({ payload: commonPayload });
+        try { window.sessionStorage.removeItem(persistKey); } catch { /* ignore */ }
         setEmbedIntent({
           provider: (data.provider as 'stripe' | 'square') || 'stripe',
           clientSecret: data.client_secret,
@@ -654,6 +650,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
         success_url: `${origin}/booking/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${origin}/checkout/${carId}`,
       });
+      try { window.sessionStorage.removeItem(persistKey); } catch { /* ignore */ }
       window.location.href = data.checkout_url;
     } catch (error) {
       setCheckoutError(
