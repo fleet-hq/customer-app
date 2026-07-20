@@ -29,6 +29,8 @@ import { buildUnavailabilityIndex, slotsBlockedOn } from '@/lib/unavailable-slot
 import { paths } from '@/lib/paths';
 import { useEmbedBridge } from '@/hooks';
 import { useTenant } from '@/lib/tenant-context';
+import { useDefaultAgreementTemplate } from '@/hooks/useAgreements';
+import { RentalAgreementSignModal } from '@/components/booking/rental-agreement-sign-modal';
 
 const PLACEHOLDER_IMAGE = '/images/vehicles/car_placeholder.png';
 
@@ -176,6 +178,11 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   const [checkoutError, setCheckoutError] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [termsModalOpen, setTermsModalOpen] = useState(false);
+  const [rentalAgreementSignature, setRentalAgreementSignature] = useState<string | null>(null);
+  const [rentalAgreementModalOpen, setRentalAgreementModalOpen] = useState(false);
+  const { data: rentalAgreementTemplate } = useDefaultAgreementTemplate();
+  const rentalAgreementRequired = (rentalAgreementTemplate?.clauses?.length ?? 0) > 0;
+  const rentalAgreementSigned = !!rentalAgreementSignature;
 
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
@@ -212,6 +219,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
         promoCode?: string;
         promoInput?: string;
         termsAccepted?: boolean;
+        rentalAgreementSignature?: string | null;
       };
       if (saved.fields) setFields(saved.fields);
       if (Array.isArray(saved.selectedInsurance)) setSelectedInsurance(new Set(saved.selectedInsurance));
@@ -219,6 +227,9 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
       if (saved.promoCode) setPromoCode(saved.promoCode);
       if (saved.promoInput) setPromoInput(saved.promoInput);
       if (typeof saved.termsAccepted === 'boolean') setTermsAccepted(saved.termsAccepted);
+      if (typeof saved.rentalAgreementSignature === 'string') {
+        setRentalAgreementSignature(saved.rentalAgreementSignature);
+      }
     } catch {
       /* corrupt entry — ignore */
     }
@@ -237,12 +248,13 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
           promoCode,
           promoInput,
           termsAccepted,
+          rentalAgreementSignature,
         }),
       );
     } catch {
       /* quota / private mode — silently drop */
     }
-  }, [persistKey, fields, selectedInsurance, extras, promoCode, promoInput, termsAccepted]);
+  }, [persistKey, fields, selectedInsurance, extras, promoCode, promoInput, termsAccepted, rentalAgreementSignature]);
 
   const fleetTz = useMemo(() => {
     const fromLoc = companyLocations?.find((l) => String(l.id) === pickupLocId)?.timezone;
@@ -533,6 +545,16 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
 
     const manualIds = Array.from(selectedManualIds);
 
+    if (rentalAgreementRequired && !rentalAgreementSignature) {
+      setCheckoutError('Please review and sign the rental agreement before continuing.');
+      setRentalAgreementModalOpen(true);
+      return;
+    }
+
+    const signaturePayload = rentalAgreementSignature
+      ? { signature_image: rentalAgreementSignature }
+      : {};
+
     if (freshPolicyMode === 'before') {
       const sharedPayload = {
         first_name: firstName,
@@ -557,6 +579,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
         additional_drivers: 0,
         notes: '',
         ...(promoApplied && promoCode ? { promo_code: promoCode } : {}),
+        ...signaturePayload,
       };
       startVerification.mutate(sharedPayload as Record<string, unknown>, {
         onSuccess: (data) => {
@@ -594,6 +617,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
       ...(manualIds.length > 0 ? { manual_insurance_package_ids: manualIds } : {}),
       extras: activeExtraItems.length > 0 ? activeExtraItems : undefined,
       ...(promoApplied && promoCode ? { discount_code: promoCode, promo_code: promoCode } : {}),
+      ...signaturePayload,
     };
 
     // Square always uses the embed / Web Payments SDK path — Cards on
@@ -1170,7 +1194,13 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
 
             <button
               onClick={() => reserve()}
-              disabled={startCheckout.isPending || startVerification.isPending || startEmbedPayment.isPending || !termsAccepted}
+              disabled={
+                startCheckout.isPending ||
+                startVerification.isPending ||
+                startEmbedPayment.isPending ||
+                !termsAccepted ||
+                (rentalAgreementRequired && !rentalAgreementSigned)
+              }
               className="mt-[14px] block w-full cursor-pointer rounded-[10px] bg-primary py-[13px] text-center text-sm font-bold text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
             >
               {startCheckout.isPending || startVerification.isPending || startEmbedPayment.isPending
@@ -1214,6 +1244,61 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                 reservation will be immediately debited from the payment method I have provided.
               </span>
             </label>
+
+            {rentalAgreementRequired && (
+              <label
+                className="mt-[10px] flex cursor-pointer items-center gap-[10px]"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setRentalAgreementModalOpen(true);
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={rentalAgreementSigned}
+                  readOnly
+                  className="sr-only"
+                />
+                <span
+                  className={cn(
+                    'inline-flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-[5px] border-[1.5px]',
+                    rentalAgreementSigned ? 'border-primary bg-primary' : 'border-control bg-white',
+                  )}
+                >
+                  {rentalAgreementSigned && (
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={3.2} strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20 6 9 17l-5-5" />
+                    </svg>
+                  )}
+                </span>
+                <span className="text-[11.5px] leading-[1.5] text-muted">
+                  {rentalAgreementSigned ? (
+                    <>
+                      Rental agreement signed.{' '}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setRentalAgreementModalOpen(true);
+                        }}
+                        className="font-semibold text-primary underline bg-transparent border-0 p-0 cursor-pointer"
+                      >
+                        Review or re-sign
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      I have read and signed the{' '}
+                      <span className="font-semibold text-primary underline">
+                        {rentalAgreementTemplate?.title || 'Rental Agreement'}
+                      </span>
+                      . Required to complete this booking.
+                    </>
+                  )}
+                </span>
+              </label>
+            )}
 
             <div className="mt-4 flex flex-col gap-[9px]">
               {['Free cancellation up to 48h', 'No hidden fees — price you see is final', 'Encrypted, secure payment'].map((t) => (
@@ -1389,6 +1474,16 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               Update trip
             </button>
       </Dialog>
+
+      <RentalAgreementSignModal
+        open={rentalAgreementModalOpen}
+        onClose={() => setRentalAgreementModalOpen(false)}
+        initialSignature={rentalAgreementSignature}
+        onSigned={(dataUri) => {
+          setRentalAgreementSignature(dataUri);
+          setRentalAgreementModalOpen(false);
+        }}
+      />
 
       {termsModalOpen && (
         <div

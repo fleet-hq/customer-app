@@ -768,6 +768,11 @@ export interface CreateBookingPayload {
   extras?: { id: number; quantity: number }[];
   discount_code?: string;
   promo_code?: string;
+  /** Base64 data URI of the pre-signed rental-agreement signature.
+   *  Stashed on PendingBookingCheckout and promoted into a
+   *  BookingSignature row when the payment webhook creates the
+   *  Booking. Omit when the tenant has no active clauses. */
+  signature_image?: string;
 }
 
 // Create booking API response
@@ -850,6 +855,7 @@ export async function startEmbedBookingPayment(
       : {}),
     ...(payload.promo_code ? { promo_code: payload.promo_code } : {}),
     ...(options.provider ? { provider: options.provider } : {}),
+    ...(payload.signature_image ? { signature_image: payload.signature_image } : {}),
   };
   const res = await axios.post<StartEmbedPaymentResponse>(
     `${API_URL}/api/bookings/public/start-embed-payment/`,
@@ -903,6 +909,7 @@ export async function startBookingCheckout(
       : {}),
     ...(payload.promo_code ? { promo_code: payload.promo_code } : {}),
     ...(payload.provider ? { provider: payload.provider } : {}),
+    ...(payload.signature_image ? { signature_image: payload.signature_image } : {}),
     success_url: payload.success_url,
     cancel_url: payload.cancel_url,
   };
