@@ -242,7 +242,7 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
   if (requireInsurance && !insuranceVerified) pendingChecks.push('verify your insurance');
   const allRequiredChecksDone = pendingChecks.length === 0;
   const verifyMessage = allRequiredChecksDone
-    ? 'All checks complete — continue to payment to confirm your booking.'
+    ? 'All checks complete, continue to payment to confirm your booking.'
     : `Please ${pendingChecks.join(' and ')} to continue to payment.`;
 
   const showInsuranceStep =

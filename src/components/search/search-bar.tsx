@@ -302,7 +302,7 @@ export function SearchBar({ variant = 'hero', bareContainer = false }: SearchBar
             : 'rounded-xl border border-card-border bg-white px-5 pt-5 pb-4 shadow-[var(--shadow-card)] md:px-8 md:pt-6',
         )}
       >
-        <div className="flex flex-col gap-3 md:flex-row md:items-center">
+        <div className="flex flex-col gap-5 md:flex-row md:items-center md:gap-3">
           <LocationField which="pickup" />
           <div
             aria-hidden={!diffLocation}
