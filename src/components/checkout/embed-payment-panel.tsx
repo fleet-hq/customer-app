@@ -25,6 +25,16 @@ interface EmbedPaymentPanelProps {
    *  path; Square uses `location_id` + `environment` to init the
    *  Web Payments SDK. */
   providerExtra?: Record<string, string | number | boolean | null>;
+  /** Fleet security deposit amount (in the same currency as amount).
+   *  When > 0 on the Square path, the SDK tokenizes the buyer's card
+   *  twice — one token for the booking payment, a second attached to
+   *  Cards on File so the operator can charge for damage during the
+   *  claim window. Stripe uses SetupIntent automatically post-payment
+   *  and ignores this. */
+  depositAmount?: number;
+  /** Tenant display name — interpolated into the deposit-consent copy
+   *  the renter authorizes ("I authorize <tenant> to charge..."). */
+  tenantName?: string;
 }
 
 const APPEARANCE = {
@@ -87,6 +97,8 @@ function StripePanel(props: EmbedPaymentPanelProps) {
       <Elements stripe={stripePromise} options={options}>
         <StripeConfirmForm
           returnUrl={props.returnUrl}
+          amount={props.amount}
+          currency={props.currency}
           onCancel={props.onCancel}
           onSuccess={props.onSuccess}
         />
@@ -97,10 +109,14 @@ function StripePanel(props: EmbedPaymentPanelProps) {
 
 function StripeConfirmForm({
   returnUrl,
+  amount,
+  currency,
   onCancel,
   onSuccess,
 }: {
   returnUrl: string;
+  amount: string;
+  currency: string;
   onCancel: () => void;
   onSuccess?: () => void;
 }) {
@@ -144,6 +160,8 @@ function StripeConfirmForm({
       <PaymentElement options={{ layout: 'tabs' }} />
       {error ? <p className="text-13 text-red-600">{error}</p> : null}
       <ActionRow
+        amount={amount}
+        currency={currency}
         onCancel={onCancel}
         submitting={submitting}
         disabled={!stripe || !elements || !ready || submitting}
@@ -180,11 +198,20 @@ function SquarePanel(props: EmbedPaymentPanelProps) {
   const locationId = String(props.providerExtra?.location_id ?? '');
   const environment = (props.providerExtra?.environment as 'sandbox' | 'production') || 'sandbox';
 
+  const depositAmount = props.depositAmount ?? 0;
+  const requiresConsent = depositAmount > 0;
+  const consentCopy = buildDepositConsentCopy({
+    tenantName: props.tenantName,
+    amount: depositAmount,
+    currency: props.currency,
+  });
+
   const containerRef = useRef<HTMLDivElement | null>(null);
   const cardRef = useRef<any>(null);
   const [ready, setReady] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [consentChecked, setConsentChecked] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -226,6 +253,10 @@ function SquarePanel(props: EmbedPaymentPanelProps) {
   const onSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!cardRef.current) return;
+    if (requiresConsent && !consentChecked) {
+      setError('Please authorize the deposit hold to continue.');
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
@@ -238,7 +269,21 @@ function SquarePanel(props: EmbedPaymentPanelProps) {
         setSubmitting(false);
         return;
       }
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/payments/square/create-payment/`, {
+
+      // When the fleet has a security deposit, tokenize the same card
+      // a second time and hand both tokens to the backend. Square's
+      // source tokens are single-use — one for CreatePayment, one for
+      // CreateCard (Cards on File) so the operator can charge for
+      // damage during the claim window without the customer present.
+      let saveCardSourceId: string | null = null;
+      if ((props.depositAmount ?? 0) > 0) {
+        const saveTokenResult = await cardRef.current.tokenize();
+        if (saveTokenResult.status === 'OK' && saveTokenResult.token) {
+          saveCardSourceId = saveTokenResult.token;
+        }
+      }
+
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/payments/square/create-payment/`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -248,6 +293,14 @@ function SquarePanel(props: EmbedPaymentPanelProps) {
           currency: props.currency,
           return_url: props.returnUrl,
           pending_id: props.pendingId,
+          ...(saveCardSourceId
+            ? {
+                save_card_source_id: saveCardSourceId,
+                consent_ack: true,
+                consent_copy: consentCopy,
+                consent_at: new Date().toISOString(),
+              }
+            : {}),
         }),
       });
       if (!res.ok) {
@@ -256,6 +309,19 @@ function SquarePanel(props: EmbedPaymentPanelProps) {
         setSubmitting(false);
         return;
       }
+      // Square Web Payments SDK doesn't auto-redirect the way Stripe's
+      // confirmPayment does — we have to do it. Response carries the
+      // booking id + access_token so we can navigate straight to the
+      // confirmation view without another server round-trip.
+      const data = await res.json().catch(() => ({}));
+      const bookingId = data?.booking_id;
+      const accessToken = data?.access_token;
+      if (bookingId && accessToken) {
+        window.location.href =
+          `/booking/${bookingId}?token=${encodeURIComponent(accessToken)}`;
+        return;
+      }
+      window.location.href = `/booking/success?session_id=${encodeURIComponent(props.pendingId)}`;
       props.onSuccess?.();
     } catch (e: any) {
       setError(e?.message || 'Payment failed. Please try again.');
@@ -270,10 +336,80 @@ function SquarePanel(props: EmbedPaymentPanelProps) {
           ref={containerRef}
           className="min-h-[90px] rounded-md border border-[#e2e8f0] bg-white p-3"
         />
+        {requiresConsent ? (
+          <DepositConsent
+            copy={consentCopy}
+            checked={consentChecked}
+            onChange={setConsentChecked}
+          />
+        ) : null}
         {error ? <p className="text-13 text-red-600">{error}</p> : null}
-        <ActionRow onCancel={props.onCancel} submitting={submitting} disabled={!ready || submitting} />
+        <ActionRow
+          amount={props.amount}
+          currency={props.currency}
+          onCancel={props.onCancel}
+          submitting={submitting}
+          disabled={!ready || submitting || (requiresConsent && !consentChecked)}
+        />
       </form>
     </PaymentPanelShell>
+  );
+}
+
+function buildDepositConsentCopy(args: {
+  tenantName?: string;
+  amount: number;
+  currency: string;
+}): string {
+  const tenant = (args.tenantName || 'the operator').trim();
+  const currency = (args.currency || 'usd').toUpperCase();
+  const amount = Math.round(args.amount);
+  return (
+    `I authorize ${tenant} to securely save my card and charge up to ` +
+    `${currency} ${amount.toLocaleString()} within 7 days after my return ` +
+    `for any damages, additional charges, or fees per the rental terms.`
+  );
+}
+
+function DepositConsent({
+  copy,
+  checked,
+  onChange,
+}: {
+  copy: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <label className="mt-[13px] flex cursor-pointer items-center gap-[10px]">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="sr-only"
+      />
+      <span
+        className={`inline-flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-[5px] border-[1.5px] ${
+          checked ? 'border-primary bg-primary' : 'border-control bg-white'
+        }`}
+      >
+        {checked && (
+          <svg
+            width="11"
+            height="11"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#fff"
+            strokeWidth={3.2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M20 6 9 17l-5-5" />
+          </svg>
+        )}
+      </span>
+      <span className="text-[11.5px] leading-[1.5] text-muted">{copy}</span>
+    </label>
   );
 }
 
@@ -297,10 +433,10 @@ function PaymentPanelShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-[#e2e8f0] bg-white p-5">
-      <div className="mb-4 flex items-baseline justify-between">
-        <h3 className="text-16 font-semibold text-ink">Card details</h3>
-        <span className="text-14 text-muted">Total: {formatMoney(amount, currency)}</span>
+    <div className="mt-6">
+      <div className="mb-3 flex items-baseline justify-between">
+        <h3 className="text-[15px] font-semibold text-ink">Card details</h3>
+        <span className="text-[12px] text-muted">Total {formatMoney(amount, currency)}</span>
       </div>
       {children}
     </div>
@@ -308,30 +444,34 @@ function PaymentPanelShell({
 }
 
 function ActionRow({
+  amount,
+  currency,
   onCancel,
   submitting,
   disabled,
 }: {
+  amount: string;
+  currency: string;
   onCancel: () => void;
   submitting: boolean;
   disabled: boolean;
 }) {
   return (
-    <div className="flex items-center justify-end gap-3 pt-2">
+    <div className="flex items-center justify-between gap-3 pt-1">
       <button
         type="button"
         onClick={onCancel}
         disabled={submitting}
-        className="rounded-[10px] border border-[#e2e8f0] bg-white px-5 py-3 text-14 font-medium text-ink disabled:opacity-60"
+        className="text-[13px] font-medium text-muted hover:text-ink disabled:opacity-60"
       >
-        Cancel
+        Use a different payment
       </button>
       <button
         type="submit"
         disabled={disabled}
-        className="rounded-[10px] bg-primary px-6 py-3 text-14 font-semibold text-white disabled:opacity-60"
+        className="rounded-[10px] bg-primary px-5 py-[10px] text-[14px] font-semibold text-white disabled:opacity-60"
       >
-        {submitting ? 'Processing…' : 'Pay now'}
+        {submitting ? 'Processing…' : `Pay ${formatMoney(amount, currency)}`}
       </button>
     </div>
   );

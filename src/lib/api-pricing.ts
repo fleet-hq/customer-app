@@ -177,9 +177,13 @@ export function computeBookingPricing(
 
   // Backend taxes the discounted rental — see PricingService.
   const taxableBase = Math.max(0, baseSubtotal - discount);
+  // Backend PricingService taxes ``extras_price + manual_insurance_total``
+  // as a single extras bucket. Mirror that here so the pre-checkout
+  // total matches the amount that gets charged; otherwise the customer
+  // sees a lower total in the sidebar than what they're billed.
   const tax = calcTax(args.taxProfile, {
     basePrice: taxableBase,
-    extrasCost: args.extrasCost,
+    extrasCost: args.extrasCost + args.insuranceCost,
     fees: args.bookingFee,
     securityDeposit: args.securityDeposit,
     locationCharges: args.locationCharges,
