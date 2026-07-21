@@ -74,7 +74,7 @@ function SpecTable({ rows }: { rows: SpecRow[] }) {
 function Fill({ value, w = 24 }: { value?: string | null; w?: number }) {
   return (
     <span
-      className="inline-block align-baseline border-b border-black mx-0.5 text-center text-[#131314] leading-none px-1 font-bold"
+      className="inline-block align-baseline border-b border-black mx-0.5 text-center text-[#131314] leading-none px-1 font-caveat text-[14px] sm:text-[16px]"
       style={{ minWidth: `${w * 4}px` }}
     >
       {value || ' '}

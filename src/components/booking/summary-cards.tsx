@@ -442,14 +442,7 @@ export function Invoice({
           <span className="text-[22px] font-bold text-secondary">{money(grandTotal)}</span>
         </span>
       </div>
-      <div className="mt-[18px] flex items-center gap-3">
-        <button
-          onClick={onPay}
-          disabled={paid || payLoading || !onPay}
-          className="flex-1 rounded-[9px] bg-primary py-3 text-center text-sm font-semibold text-white disabled:opacity-50"
-        >
-          {paid ? 'Paid' : payLoading ? 'Redirecting…' : 'Make Payment'}
-        </button>
+      <div className="mt-[18px] flex items-center justify-end">
         <button
           type="button"
           onClick={() => window.print()}

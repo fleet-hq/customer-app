@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
-import { Inter, Manrope } from 'next/font/google';
+import { Inter, Manrope, Caveat } from 'next/font/google';
 import './globals.css';
 import { getCurrentTenant, TenantNotFoundError } from '@/lib/get-tenant';
 import { TenantProvider } from '@/lib/tenant-context';
@@ -22,6 +22,13 @@ const manrope = Manrope({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700', '800'],
   variable: '--font-manrope-src',
+  display: 'swap',
+});
+
+const caveat = Caveat({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-caveat-src',
   display: 'swap',
 });
 
@@ -52,7 +59,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     if (err instanceof TenantNotFoundError) {
       const host = (await headers()).get('host') ?? err.host;
       return (
-        <html lang="en" className={`${inter.variable} ${manrope.variable}`}>
+        <html lang="en" className={`${inter.variable} ${manrope.variable} ${caveat.variable}`}>
           <body>
             <SetupInProgress host={host} />
           </body>
@@ -71,7 +78,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   } as React.CSSProperties;
 
   return (
-    <html lang="en" data-tenant={tenant.slug} style={brandVars} className={`${inter.variable} ${manrope.variable}`}>
+    <html lang="en" data-tenant={tenant.slug} style={brandVars} className={`${inter.variable} ${manrope.variable} ${caveat.variable}`}>
       <body>
         <Providers>
           {/* TenantProvider must wrap CompanyProvider. CompanyProvider

@@ -40,7 +40,7 @@ export function buildNextSteps(args: {
       done: args.agreementSigned,
       title: 'Rental agreement',
       desc: args.agreementSigned
-        ? 'Signed — thanks. A copy is on your booking page.'
+        ? 'Signed | You can view or download the agreement from here.'
         : 'Review and sign your rental agreement to complete your booking.',
       cta: args.agreementSigned ? 'View agreement' : 'Sign now',
       ctaHref: args.agreementHref,

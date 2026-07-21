@@ -280,6 +280,7 @@ export interface ApiBooking {
   subtotal: string;
   total_price: string;
   total_discount: string;
+  promo_code?: string | null;
   tax: string;
   security_deposit: string;
   location_charges: string;
@@ -630,7 +631,7 @@ function transformBooking(api: ApiBooking): BookingDetails {
       insurancePremium: Number(api.insurance_details?.premium_amount) || 0,
       subtotal,
       discount,
-      discountCode: '',
+      discountCode: (api.promo_code ?? '').toString().trim(),
       tax,
       locationCharges,
       total,

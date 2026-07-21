@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import DOMPurify from 'dompurify';
 import { cn } from '@/lib/utils';
 import { Check, Close } from '@/components/ui/icons';
 import { SignaturePad } from '@/components/ui/signature-pad';
@@ -10,8 +11,25 @@ interface RentalAgreementSignModalProps {
   open: boolean;
   onClose: () => void;
   onSigned: (signatureDataUri: string) => void;
-  /** Optional initial signature — reopens with the previously drawn one visible. */
   initialSignature?: string | null;
+}
+
+function Paper({ children }: { children: React.ReactNode }) {
+  return (
+    <article className="bg-white rounded-md shadow-[0_1px_2px_rgba(16,24,40,0.04),0_4px_12px_rgba(16,24,40,0.04)] px-5 sm:px-8 py-8">
+      {children}
+    </article>
+  );
+}
+
+function SectionTitle({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return (
+    <h3
+      className={`font-manrope font-bold text-[12px] sm:text-[14px] leading-tight tracking-[-0.02em] text-[#131314] text-center pb-4 ${className}`}
+    >
+      {children}
+    </h3>
+  );
 }
 
 export function RentalAgreementSignModal({
@@ -46,110 +64,116 @@ export function RentalAgreementSignModal({
       role="dialog"
       aria-modal="true"
       aria-label="Rental Agreement"
-      className="fixed inset-0 z-[200] flex items-center justify-center bg-[rgba(12,14,16,0.6)] p-4"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4"
       onClick={onClose}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="flex max-h-[92vh] w-full max-w-[860px] flex-col overflow-hidden rounded-[14px] bg-white shadow-[0_20px_60px_-16px_rgba(0,0,0,0.35)]"
+        className="flex max-h-[85vh] w-full max-w-[640px] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
       >
-        <div className="flex items-center justify-between border-b border-hairline px-6 py-4">
-          <div>
-            <h2 className="text-[16px] font-semibold text-ink">
-              {template?.title || 'Rental Agreement'}
-            </h2>
-            {template?.description && (
-              <p className="mt-1 text-[12.5px] font-light text-faint">{template.description}</p>
-            )}
-          </div>
+        <div className="flex items-center justify-between border-b border-[#e2e8f0] px-6 py-4">
+          <h2 className="text-[16px] font-semibold text-ink">
+            {template?.title || 'Rental Agreement'}
+          </h2>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close rental agreement"
-            className="flex h-8 w-8 items-center justify-center rounded-full text-faint hover:bg-subtle hover:text-ink"
+            aria-label="Close"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-faint hover:bg-[#f1f5f9] hover:text-ink"
           >
             <Close size={16} />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-5">
+        <div className="flex-1 overflow-y-auto bg-[#F5F7F9] px-4 py-5 sm:px-6 space-y-4">
           {isLoading ? (
             <p className="py-10 text-center text-[13px] text-faint">Loading agreement…</p>
           ) : clauses.length === 0 ? (
-            <p className="py-10 text-center text-[13px] text-faint">
-              This company has not published a rental agreement yet.
-            </p>
+            <Paper>
+              <p className="py-10 text-center text-[13px] text-faint">
+                This company has not published a rental agreement yet.
+              </p>
+            </Paper>
           ) : (
-            <div className="space-y-5">
-              {clauses.map((c, i) => (
-                <section key={c.id} className="border-b border-hairline pb-4 last:border-b-0">
-                  <h3 className="text-[13.5px] font-semibold text-ink">
-                    {i + 1}. {c.title}
-                  </h3>
-                  <div
-                    className="mt-2 whitespace-pre-line text-[12.5px] leading-[1.7] text-label"
-                    dangerouslySetInnerHTML={{ __html: c.content }}
-                  />
-                </section>
-              ))}
-            </div>
+            <Paper>
+              <SectionTitle>Terms &amp; Conditions</SectionTitle>
+              <div className="mt-4 space-y-5">
+                {clauses.map((c, i) => (
+                  <div key={c.id} className="clause-block">
+                    <h4 className="font-bold text-[12px] tracking-[-0.02em] text-[#131314] mb-2">
+                      {i + 1}. {c.title}
+                    </h4>
+                    <div
+                      className="text-[12px] leading-[1.6] text-[#131314] prose prose-sm max-w-none"
+                      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(c.content) }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </Paper>
           )}
 
-          <div className="mt-6 rounded-[10px] border border-hairline bg-subtle/40 p-4">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.04em] text-faint">
-              Signature
+          <Paper>
+            <SectionTitle>Signature and Date</SectionTitle>
+            <p className="mt-3 text-[10px] sm:text-[12px] leading-[1.6] text-[#131314]">
+              <b className="font-bold">IN WITNESS WHEREOF</b>, the renter has executed this Vehicle
+              Rental Agreement. By signing below, the renter acknowledges having read, understood,
+              and agreed to be bound by all terms and conditions contained herein.
             </p>
-            <p className="mt-1 text-[12px] leading-[1.55] text-faint">
-              Draw your signature below to accept this rental agreement. Your signature will be
-              attached to the booking once payment succeeds.
-            </p>
-            <div className="mt-3">
-              <SignaturePad onSignatureChange={setSignature} />
+
+            <label
+              onClick={() => setAgree((a) => !a)}
+              className="mt-5 flex cursor-pointer items-center gap-[10px] whitespace-nowrap"
+            >
+              <span
+                className={cn(
+                  'inline-flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-[5px] border-[1.5px]',
+                  agree ? 'border-primary bg-primary' : 'border-control bg-white',
+                )}
+              >
+                {agree && <Check size={11} strokeWidth={3} className="text-white" />}
+              </span>
+              <span className="text-[12px] text-[#131314]">
+                I have read and agree to the{' '}
+                <span className="font-semibold">{template?.title || 'Rental Agreement'}</span>.
+              </span>
+            </label>
+
+            <div className="mt-5">
+              <p className="font-caveat text-[18px] leading-none tracking-tight text-[#131314] mb-2">
+                Renter&apos;s Signature
+              </p>
+              <SignaturePad
+                label=""
+                initialSignature={initialSignature}
+                onSignatureChange={setSignature}
+                height={160}
+              />
             </div>
-          </div>
+          </Paper>
         </div>
 
-        <div className="flex flex-col gap-3 border-t border-hairline px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <label
-            onClick={() => setAgree((a) => !a)}
-            className="flex max-w-[440px] cursor-pointer items-start gap-[10px]"
+        <div className="flex items-center justify-end gap-2 border-t border-[#e2e8f0] px-6 py-4">
+          <button
+            type="button"
+            onClick={onClose}
+            className="min-w-32.5 rounded-lg border border-[#e2e8f0] bg-white px-4 py-2 text-center text-[13px] font-medium text-ink hover:bg-[#f1f5f9]"
           >
-            <span
-              className={cn(
-                'mt-px inline-flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-[5px] border-[1.5px]',
-                agree ? 'border-primary bg-primary' : 'border-control bg-white',
-              )}
-            >
-              {agree && <Check size={11} strokeWidth={3} className="text-white" />}
-            </span>
-            <span className="text-[12px] leading-[1.55] text-label">
-              I have read and agree to the{' '}
-              <span className="font-semibold text-ink">
-                {template?.title || 'Rental Agreement'}
-              </span>
-              , including the insurance, fuel, mileage and cancellation provisions.
-            </span>
-          </label>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-[9px] border border-line px-5 py-[9px] text-sm font-medium text-ink hover:bg-subtle"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={!canSubmit}
-              className={cn(
-                'rounded-[9px] px-6 py-[9px] text-sm font-semibold text-white',
-                canSubmit ? 'bg-primary hover:bg-primary-hover' : 'cursor-not-allowed bg-primary-disabled',
-              )}
-            >
-              Sign &amp; Accept
-            </button>
-          </div>
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={!canSubmit}
+            className={cn(
+              'min-w-32.5 rounded-lg px-4 py-2 text-center text-[13px] font-semibold',
+              canSubmit
+                ? 'bg-primary text-white hover:bg-primary-hover'
+                : 'cursor-not-allowed bg-[#e2e8f0] text-faint',
+            )}
+          >
+            Sign &amp; Accept
+          </button>
         </div>
       </div>
     </div>

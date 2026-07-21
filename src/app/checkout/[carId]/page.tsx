@@ -176,8 +176,6 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   const [fields, setFields] = useState<Fields>({ firstName: '', lastName: '', email: '', phone: '', license: '' });
   const [errors, setErrors] = useState<Partial<Record<keyof Fields, string>>>({});
   const [checkoutError, setCheckoutError] = useState('');
-  const [termsAccepted, setTermsAccepted] = useState(false);
-  const [termsModalOpen, setTermsModalOpen] = useState(false);
   const [rentalAgreementSignature, setRentalAgreementSignature] = useState<string | null>(null);
   const [rentalAgreementModalOpen, setRentalAgreementModalOpen] = useState(false);
   const { data: rentalAgreementTemplate } = useDefaultAgreementTemplate();
@@ -218,14 +216,12 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
         extras?: Record<string, number>;
         promoCode?: string;
         promoInput?: string;
-        termsAccepted?: boolean;
       };
       if (saved.fields) setFields(saved.fields);
       if (Array.isArray(saved.selectedInsurance)) setSelectedInsurance(new Set(saved.selectedInsurance));
       if (saved.extras) setExtras(saved.extras);
       if (saved.promoCode) setPromoCode(saved.promoCode);
       if (saved.promoInput) setPromoInput(saved.promoInput);
-      if (typeof saved.termsAccepted === 'boolean') setTermsAccepted(saved.termsAccepted);
     } catch {
       /* corrupt entry — ignore */
     }
@@ -243,13 +239,12 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
           extras,
           promoCode,
           promoInput,
-          termsAccepted,
         }),
       );
     } catch {
       /* quota / private mode — silently drop */
     }
-  }, [persistKey, fields, selectedInsurance, extras, promoCode, promoInput, termsAccepted]);
+  }, [persistKey, fields, selectedInsurance, extras, promoCode, promoInput]);
 
   const fleetTz = useMemo(() => {
     const fromLoc = companyLocations?.find((l) => String(l.id) === pickupLocId)?.timezone;
@@ -1195,7 +1190,6 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                 startCheckout.isPending ||
                 startVerification.isPending ||
                 startEmbedPayment.isPending ||
-                !termsAccepted ||
                 (rentalAgreementRequired && !rentalAgreementSigned)
               }
               className="mt-[14px] block w-full cursor-pointer rounded-[10px] bg-primary py-[13px] text-center text-sm font-bold text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
@@ -1205,100 +1199,51 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                 : 'Reserve Now'}
             </button>
 
-            <label className="mt-[13px] flex cursor-pointer items-center gap-[10px]">
-              <input
-                type="checkbox"
-                checked={termsAccepted}
-                onChange={(e) => setTermsAccepted(e.target.checked)}
-                className="sr-only"
-              />
-              <span
-                className={cn(
-                  'inline-flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-[5px] border-[1.5px]',
-                  termsAccepted ? 'border-primary bg-primary' : 'border-control bg-white',
-                )}
-              >
-                {termsAccepted && (
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={3.2} strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M20 6 9 17l-5-5" />
-                  </svg>
-                )}
-              </span>
-              <span className="text-[11.5px] leading-[1.5] text-muted">
-                I have read and accept the rental information and the{' '}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setTermsModalOpen(true);
-                  }}
-                  className="font-semibold text-primary underline bg-transparent border-0 p-0 cursor-pointer"
-                >
-                  Terms &amp; Conditions
-                </button>
-                . I confirm that I am booking a prepaid rate, where the entire price of the
-                reservation will be immediately debited from the payment method I have provided.
-              </span>
-            </label>
-
             {rentalAgreementRequired && (
-              <label
-                className="mt-[10px] flex cursor-pointer items-center gap-[10px]"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setRentalAgreementModalOpen(true);
-                }}
+              <button
+                type="button"
+                onClick={() => setRentalAgreementModalOpen(true)}
+                className={cn(
+                  'mt-[13px] flex w-full cursor-pointer items-center justify-between gap-2 rounded-[8px] border px-3 py-2 text-left transition-colors',
+                  rentalAgreementSigned
+                    ? 'border-green-border bg-green-bg hover:bg-green-bg-2'
+                    : 'border-primary-border bg-primary-soft hover:bg-primary-soft/70',
+                )}
               >
-                <input
-                  type="checkbox"
-                  checked={rentalAgreementSigned}
-                  readOnly
-                  className="sr-only"
-                />
-                <span
-                  className={cn(
-                    'inline-flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-[5px] border-[1.5px]',
-                    rentalAgreementSigned ? 'border-primary bg-primary' : 'border-control bg-white',
-                  )}
-                >
-                  {rentalAgreementSigned && (
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={3.2} strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M20 6 9 17l-5-5" />
-                    </svg>
-                  )}
+                <span className="flex min-w-0 items-center gap-2.5">
+                  <span
+                    className={cn(
+                      'inline-flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-[5px] border-[1.5px]',
+                      rentalAgreementSigned
+                        ? 'border-success bg-success'
+                        : 'border-primary bg-white',
+                    )}
+                  >
+                    {rentalAgreementSigned && (
+                      <Check size={11} strokeWidth={3.2} className="text-white" />
+                    )}
+                  </span>
+                  <span
+                    className={cn(
+                      'truncate text-[12px] font-semibold',
+                      rentalAgreementSigned ? 'text-success' : 'text-ink',
+                    )}
+                  >
+                    {rentalAgreementSigned
+                      ? 'Rental Agreement signed'
+                      : 'Sign Rental Agreement · required'}
+                  </span>
                 </span>
-                <span className="text-[11.5px] leading-[1.5] text-muted">
-                  {rentalAgreementSigned ? (
-                    <>
-                      Rental agreement signed.{' '}
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setRentalAgreementModalOpen(true);
-                        }}
-                        className="font-semibold text-primary underline bg-transparent border-0 p-0 cursor-pointer"
-                      >
-                        Review or re-sign
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      I have read and signed the{' '}
-                      <span className="font-semibold text-primary underline">
-                        {rentalAgreementTemplate?.title || 'Rental Agreement'}
-                      </span>
-                      . Required to complete this booking.
-                    </>
-                  )}
-                </span>
-              </label>
+                {rentalAgreementSigned && (
+                  <span className="flex-shrink-0 whitespace-nowrap text-[11.5px] font-semibold text-success underline">
+                    Review
+                  </span>
+                )}
+              </button>
             )}
 
             <div className="mt-4 flex flex-col gap-[9px]">
-              {['Free cancellation up to 48h', 'No hidden fees — price you see is final', 'Encrypted, secure payment'].map((t) => (
+              {['No hidden fees, price you see is final', 'Encrypted, secure payment'].map((t) => (
                 <div key={t} className="flex items-center gap-2 text-[11.5px] text-muted">
                   <Check size={14} strokeWidth={2} className="text-primary" />
                   {t}
@@ -1482,84 +1427,6 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
         }}
       />
 
-      {termsModalOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label="Terms & Conditions"
-          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4"
-          onClick={() => setTermsModalOpen(false)}
-        >
-          <div
-            className="flex max-h-[85vh] w-full max-w-[640px] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between border-b border-[#e2e8f0] px-6 py-4">
-              <h2 className="text-[16px] font-semibold text-ink">Terms &amp; Conditions</h2>
-              <button
-                type="button"
-                onClick={() => setTermsModalOpen(false)}
-                className="rounded-lg border border-[#e2e8f0] bg-white px-3 py-1.5 text-[13px] font-medium text-ink hover:bg-[#f1f5f9]"
-                aria-label="Close"
-              >
-                Close
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto px-6 py-5 text-[13px] leading-[1.6] text-[#334155]">
-              <p className="mb-3">
-                By completing this reservation you agree to the rental agreement between you and the
-                rental company. The following applies to every booking:
-              </p>
-              <ol className="mb-3 list-decimal pl-5 space-y-2">
-                <li>
-                  <strong>Payment.</strong> The full rental amount is charged immediately upon
-                  booking. Cancellations follow the rental company&apos;s cancellation policy.
-                </li>
-                <li>
-                  <strong>Driver requirements.</strong> The primary renter must be present at
-                  pickup with a valid driver&apos;s license, a matching credit card, and any
-                  documents required for identity or insurance verification.
-                </li>
-                <li>
-                  <strong>Vehicle use.</strong> The vehicle is provided in good working condition
-                  and must be returned in the same condition, excluding normal wear. Damage,
-                  cleaning, or fuel charges may apply on return.
-                </li>
-                <li>
-                  <strong>Mileage.</strong> Rentals include the mileage stated on the booking.
-                  Overage charges apply at the rate shown on this page.
-                </li>
-                <li>
-                  <strong>Insurance and coverage.</strong> Any optional coverage purchased at
-                  checkout is subject to the underlying provider&apos;s policy documents,
-                  including exclusions and deductibles.
-                </li>
-                <li>
-                  <strong>Modifications and refunds.</strong> Changes to pickup / dropoff dates
-                  or vehicle are subject to availability and pricing at the time of the change.
-                  Refunds follow the operator&apos;s cancellation policy.
-                </li>
-              </ol>
-              <p className="text-[12px] text-muted">
-                Full rental agreement is provided at pickup and must be signed prior to receiving
-                the vehicle.
-              </p>
-            </div>
-            <div className="border-t border-[#e2e8f0] px-6 py-4">
-              <button
-                type="button"
-                onClick={() => {
-                  setTermsAccepted(true);
-                  setTermsModalOpen(false);
-                }}
-                className="w-full rounded-[10px] bg-primary py-3 text-[13px] font-semibold text-white"
-              >
-                I understand
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
