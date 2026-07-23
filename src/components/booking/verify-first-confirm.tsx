@@ -661,7 +661,7 @@ function OutstandingChargesCard({
       <ul className="mt-3 space-y-2 text-[13px]">
         {pending.map((c) => (
           <li key={c.id} className="flex items-center justify-between gap-3">
-            <span className="text-ink">{c.description || c.charge_type}</span>
+            <span className="text-ink">{c.description || c.type}</span>
             <span className="whitespace-nowrap font-medium text-ink">
               {money(Number(c.amount || 0))}
             </span>
