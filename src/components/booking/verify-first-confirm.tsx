@@ -178,22 +178,24 @@ export function VerifyFirstConfirm(props: Props) {
       <div className="mx-auto max-w-[1180px] px-4 pt-5 pb-16 sm:px-6">
         <BackLink href={backHref}>{modeCopy.backLabel}</BackLink>
 
-        <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-4">
           <div className="min-w-0 flex-1">
-            <h1 className="text-[28px] font-semibold tracking-[-0.01em] text-ink">
+            <h1 className="text-[22px] leading-[1.2] font-semibold tracking-[-0.01em] text-ink sm:text-[28px]">
               {modeCopy.title(booking.invoice.number)}
             </h1>
-            <p className="mt-2 text-[13.5px] leading-[1.55] text-muted">
+            <p className="mt-2 text-[12.5px] leading-[1.5] text-muted sm:text-[13.5px] sm:leading-[1.55]">
               {modeCopy.subtitle}
             </p>
           </div>
           {(mode === 'confirmed_paid' || mode === 'payment_due') && (
-            <BookingActionsRow
-              bookingId={bookingId}
-              token={token}
-              canModify={canModify}
-              verificationsComplete={idVerified}
-            />
+            <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:overflow-visible sm:px-0">
+              <BookingActionsRow
+                bookingId={bookingId}
+                token={token}
+                canModify={canModify}
+                verificationsComplete={idVerified}
+              />
+            </div>
           )}
         </div>
 
@@ -294,7 +296,7 @@ export function VerifyFirstConfirm(props: Props) {
               mode={mode}
             />
 
-            {(mode === 'confirmed_paid' || mode === 'payment_due') && (
+            {mode !== 'cancelled' && (
               <TripPhotos
                 bookingId={bookingId}
                 canUpload={canUploadPhotos}
@@ -806,7 +808,7 @@ function BookingActionsRow({
     );
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex w-max items-center gap-2 sm:w-auto sm:flex-wrap">
       <Action
         label="Modify"
         icon={<Pencil size={13} className={canEdit ? 'text-primary' : 'text-faint'} />}

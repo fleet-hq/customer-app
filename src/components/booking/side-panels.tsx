@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { Check, Plus, Close } from '@/components/ui/icons';
 import { cn } from '@/lib/utils';
@@ -185,21 +185,37 @@ function PhotoGroupRow({
   canUpload: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const { mutate: uploadImage, isPending: isUploading } = useUploadTripImage();
+  const { mutate: uploadImage } = useUploadTripImage();
   const { mutate: deleteImage, isPending: isDeleting } = useDeleteTripImage();
+  const [pendingCount, setPendingCount] = useState(0);
 
   const count = group.photos.length;
-  const meta = count > 0 ? `${count} photo${count === 1 ? '' : 's'}` : (group.hint ?? 'No photos yet');
+  const pendingLabel =
+    pendingCount > 0
+      ? `Uploading ${pendingCount} file${pendingCount === 1 ? "" : "s"}…`
+      : null;
+  const meta =
+    pendingLabel ??
+    (count > 0
+      ? `${count} photo${count === 1 ? "" : "s"}`
+      : (group.hint ?? "No photos yet"));
 
   const handleSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (files) {
-      Array.from(files).forEach((file) => {
-        uploadImage({ bookingId, imageFile: file, imageType: group.imageType });
+    if (files && files.length > 0) {
+      const fileArr = Array.from(files);
+      setPendingCount((n) => n + fileArr.length);
+      fileArr.forEach((file) => {
+        uploadImage(
+          { bookingId, imageFile: file, imageType: group.imageType },
+          { onSettled: () => setPendingCount((n) => Math.max(0, n - 1)) },
+        );
       });
     }
-    if (inputRef.current) inputRef.current.value = '';
+    if (inputRef.current) inputRef.current.value = "";
   };
+
+  const emptyPlaceholders = count === 0 && pendingCount === 0 ? 3 : 0;
 
   return (
     <div>
@@ -208,11 +224,14 @@ function PhotoGroupRow({
           {group.title} <span className="font-medium text-placeholder">· {meta}</span>
         </div>
       </div>
-      <div className="grid grid-cols-4 gap-[7px]">
+      <div
+        className="grid gap-[6px]"
+        style={{ gridTemplateColumns: "repeat(auto-fill, minmax(64px, 72px))" }}
+      >
         {group.photos.map((p) => (
           <div
             key={p.id}
-            className="group relative aspect-square overflow-hidden rounded-[9px] bg-cover bg-center"
+            className="group relative aspect-square overflow-hidden rounded-[7px] bg-cover bg-center"
             style={{ backgroundImage: `url('${p.imageUrl}')` }}
           >
             {canUpload && (
@@ -220,11 +239,19 @@ function PhotoGroupRow({
                 type="button"
                 onClick={() => deleteImage({ bookingId, imageId: p.id })}
                 disabled={isDeleting}
-                className="absolute top-1 right-1 flex h-[16px] w-[16px] items-center justify-center rounded-full bg-danger text-white opacity-0 transition-opacity group-hover:opacity-100 disabled:opacity-50"
+                className="absolute top-0.5 right-0.5 flex h-[14px] w-[14px] items-center justify-center rounded-full bg-danger text-white opacity-0 transition-opacity group-hover:opacity-100 disabled:opacity-50"
               >
-                <Close size={9} strokeWidth={3} className="text-white" />
+                <Close size={8} strokeWidth={3} className="text-white" />
               </button>
             )}
+          </div>
+        ))}
+        {Array.from({ length: pendingCount }).map((_, i) => (
+          <div
+            key={`pending-${i}`}
+            className="flex aspect-square items-center justify-center rounded-[7px] border-[1.5px] border-dashed border-dash bg-subtle"
+          >
+            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-card-border border-t-primary" />
           </div>
         ))}
         <input
@@ -238,22 +265,18 @@ function PhotoGroupRow({
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          disabled={!canUpload || isUploading}
-          className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-[3px] rounded-[9px] border-[1.5px] border-dashed border-dash text-primary disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={!canUpload}
+          className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-[2px] rounded-[7px] border-[1.5px] border-dashed border-dash text-primary disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {isUploading ? (
-            <span className="h-4 w-4 animate-spin rounded-full border-2 border-card-border border-t-primary" />
-          ) : (
-            <>
-              <Plus size={16} />
-              <span className="text-[9px] font-semibold text-faint">Add</span>
-            </>
-          )}
+          <Plus size={14} />
+          <span className="text-[9px] font-semibold text-faint">Add</span>
         </button>
-        {count === 0 &&
-          [0, 1, 2].map((i) => (
-            <div key={i} className="aspect-square rounded-[9px] border border-hairline bg-subtle" />
-          ))}
+        {Array.from({ length: emptyPlaceholders }).map((_, i) => (
+          <div
+            key={`placeholder-${i}`}
+            className="aspect-square rounded-[7px] border-[1.5px] border-dashed border-dash/60 bg-subtle/40"
+          />
+        ))}
       </div>
     </div>
   );
