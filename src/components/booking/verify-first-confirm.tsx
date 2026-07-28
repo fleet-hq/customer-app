@@ -132,12 +132,19 @@ export function VerifyFirstConfirm(props: Props) {
     (requireId && idVerified ? 1 : 0) + (requireInsurance && insuranceVerified ? 1 : 0);
 
   const totalDue = inv.total;
-  const perDayRental =
+  // ``inv.rentalTotal`` is the source of truth (backend PricingService's
+  // base_price). ``inv.items[].pricePerDay`` is already the per-day rate
+  // and ``quantity`` is the day count, so multiplying them gives the
+  // total — the older formula then multiplied by ``days`` a second time,
+  // rendering "$total × N days = $total × N" (e.g. $50/day × 3 days
+  // showed as $150 × 3 = $450).
+  const rentalLine =
+    inv.rentalTotal ||
     inv.items.reduce(
       (sum, it) => sum + Number(it.pricePerDay || 0) * (it.quantity || 1),
       0,
-    ) || (inv.rentalTotal && days ? inv.rentalTotal / days : 0);
-  const rentalLine = perDayRental > 0 ? perDayRental * days : inv.rentalTotal;
+    );
+  const perDayRental = days > 0 ? rentalLine / days : 0;
 
   const lineItems: { label: string; sub?: string; value: number }[] = [];
   if (rentalLine > 0) {
@@ -164,8 +171,11 @@ export function VerifyFirstConfirm(props: Props) {
   if (inv.locationCharges > 0) {
     lineItems.push({ label: 'Location fees', value: inv.locationCharges });
   }
+  if (inv.fees > 0) {
+    lineItems.push({ label: 'Booking fee', value: inv.fees });
+  }
   if (inv.tax > 0) {
-    lineItems.push({ label: 'Taxes & fees', value: inv.tax });
+    lineItems.push({ label: 'Taxes', value: inv.tax });
   }
 
   const modeCopy = getModeCopy(mode, {
