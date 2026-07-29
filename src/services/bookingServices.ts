@@ -869,6 +869,14 @@ export async function startEmbedBookingPayment(
 export interface PublicPaymentProvidersResponse {
   providers: Array<'stripe' | 'square'>;
   default: 'stripe' | 'square';
+  /** Square Web Payments SDK credentials — populated when Square is
+   *  enabled so the checkout page can mount the Card element inline
+   *  without needing a PaymentIntent / PendingBookingCheckout row. */
+  square: {
+    application_id: string;
+    location_id: string;
+    environment: 'sandbox' | 'production';
+  } | null;
 }
 
 export async function getPublicPaymentProviders(): Promise<PublicPaymentProvidersResponse> {

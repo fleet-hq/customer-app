@@ -83,17 +83,23 @@ export async function startVerificationFirstPayment(
       { params: domainParams, headers: { 'Content-Type': 'application/json' } },
     );
     return res.data;
-  } catch (err: unknown) {
-    if (err && typeof err === 'object' && 'response' in err) {
-      const status = (err as { response?: { status?: number; data?: { status?: string; missing?: string[] } } }).response?.status;
-      const data = (err as { response?: { data?: { status?: string; missing?: string[] } } }).response?.data;
-      if (status === 409 && data?.missing) {
-        throw new VerificationIncompleteError(data.missing);
-      }
-      if (status === 410) {
-        throw new HoldExpiredError();
-      }
-    }
+  } catch (err) {
+    const typed = verifyFirstErrorFromAxios(err);
+    if (typed) throw typed;
     throw err;
   }
+}
+
+export function verifyFirstErrorFromAxios(err: unknown): Error | null {
+  if (err && typeof err === 'object' && 'response' in err) {
+    const status = (err as { response?: { status?: number; data?: { missing?: string[] } } }).response?.status;
+    const data = (err as { response?: { data?: { missing?: string[] } } }).response?.data;
+    if (status === 409 && data?.missing) {
+      return new VerificationIncompleteError(data.missing);
+    }
+    if (status === 410) {
+      return new HoldExpiredError();
+    }
+  }
+  return null;
 }

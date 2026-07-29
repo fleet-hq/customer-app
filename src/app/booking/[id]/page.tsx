@@ -21,10 +21,15 @@ import {
   HoldExpiredError,
   VerificationIncompleteError,
 } from '@/services/bookingPolicyServices';
+import { squareCreatePaymentForVerifyFirst } from '@/services/squarePaymentServices';
 import { createBillingCheckoutSession } from '@/services/billingServices';
 import { bookingHasInsuranceExtra } from '@/lib/insurance-extras';
 import { setBookingToken } from '@/utils/booking-token';
 import { paths } from '@/lib/paths';
+import { usePublicPaymentProviders } from '@/hooks';
+import { useTenant } from '@/lib/tenant-context';
+import { SquarePayModal } from '@/components/booking/square-pay-modal';
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function BookingPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -71,10 +76,28 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
 
   const [payLoading, setPayLoading] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
+  const [squareModalOpen, setSquareModalOpen] = useState(false);
+  const queryClient = useQueryClient();
+  const tenant = useTenant();
+  const { data: providersData } = usePublicPaymentProviders();
+  const activeProvider: 'stripe' | 'square' =
+    providerOverride
+      ?? (providersData?.providers?.[0] as 'stripe' | 'square')
+      ?? 'stripe';
+
   const handlePay = async () => {
     if (payLoading) return;
-    setPayLoading(true);
     setPayError(null);
+    if (
+      isVerifyFirst
+      && token
+      && activeProvider === 'square'
+      && providersData?.square
+    ) {
+      setSquareModalOpen(true);
+      return;
+    }
+    setPayLoading(true);
     try {
       const cancelUrl = buildBookingReturnUrl(id, token);
       const successUrl = buildBookingSuccessUrl();
@@ -98,6 +121,34 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
       window.location.href = checkoutUrl;
     } catch (err) {
       setPayError(messageForPaymentError(err));
+      setPayLoading(false);
+    }
+  };
+
+  const handleSquarePaySubmit = async (args: {
+    paymentSourceId: string;
+    saveCardSourceId: string | null;
+    consentCopy: string;
+  }) => {
+    if (!token || !booking) return;
+    setPayLoading(true);
+    setPayError(null);
+    try {
+      await squareCreatePaymentForVerifyFirst({
+        bookingId: Number(id),
+        accessToken: token,
+        sourceId: args.paymentSourceId,
+        currency: 'usd',
+        deposit: args.saveCardSourceId
+          ? { saveCardSourceId: args.saveCardSourceId, consentCopy: args.consentCopy }
+          : null,
+      });
+      setSquareModalOpen(false);
+      await queryClient.invalidateQueries();
+      window.location.href = `/booking/${id}?token=${encodeURIComponent(token)}`;
+    } catch (err) {
+      setPayError(messageForPaymentError(err));
+    } finally {
       setPayLoading(false);
     }
   };
@@ -250,7 +301,12 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
   const agreementSigned = !!agreementApi?.signatureImage;
   const agreementHref = `${paths.terms}?bookingId=${id}${token ? `&token=${token}` : ''}`;
 
+  const payAmount = isVerifyFirst
+    ? Number(booking.totalPrice) || booking.invoice.total
+    : outstanding;
+
   return (
+    <>
     <VerifyFirstConfirm
       booking={booking}
       backHref={mode === 'pending_verification' ? `/checkout/${booking.fleetId}` : paths.home}
@@ -264,6 +320,7 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
       insuranceVerified={insuranceVerified}
       requireId={requireId}
       requireInsurance={showInsuranceStep}
+      insuranceBlocking={requireInsurance}
       idPending={idPending}
       idError={idError}
       onIdVerify={handleIdVerify}
@@ -284,6 +341,23 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
       postTripPhotos={postTrip}
       canUploadPhotos={tokenReady && !isCancelled}
     />
+    {providersData?.square && (
+      <SquarePayModal
+        open={squareModalOpen}
+        onClose={() => !payLoading && setSquareModalOpen(false)}
+        applicationId={providersData.square.application_id}
+        locationId={providersData.square.location_id}
+        environment={(providersData.square.environment as 'sandbox' | 'production') || 'production'}
+        amount={payAmount}
+        currency="usd"
+        deposit={booking.invoice.deposit || 0}
+        tenantName={tenant?.name}
+        submitting={payLoading}
+        error={payError}
+        onSubmit={handleSquarePaySubmit}
+      />
+    )}
+    </>
   );
 }
 

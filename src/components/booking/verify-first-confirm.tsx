@@ -59,6 +59,7 @@ interface Props {
   insuranceVerified: boolean;
   requireId: boolean;
   requireInsurance: boolean;
+  insuranceBlocking: boolean;
   idPending: boolean;
   idError: string | null;
   onIdVerify: () => void;
@@ -98,6 +99,7 @@ export function VerifyFirstConfirm(props: Props) {
     insuranceVerified,
     requireId,
     requireInsurance,
+    insuranceBlocking,
     idPending,
     idError,
     onIdVerify,
@@ -181,6 +183,8 @@ export function VerifyFirstConfirm(props: Props) {
   const modeCopy = getModeCopy(mode, {
     email: booking.customer.email,
     outstanding,
+    requireId,
+    requireInsurance: insuranceBlocking,
   });
 
   return (
@@ -215,6 +219,8 @@ export function VerifyFirstConfirm(props: Props) {
           holdExpired={holdExpired}
           email={booking.customer.email}
           outstanding={outstanding}
+          requireId={requireId}
+          requireInsurance={insuranceBlocking}
         />
 
         <div className="mt-6 grid grid-cols-1 items-start gap-6 lg:grid-cols-[1.55fr_1fr]">
@@ -448,14 +454,17 @@ export function VerifyFirstConfirm(props: Props) {
 
 function getModeCopy(
   mode: BookingMode,
-  ctx: { email: string; outstanding: number },
+  ctx: { email: string; outstanding: number; requireId: boolean; requireInsurance: boolean },
 ): { backLabel: string; title: (num: string) => string; subtitle: string } {
   if (mode === 'pending_verification') {
+    const verificationLabel = verificationTaskLabel(ctx.requireId, ctx.requireInsurance);
+    const subtitle = verificationLabel
+      ? `We're holding this vehicle for you. Complete ${verificationLabel} below, then pay to lock in your reservation, you're not charged until you confirm.`
+      : "We're holding this vehicle for you. Complete payment below to lock in your reservation.";
     return {
       backLabel: 'Back to checkout',
       title: () => 'Confirm your booking',
-      subtitle:
-        "We're holding this vehicle for you. Complete both verifications below, then pay to lock in your reservation, you're not charged until you confirm.",
+      subtitle,
     };
   }
   if (mode === 'payment_due') {
@@ -479,18 +488,29 @@ function getModeCopy(
   };
 }
 
+function verificationTaskLabel(requireId: boolean, requireInsurance: boolean): string {
+  if (requireId && requireInsurance) return 'both verifications';
+  if (requireId) return 'ID verification';
+  if (requireInsurance) return 'insurance verification';
+  return '';
+}
+
 function StateBanner({
   mode,
   holdCountdownLabel,
   holdExpired,
   email,
   outstanding,
+  requireId,
+  requireInsurance,
 }: {
   mode: BookingMode;
   holdCountdownLabel: string | null;
   holdExpired: boolean;
   email: string;
   outstanding: number;
+  requireId: boolean;
+  requireInsurance: boolean;
 }) {
   if (mode === 'pending_verification') {
     return (
@@ -505,7 +525,9 @@ function StateBanner({
           <p className="mt-0.5 text-[12.5px] leading-[1.5] text-amber-text-2">
             {holdExpired
               ? 'Please start a new booking — this vehicle is no longer being held for you.'
-              : 'Complete both verifications and pay before the timer runs out to confirm your booking.'}
+              : verificationTaskLabel(requireId, requireInsurance)
+                ? `Complete ${verificationTaskLabel(requireId, requireInsurance)} and pay before the timer runs out to confirm your booking.`
+                : 'Complete payment before the timer runs out to confirm your booking.'}
           </p>
         </div>
         {holdCountdownLabel && (

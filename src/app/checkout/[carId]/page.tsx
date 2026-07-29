@@ -14,11 +14,13 @@ import { RentalBreakdown } from '@/components/booking/rental-breakdown';
 import { DEFAULT_TRIP } from '@/lib/mock-data';
 import { useFleet, useInsuranceOptions, useManualInsurancePackagesForTenant, useStartBookingCheckout, useStartEmbedBookingPayment, useCompanyLocations, useFleetUnavailableRanges, usePublicPaymentProviders } from '@/hooks';
 import { EmbedPaymentPanel } from '@/components/checkout/embed-payment-panel';
+import { SquareCardEntry, buildDepositConsentCopy, type SquareCardEntryHandle } from '@/components/checkout/square-card-entry';
 import ProtectionSection from '@/components/checkout/protection-section';
 import { useBookingInvoice } from '@/hooks/useBookingInvoice';
 import { useDefaultTaxProfile } from '@/hooks/useTaxProfiles';
 import { useBookingVerificationPolicy, useStartVerificationFirstBooking } from '@/hooks/useBookingPolicy';
 import { getBookingVerificationPolicy } from '@/services/bookingPolicyServices';
+import { squareCreatePaymentForPending } from '@/services/squarePaymentServices';
 import { useDefaultLocation } from '@/contexts';
 import { checkFleetAvailability, validatePromoCode } from '@/services/bookingServices';
 import type { InsuranceOption } from '@/services/bookingServices';
@@ -102,6 +104,8 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   const router = useRouter();
   const searchParams = useSearchParams();
   const embed = useEmbedBridge();
+  const squareCardRef = useRef<SquareCardEntryHandle | null>(null);
+  const [squareCardError, setSquareCardError] = useState<string | null>(null);
   const tenant = useTenant();
 
   const { data: insuranceOptions, isLoading: insuranceOptionsLoading } = useInsuranceOptions();
@@ -610,13 +614,61 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
       ...signaturePayload,
     };
 
-    // Square always uses the embed / Web Payments SDK path — Cards on
-    // File (needed for the off-session deposit claim) requires our own
-    // card entry, not Square hosted. Stripe uses hosted redirect
-    // unless we're already inside a widget iframe. Backend picks the
-    // provider automatically from Company.payment_provider.
-    const useEmbed = embed.embedded || activeProvider === 'square';
-    if (useEmbed) {
+    // Square uses the always-visible inline card entry — tokenize the
+    // card the user already filled in, THEN create the pending row +
+    // charge. Stripe/embed path keeps the two-step "reserve → panel"
+    // flow because Stripe Elements needs a client_secret from a
+    // pre-created PaymentIntent to render its PaymentElement.
+    if (!embed.embedded && activeProvider === 'square') {
+      const deposit = Number((vehicle as any)?.securityDeposit) || 0;
+      if (!squareCardRef.current || !squareCardRef.current.isReady()) {
+        setCheckoutError('Card entry is still loading — please wait a moment and try again.');
+        return;
+      }
+      if (deposit > 0 && !squareCardRef.current.consentChecked()) {
+        setCheckoutError('Please authorize the deposit hold to continue.');
+        return;
+      }
+      const tokens = await squareCardRef.current.tokenize({ withSaveCard: deposit > 0 });
+      if (!tokens) {
+        // SquareCardEntry set the error via onError → surface it as
+        // the checkout error too so it lands in the banner.
+        setCheckoutError(squareCardError || 'Please check your card details and try again.');
+        return;
+      }
+      try {
+        const data = await startEmbedPayment.mutateAsync({ payload: commonPayload });
+        try { window.sessionStorage.removeItem(persistKey); } catch { /* ignore */ }
+        const consentCopy = buildDepositConsentCopy({
+          tenantName: tenant?.name,
+          amount: deposit,
+          currency: data.currency,
+        });
+        const body = await squareCreatePaymentForPending({
+          pendingId: data.pending_id,
+          sourceId: tokens.paymentSourceId,
+          amount: data.amount,
+          currency: data.currency,
+          returnUrl: `${origin}/booking/success?session_id=${data.pending_id}`,
+          deposit: tokens.saveCardSourceId
+            ? { saveCardSourceId: tokens.saveCardSourceId, consentCopy }
+            : null,
+        });
+        if (body.booking_id && body.access_token) {
+          window.location.href = `/booking/${body.booking_id}?token=${encodeURIComponent(body.access_token)}`;
+          return;
+        }
+        window.location.href = `/booking/success?session_id=${encodeURIComponent(data.pending_id)}`;
+      } catch (error) {
+        setCheckoutError(
+          extractApiErrorMessage(error, 'We couldn’t start checkout. Please check your details and try again.'),
+        );
+      }
+      return;
+    }
+
+    // Widget-embed path (iframe hosts still use the two-step reveal).
+    if (embed.embedded) {
       try {
         const data = await startEmbedPayment.mutateAsync({ payload: commonPayload });
         try { window.sessionStorage.removeItem(persistKey); } catch { /* ignore */ }
@@ -925,6 +977,28 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                 {errors.phone && <FieldError>{errors.phone}</FieldError>}
               </div>
             </div>
+
+            {!embed.embedded && activeProvider === 'square' && providersData?.square && verificationPolicy?.mode !== 'before' ? (
+              <div className="mt-6">
+                <SquareCardEntry
+                  ref={squareCardRef}
+                  applicationId={providersData.square.application_id}
+                  locationId={providersData.square.location_id}
+                  environment={(providersData.square.environment as 'sandbox' | 'production') || 'production'}
+                  requiresDeposit={Number((vehicle as any)?.securityDeposit) > 0}
+                  depositConsentCopy={
+                    Number((vehicle as any)?.securityDeposit) > 0
+                      ? buildDepositConsentCopy({
+                          tenantName: tenant?.name,
+                          amount: Number((vehicle as any)?.securityDeposit) || 0,
+                          currency: 'usd',
+                        })
+                      : undefined
+                  }
+                  onError={setSquareCardError}
+                />
+              </div>
+            ) : null}
 
             {embedIntent ? (
               <div ref={paymentAnchorRef}>
