@@ -6,7 +6,8 @@ import { BackLink } from '@/components/ui/back-link';
 import { cn, money } from '@/lib/utils';
 import { paths } from '@/lib/paths';
 import { TripPhotos } from '@/components/booking/side-panels';
-import type { BookingDetails } from '@/services/bookingServices';
+import type { BookingDetails, InsuranceVerificationDetails } from '@/services/bookingServices';
+import { useState } from 'react';
 import type { BillingChargeRow } from '@/services/billingServices';
 import type { TripImage } from '@/services/tripImageServices';
 
@@ -66,6 +67,8 @@ interface Props {
   insurancePending: boolean;
   insuranceError: string | null;
   insuranceLinkSent: boolean;
+  insuranceFailed: boolean;
+  insuranceFailureDetails: InsuranceVerificationDetails | null;
   onInsuranceVerify: () => void;
   allRequiredChecksDone: boolean;
 
@@ -106,6 +109,8 @@ export function VerifyFirstConfirm(props: Props) {
     insurancePending,
     insuranceError,
     insuranceLinkSent,
+    insuranceFailed,
+    insuranceFailureDetails,
     onInsuranceVerify,
     allRequiredChecksDone,
     onPay,
@@ -291,6 +296,8 @@ export function VerifyFirstConfirm(props: Props) {
                       verified={insuranceVerified}
                       loading={insurancePending}
                       error={insuranceError}
+                      failed={insuranceFailed}
+                      failureDetails={insuranceFailureDetails}
                       onVerify={onInsuranceVerify}
                     />
                   )}
@@ -879,6 +886,8 @@ function VerifySubCard({
   loading,
   error,
   linkSent,
+  failed,
+  failureDetails,
   onVerify,
 }: {
   icon: React.ReactNode;
@@ -888,16 +897,33 @@ function VerifySubCard({
   loading: boolean;
   error: string | null;
   linkSent?: boolean;
+  failed?: boolean;
+  failureDetails?: InsuranceVerificationDetails | null;
   onVerify: () => void;
 }) {
-  const label = verified
-    ? 'Verified'
-    : loading
-      ? 'Sending…'
-      : linkSent
-        ? 'Link sent'
-        : 'Verify';
-  const buttonDisabled = verified || loading || linkSent;
+  const [detailsOpen, setDetailsOpen] = useState(false);
+
+  const label = failed
+    ? detailsOpen ? 'Hide details' : 'View details'
+    : verified
+      ? 'Verified'
+      : loading
+        ? 'Sending…'
+        : linkSent
+          ? 'Link sent'
+          : 'Verify';
+
+  const pillCopy = failed ? 'Not verified' : verified ? 'Verified' : 'Required';
+
+  const handleClick = () => {
+    if (failed) {
+      setDetailsOpen((v) => !v);
+      return;
+    }
+    onVerify();
+  };
+
+  const buttonDisabled = !failed && (verified || loading || linkSent);
 
   return (
     <div className="flex flex-col rounded-xl border border-card-border bg-white p-4">
@@ -908,12 +934,14 @@ function VerifySubCard({
         <span
           className={cn(
             'rounded-md px-2 py-0.5 text-[10.5px] font-semibold',
-            verified
-              ? 'bg-green-bg-2 text-success'
-              : 'bg-amber-bg text-amber-text-2',
+            failed
+              ? 'bg-[#FEF3F2] text-[#B42318]'
+              : verified
+                ? 'bg-green-bg-2 text-success'
+                : 'bg-amber-bg text-amber-text-2',
           )}
         >
-          {verified ? 'Verified' : 'Required'}
+          {pillCopy}
         </span>
       </div>
       <div className="mt-3 flex-1">
@@ -922,22 +950,73 @@ function VerifySubCard({
       </div>
       <button
         type="button"
-        onClick={onVerify}
+        onClick={handleClick}
         disabled={buttonDisabled}
         className={cn(
           'mt-4 w-full rounded-[9px] py-2.5 text-center text-[12.5px] font-semibold transition-colors',
-          verified
-            ? 'cursor-default bg-green-bg-2 text-success'
-            : buttonDisabled
-              ? 'cursor-not-allowed bg-track text-muted'
-              : 'bg-secondary text-white hover:opacity-90',
+          failed
+            ? 'bg-[#FEF3F2] text-[#B42318] hover:bg-[#FEE4E2]'
+            : verified
+              ? 'cursor-default bg-green-bg-2 text-success'
+              : buttonDisabled
+                ? 'cursor-not-allowed bg-track text-muted'
+                : 'bg-secondary text-white hover:opacity-90',
         )}
       >
         {label}
       </button>
+      {failed && detailsOpen && failureDetails && (
+        <FailedInsurancePanel details={failureDetails} />
+      )}
       {error && (
         <p className="mt-2 text-[11.5px] text-danger">{error}</p>
       )}
     </div>
   );
+}
+
+function FailedInsurancePanel({ details }: { details: InsuranceVerificationDetails }) {
+  const rows: { label: string; value: string }[] = [];
+  if (details.carrier) rows.push({ label: 'Carrier', value: details.carrier });
+  if (details.policyNumber) rows.push({ label: 'Policy #', value: details.policyNumber });
+  if (details.policyStatus) rows.push({ label: 'Policy status', value: titleCase(details.policyStatus) });
+  if (details.policyExpiryDate) rows.push({ label: 'Expiry', value: formatShortDate(details.policyExpiryDate) });
+  return (
+    <div className="mt-3 rounded-lg border border-[#FECDCA] bg-[#FEF3F2] p-3">
+      <p className="text-[12px] font-semibold text-[#B42318]">
+        Insurance couldn&apos;t be verified{details.disposition ? ` — ${titleCase(details.disposition)}` : ''}
+      </p>
+      {rows.length > 0 && (
+        <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1">
+          {rows.map((r) => (
+            <div key={r.label} className="contents">
+              <dt className="text-[10.5px] font-medium text-[#B42318]/70">{r.label}</dt>
+              <dd className="text-[10.5px] text-[#912018]">{r.value}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      {details.remediationMessages.length > 0 && (
+        <ul className="mt-2 list-disc space-y-0.5 pl-4 text-[11px] text-[#912018]">
+          {details.remediationMessages.map((m, i) => (
+            <li key={i}>{m}</li>
+          ))}
+        </ul>
+      )}
+      <p className="mt-2 text-[10.5px] italic text-[#B42318]/70">
+        Contact the operator to update your coverage.
+      </p>
+    </div>
+  );
+}
+
+function titleCase(s: string): string {
+  if (!s) return '';
+  return s.replace(/[_-]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function formatShortDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
 }

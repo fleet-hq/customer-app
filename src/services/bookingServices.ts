@@ -317,6 +317,17 @@ export interface ApiBooking {
   };
 }
 
+export interface InsuranceVerificationDetails {
+  status: string;
+  disposition: string | null;
+  carrier: string | null;
+  policyNumber: string | null;
+  policyStatus: string | null;
+  activeStatus: string | null;
+  policyExpiryDate: string | null;
+  remediationMessages: string[];
+}
+
 export interface BookingDetails {
   id: string;
   fleetId: number;
@@ -403,6 +414,7 @@ export interface BookingDetails {
   verifications: {
     idVerification: string;
     insuranceVerification: string;
+    insuranceDetails: InsuranceVerificationDetails | null;
   };
   bookingRef: string;
   totalPrice: string;
@@ -671,6 +683,28 @@ function transformBooking(api: ApiBooking): BookingDetails {
         ).insurance_verification_status;
         if (typeof raw === 'string') return raw || 'pending';
         return (raw && raw.status) || 'pending';
+      })(),
+      insuranceDetails: (() => {
+        const raw = (
+          api as unknown as {
+            insurance_verification_status?:
+              | string
+              | Record<string, unknown>;
+          }
+        ).insurance_verification_status;
+        if (!raw || typeof raw === 'string') return null;
+        return {
+          status: String(raw.status || 'pending'),
+          disposition: (raw.disposition as string) ?? null,
+          carrier: (raw.carrier as string) ?? null,
+          policyNumber: (raw.policy_number as string) ?? null,
+          policyStatus: (raw.policy_status as string) ?? null,
+          activeStatus: (raw.active_status as string) ?? null,
+          policyExpiryDate: (raw.policy_expiry_date as string) ?? null,
+          remediationMessages: Array.isArray(raw.remediation_messages)
+            ? (raw.remediation_messages as string[])
+            : [],
+        };
       })(),
     },
     bookingRef: api.booking_reference || String(api.id),

@@ -272,13 +272,18 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
   const idVerified = (verificationStatus?.idVerification ?? booking.verifications.idVerification) === 'verified';
   const insuranceStatusRaw =
     verificationStatus?.insuranceVerification ?? booking.verifications.insuranceVerification;
-  const insuranceVerified = insuranceStatusRaw === 'verified';
-  // "Link sent" survives page reload: any of Modives' in-flight
-  // states (linksent / verifying) means the magic link has already
-  // gone out and re-triggering would duplicate the customer's inbox
-  // and charge us for a second verification. Combine with the local
-  // ``insuranceSent`` flag so the button flips instantly after the
-  // mutation resolves (before the next 30s status poll).
+  const insuranceDetails =
+    verificationStatus?.insuranceDetails ?? booking.verifications.insuranceDetails ?? null;
+  const insuranceVerified = insuranceStatusRaw === 'verified'
+    && insuranceDetails?.activeStatus !== 'inactive';
+  const insuranceFailureDispositions = new Set([
+    'inadequate', 'failed', 'incomplete', 'unverified',
+  ]);
+  const insuranceFailed =
+    insuranceStatusRaw === 'unverified'
+    || (insuranceDetails?.disposition
+        && insuranceFailureDispositions.has(insuranceDetails.disposition))
+    || insuranceDetails?.activeStatus === 'inactive';
   const insuranceLinkAlreadySent =
     insuranceSent ||
     insuranceStatusRaw === 'linksent' ||
@@ -338,6 +343,8 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
       holdExpired={holdExpired}
       idVerified={idVerified}
       insuranceVerified={insuranceVerified}
+      insuranceFailed={!!insuranceFailed}
+      insuranceFailureDetails={insuranceFailed ? insuranceDetails : null}
       requireId={requireId}
       requireInsurance={showInsuranceStep}
       insuranceBlocking={requireInsurance}
