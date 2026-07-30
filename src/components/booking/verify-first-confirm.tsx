@@ -291,7 +291,6 @@ export function VerifyFirstConfirm(props: Props) {
                       verified={insuranceVerified}
                       loading={insurancePending}
                       error={insuranceError}
-                      linkSent={insuranceLinkSent}
                       onVerify={onInsuranceVerify}
                     />
                   )}

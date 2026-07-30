@@ -213,7 +213,6 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
       },
       {
         onSuccess: (data) => {
-          setInsuranceSent(true);
           const url = data.magicLink;
           if (!url) {
             verifyWindow?.close();
