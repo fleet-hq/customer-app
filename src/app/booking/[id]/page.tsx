@@ -203,6 +203,7 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
   const handleInsuranceVerify = () => {
     if (!booking) return;
     setInsuranceError(null);
+    const verifyWindow = window.open("", "_blank");
     createInsuranceVerification(
       {
         customerId: booking.customerId,
@@ -211,8 +212,28 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
         bookingId: id,
       },
       {
-        onSuccess: () => setInsuranceSent(true),
-        onError: () => setInsuranceError('Failed to create insurance verification. Please try again.'),
+        onSuccess: (data) => {
+          setInsuranceSent(true);
+          const url = data.magicLink;
+          if (!url) {
+            verifyWindow?.close();
+            return;
+          }
+          if (verifyWindow && !verifyWindow.closed) {
+            try {
+              verifyWindow.opener = null;
+            } catch {
+              /* cross-origin write after nav — safe to swallow */
+            }
+            verifyWindow.location.href = url;
+          } else {
+            window.open(url, "_blank", "noopener,noreferrer");
+          }
+        },
+        onError: () => {
+          verifyWindow?.close();
+          setInsuranceError('Failed to create insurance verification. Please try again.');
+        },
       },
     );
   };

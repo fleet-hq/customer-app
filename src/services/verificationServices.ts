@@ -66,16 +66,13 @@ export async function getVerificationStatus(
   }
 }
 
-// Create insurance verification via Modives (uses X-Booking-Token)
-// Backend routes consumer (booking-token) requests to the manual flow:
-// Modives emails the customer directly — no magic_link is returned.
 export async function createInsuranceVerification(
   customerId: number | string,
   rentalStartDate: string,
   rentalEndDate: string,
   bookingId?: number | string
-): Promise<{ magicLink?: string }> {
-  const res = await axios.post<{ magic_link?: string }>(
+): Promise<{ magicLink: string | null }> {
+  const res = await axios.post<{ magic_link?: string | null }>(
     `${API_URL}/api/modives/verifications/create_verification/`,
     {
       customer_id: customerId,
@@ -86,6 +83,6 @@ export async function createInsuranceVerification(
     { headers: getBookingTokenHeaders() }
   );
   return {
-    magicLink: res.data.magic_link,
+    magicLink: res.data.magic_link ?? null,
   };
 }
