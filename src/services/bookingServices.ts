@@ -328,6 +328,48 @@ export interface InsuranceVerificationDetails {
   remediationMessages: string[];
 }
 
+const INSURANCE_FAILED_DISPOSITIONS = new Set([
+  'inadequate', 'failed', 'incomplete', 'unverified',
+]);
+
+export function mapInsuranceVerificationDetails(
+  raw: unknown,
+): InsuranceVerificationDetails | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const r = raw as Record<string, unknown>;
+  return {
+    status: String(r.status || 'pending'),
+    disposition: (r.disposition as string) ?? null,
+    carrier: (r.carrier as string) ?? null,
+    policyNumber: (r.policy_number as string) ?? null,
+    policyStatus: (r.policy_status as string) ?? null,
+    activeStatus: (r.active_status as string) ?? null,
+    policyExpiryDate: (r.policy_expiry_date as string) ?? null,
+    remediationMessages: Array.isArray(r.remediation_messages)
+      ? (r.remediation_messages as string[])
+      : [],
+  };
+}
+
+export function isInsuranceFailed(
+  status: string | null | undefined,
+  details: InsuranceVerificationDetails | null | undefined,
+): boolean {
+  if (status === 'unverified') return true;
+  if (details?.activeStatus === 'inactive') return true;
+  if (details?.disposition && INSURANCE_FAILED_DISPOSITIONS.has(details.disposition)) {
+    return true;
+  }
+  return false;
+}
+
+export function isInsuranceVerified(
+  status: string | null | undefined,
+  details: InsuranceVerificationDetails | null | undefined,
+): boolean {
+  return status === 'verified' && details?.activeStatus !== 'inactive';
+}
+
 export interface BookingDetails {
   id: string;
   fleetId: number;
@@ -684,28 +726,9 @@ function transformBooking(api: ApiBooking): BookingDetails {
         if (typeof raw === 'string') return raw || 'pending';
         return (raw && raw.status) || 'pending';
       })(),
-      insuranceDetails: (() => {
-        const raw = (
-          api as unknown as {
-            insurance_verification_status?:
-              | string
-              | Record<string, unknown>;
-          }
-        ).insurance_verification_status;
-        if (!raw || typeof raw === 'string') return null;
-        return {
-          status: String(raw.status || 'pending'),
-          disposition: (raw.disposition as string) ?? null,
-          carrier: (raw.carrier as string) ?? null,
-          policyNumber: (raw.policy_number as string) ?? null,
-          policyStatus: (raw.policy_status as string) ?? null,
-          activeStatus: (raw.active_status as string) ?? null,
-          policyExpiryDate: (raw.policy_expiry_date as string) ?? null,
-          remediationMessages: Array.isArray(raw.remediation_messages)
-            ? (raw.remediation_messages as string[])
-            : [],
-        };
-      })(),
+      insuranceDetails: mapInsuranceVerificationDetails(
+        (api as unknown as { insurance_verification_status?: unknown }).insurance_verification_status,
+      ),
     },
     bookingRef: api.booking_reference || String(api.id),
     totalPrice: api.total_price != null ? String(api.total_price) : '',

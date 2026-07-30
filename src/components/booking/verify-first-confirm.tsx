@@ -13,6 +13,13 @@ import type { TripImage } from '@/services/tripImageServices';
 
 const PLACEHOLDER_IMAGE = '/images/car-cherokee.png';
 
+const FAILED_PILL_CLASSES = 'bg-[#FEF3F2] text-[#B42318]';
+const FAILED_BUTTON_CLASSES = 'bg-[#FEF3F2] text-[#B42318] hover:bg-[#FEE4E2]';
+const FAILED_PANEL_CLASSES = 'border-[#FECDCA] bg-[#FEF3F2]';
+const FAILED_TEXT_PRIMARY = 'text-[#B42318]';
+const FAILED_TEXT_SECONDARY = 'text-[#912018]';
+const FAILED_TEXT_MUTED = 'text-[#B42318]/70';
+
 function rentalDays(booking: BookingDetails): number {
   const start = new Date(booking.pickUp.rawDatetime).getTime();
   const end = new Date(booking.dropOff.rawDatetime).getTime();
@@ -935,7 +942,7 @@ function VerifySubCard({
           className={cn(
             'rounded-md px-2 py-0.5 text-[10.5px] font-semibold',
             failed
-              ? 'bg-[#FEF3F2] text-[#B42318]'
+              ? FAILED_PILL_CLASSES
               : verified
                 ? 'bg-green-bg-2 text-success'
                 : 'bg-amber-bg text-amber-text-2',
@@ -955,7 +962,7 @@ function VerifySubCard({
         className={cn(
           'mt-4 w-full rounded-[9px] py-2.5 text-center text-[12.5px] font-semibold transition-colors',
           failed
-            ? 'bg-[#FEF3F2] text-[#B42318] hover:bg-[#FEE4E2]'
+            ? FAILED_BUTTON_CLASSES
             : verified
               ? 'cursor-default bg-green-bg-2 text-success'
               : buttonDisabled
@@ -979,43 +986,43 @@ function FailedInsurancePanel({ details }: { details: InsuranceVerificationDetai
   const rows: { label: string; value: string }[] = [];
   if (details.carrier) rows.push({ label: 'Carrier', value: details.carrier });
   if (details.policyNumber) rows.push({ label: 'Policy #', value: details.policyNumber });
-  if (details.policyStatus) rows.push({ label: 'Policy status', value: titleCase(details.policyStatus) });
-  if (details.policyExpiryDate) rows.push({ label: 'Expiry', value: formatShortDate(details.policyExpiryDate) });
+  if (details.policyStatus) rows.push({ label: 'Policy status', value: humanize(details.policyStatus) });
+  if (details.policyExpiryDate) rows.push({ label: 'Expiry', value: formatExpiryDate(details.policyExpiryDate) });
   return (
-    <div className="mt-3 rounded-lg border border-[#FECDCA] bg-[#FEF3F2] p-3">
-      <p className="text-[12px] font-semibold text-[#B42318]">
-        Insurance couldn&apos;t be verified{details.disposition ? ` — ${titleCase(details.disposition)}` : ''}
+    <div className={cn('mt-3 rounded-lg border p-3', FAILED_PANEL_CLASSES)}>
+      <p className={cn('text-[12px] font-semibold', FAILED_TEXT_PRIMARY)}>
+        Insurance couldn&apos;t be verified{details.disposition ? ` — ${humanize(details.disposition)}` : ''}
       </p>
       {rows.length > 0 && (
         <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1">
           {rows.map((r) => (
             <div key={r.label} className="contents">
-              <dt className="text-[10.5px] font-medium text-[#B42318]/70">{r.label}</dt>
-              <dd className="text-[10.5px] text-[#912018]">{r.value}</dd>
+              <dt className={cn('text-[10.5px] font-medium', FAILED_TEXT_MUTED)}>{r.label}</dt>
+              <dd className={cn('text-[10.5px]', FAILED_TEXT_SECONDARY)}>{r.value}</dd>
             </div>
           ))}
         </dl>
       )}
       {details.remediationMessages.length > 0 && (
-        <ul className="mt-2 list-disc space-y-0.5 pl-4 text-[11px] text-[#912018]">
+        <ul className={cn('mt-2 list-disc space-y-0.5 pl-4 text-[11px]', FAILED_TEXT_SECONDARY)}>
           {details.remediationMessages.map((m, i) => (
             <li key={i}>{m}</li>
           ))}
         </ul>
       )}
-      <p className="mt-2 text-[10.5px] italic text-[#B42318]/70">
+      <p className={cn('mt-2 text-[10.5px] italic', FAILED_TEXT_MUTED)}>
         Contact the operator to update your coverage.
       </p>
     </div>
   );
 }
 
-function titleCase(s: string): string {
+function humanize(s: string): string {
   if (!s) return '';
   return s.replace(/[_-]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function formatShortDate(iso: string): string {
+function formatExpiryDate(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
   return d.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });

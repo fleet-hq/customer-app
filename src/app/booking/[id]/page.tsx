@@ -21,6 +21,7 @@ import {
   HoldExpiredError,
   VerificationIncompleteError,
 } from '@/services/bookingPolicyServices';
+import { isInsuranceFailed, isInsuranceVerified } from '@/services/bookingServices';
 import { squareCreatePaymentForVerifyFirst } from '@/services/squarePaymentServices';
 import { createBillingCheckoutSession } from '@/services/billingServices';
 import { bookingHasInsuranceExtra } from '@/lib/insurance-extras';
@@ -274,16 +275,8 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
     verificationStatus?.insuranceVerification ?? booking.verifications.insuranceVerification;
   const insuranceDetails =
     verificationStatus?.insuranceDetails ?? booking.verifications.insuranceDetails ?? null;
-  const insuranceVerified = insuranceStatusRaw === 'verified'
-    && insuranceDetails?.activeStatus !== 'inactive';
-  const insuranceFailureDispositions = new Set([
-    'inadequate', 'failed', 'incomplete', 'unverified',
-  ]);
-  const insuranceFailed =
-    insuranceStatusRaw === 'unverified'
-    || (insuranceDetails?.disposition
-        && insuranceFailureDispositions.has(insuranceDetails.disposition))
-    || insuranceDetails?.activeStatus === 'inactive';
+  const insuranceVerified = isInsuranceVerified(insuranceStatusRaw, insuranceDetails);
+  const insuranceFailed = isInsuranceFailed(insuranceStatusRaw, insuranceDetails);
   const insuranceLinkAlreadySent =
     insuranceSent ||
     insuranceStatusRaw === 'linksent' ||
@@ -343,7 +336,7 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
       holdExpired={holdExpired}
       idVerified={idVerified}
       insuranceVerified={insuranceVerified}
-      insuranceFailed={!!insuranceFailed}
+      insuranceFailed={insuranceFailed}
       insuranceFailureDetails={insuranceFailed ? insuranceDetails : null}
       requireId={requireId}
       requireInsurance={showInsuranceStep}

@@ -33,7 +33,10 @@ export async function createIdentityVerificationSession(
   };
 }
 
-import type { InsuranceVerificationDetails } from '@/services/bookingServices';
+import {
+  mapInsuranceVerificationDetails,
+  type InsuranceVerificationDetails,
+} from '@/services/bookingServices';
 
 // Get verification status for a booking (uses X-Booking-Token)
 export async function getVerificationStatus(
@@ -44,41 +47,22 @@ export async function getVerificationStatus(
   insuranceDetails: InsuranceVerificationDetails | null;
 }> {
   try {
-    // id_verification_status is a string ("verified" / "pending"),
-    // insurance_verification_status is an object {status, carrier, ...}.
     const res = await axios.get<{
       id_verification_status: string;
-      insurance_verification_status:
-        | string
-        | Record<string, unknown>;
+      insurance_verification_status: string | Record<string, unknown>;
     }>(
       `${API_URL}/api/bookings/${bookingId}/`,
       { headers: getBookingTokenHeaders() }
     );
 
     const raw = res.data.insurance_verification_status;
-    const insStatus =
+    const insuranceVerification =
       typeof raw === 'string' ? raw : String(raw?.status || 'pending');
-    const insuranceDetails: InsuranceVerificationDetails | null =
-      !raw || typeof raw === 'string'
-        ? null
-        : {
-            status: String(raw.status || 'pending'),
-            disposition: (raw.disposition as string) ?? null,
-            carrier: (raw.carrier as string) ?? null,
-            policyNumber: (raw.policy_number as string) ?? null,
-            policyStatus: (raw.policy_status as string) ?? null,
-            activeStatus: (raw.active_status as string) ?? null,
-            policyExpiryDate: (raw.policy_expiry_date as string) ?? null,
-            remediationMessages: Array.isArray(raw.remediation_messages)
-              ? (raw.remediation_messages as string[])
-              : [],
-          };
 
     return {
       idVerification: res.data.id_verification_status || 'pending',
-      insuranceVerification: insStatus,
-      insuranceDetails,
+      insuranceVerification,
+      insuranceDetails: mapInsuranceVerificationDetails(raw),
     };
   } catch {
     return {
