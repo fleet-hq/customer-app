@@ -21,8 +21,9 @@ export const useVerificationStatus = (
     queryKey: ['verificationStatus', bookingId],
     queryFn: () => getVerificationStatus(bookingId!),
     enabled: !!bookingId,
-    refetchInterval: opts?.pollFast ? 5 * 1000 : 30 * 1000,
+    refetchInterval: opts?.pollFast ? 3 * 1000 : 30 * 1000,
     refetchOnWindowFocus: true,
+    staleTime: 0,
   });
 
 export const useCreateInsuranceVerification = () =>

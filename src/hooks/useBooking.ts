@@ -64,6 +64,8 @@ export const useBookingDetails = (bookingId?: string | number) =>
     queryKey: ['booking', bookingId],
     queryFn: () => getBookingById(bookingId!),
     enabled: !!bookingId,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
   });
 
 export const useCreateBooking = () =>

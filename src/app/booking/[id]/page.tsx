@@ -83,6 +83,21 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
   const [payError, setPayError] = useState<string | null>(null);
   const [squareModalOpen, setSquareModalOpen] = useState(false);
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!fetchId) return;
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return;
+      queryClient.invalidateQueries({ queryKey: ['booking', fetchId] });
+      queryClient.invalidateQueries({ queryKey: ['verificationStatus', fetchId] });
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', onVisible);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', onVisible);
+    };
+  }, [fetchId, queryClient]);
   const tenant = useTenant();
   const { data: providersData } = usePublicPaymentProviders();
   const activeProvider: 'stripe' | 'square' =
