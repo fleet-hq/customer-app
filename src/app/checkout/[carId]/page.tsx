@@ -33,6 +33,9 @@ import { useEmbedBridge } from '@/hooks';
 import { useTenant } from '@/lib/tenant-context';
 import { useDefaultAgreementTemplate } from '@/hooks/useAgreements';
 import { RentalAgreementSignModal } from '@/components/booking/rental-agreement-sign-modal';
+import AbiCoverageCard from '@/components/checkout/AbiCoverageCard';
+import { useAbiQuote } from '@/hooks/useAbi';
+import type { AbiQuoteAvailable } from '@/services/abiServices';
 
 const PLACEHOLDER_IMAGE = '/images/vehicles/car_placeholder.png';
 
@@ -154,6 +157,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
 
   const [selectedInsurance, setSelectedInsurance] = useState<Set<string>>(new Set());
   const [selectedManualIds, setSelectedManualIds] = useState<Set<number>>(new Set());
+  const [abiOptedIn, setAbiOptedIn] = useState(false);
   useEffect(() => {
     const mandatoryIds = (manualInsurancePackages ?? [])
       .filter((p) => p.isMandatory)
@@ -220,12 +224,14 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
         extras?: Record<string, number>;
         promoCode?: string;
         promoInput?: string;
+        abiOptedIn?: boolean;
       };
       if (saved.fields) setFields(saved.fields);
       if (Array.isArray(saved.selectedInsurance)) setSelectedInsurance(new Set(saved.selectedInsurance));
       if (saved.extras) setExtras(saved.extras);
       if (saved.promoCode) setPromoCode(saved.promoCode);
       if (saved.promoInput) setPromoInput(saved.promoInput);
+      if (typeof saved.abiOptedIn === 'boolean') setAbiOptedIn(saved.abiOptedIn);
     } catch {
       /* corrupt entry — ignore */
     }
@@ -243,12 +249,13 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
           extras,
           promoCode,
           promoInput,
+          abiOptedIn,
         }),
       );
     } catch {
       /* quota / private mode — silently drop */
     }
-  }, [persistKey, fields, selectedInsurance, extras, promoCode, promoInput]);
+  }, [persistKey, fields, selectedInsurance, extras, promoCode, promoInput, abiOptedIn]);
 
   const fleetTz = useMemo(() => {
     const fromLoc = companyLocations?.find((l) => String(l.id) === pickupLocId)?.timezone;
@@ -264,6 +271,18 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   }, [fleetTz, pickupDate, pickupTime, returnDate, returnTime]);
 
   const { data: vehicle, isLoading } = useFleet(carId, true, fleetDateArgs);
+
+  const { data: abiQuote } = useAbiQuote({
+    fleetId: vehicle?.id,
+    startDate: pickupDate ? pickupDate.slice(0, 10) : undefined,
+    endDate: returnDate ? returnDate.slice(0, 10) : undefined,
+  });
+  const abiAvailable: AbiQuoteAvailable | null =
+    abiQuote && abiQuote.available === true ? (abiQuote as AbiQuoteAvailable) : null;
+  useEffect(() => {
+    if (!abiAvailable && abiOptedIn) setAbiOptedIn(false);
+  }, [abiAvailable, abiOptedIn]);
+  const abiPremium = abiAvailable && abiOptedIn ? Number(abiAvailable.total_price) : 0;
 
   useEffect(() => {
     if (pickupLocId || !companyLocations?.length) return;
@@ -414,7 +433,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   const galleryImages = vehicle.images.length > 0 ? vehicle.images : ['/images/car-cherokee.png'];
 
   const discount = pricing.discount;
-  const total = pricing.total;
+  const total = pricing.total + abiPremium;
 
   const isInsuranceDisabled = (id: string) => id === 'sli' && !selectedInsurance.has('rcli');
   const toggleInsurance = (id: string) => {
@@ -572,6 +591,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
         return_car_to_different_branch: false,
         additional_drivers: 0,
         notes: '',
+        abi_coverage: abiOptedIn,
         ...(promoApplied && promoCode ? { promo_code: promoCode } : {}),
         ...signaturePayload,
       };
@@ -610,7 +630,8 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
       pai_cover: selectedInsurance.has('pai'),
       ...(manualIds.length > 0 ? { manual_insurance_package_ids: manualIds } : {}),
       extras: activeExtraItems.length > 0 ? activeExtraItems : undefined,
-      ...(promoApplied && promoCode ? { discount_code: promoCode, promo_code: promoCode } : {}),
+      abi_coverage: abiOptedIn,
+      ...(promoApplied && promoCode ? { promo_code: promoCode } : {}),
       ...signaturePayload,
     };
 
@@ -899,6 +920,14 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               recommendedBonzahId={recommendedPlanId ?? undefined}
             />
 
+            {abiAvailable && (
+              <AbiCoverageCard
+                quote={abiAvailable}
+                opted={abiOptedIn}
+                onChange={setAbiOptedIn}
+              />
+            )}
+
             {vehicle.extras.length > 0 && (
               <>
             <h3 className="mb-3 text-[15px] font-semibold text-ink">Add extras</h3>
@@ -1108,6 +1137,15 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               <div className="flex items-start justify-between text-[13px]">
                 <div className="font-medium text-ink">{ownSelected ? 'Own insurance' : 'No protection selected'}</div>
                 <span className="font-medium text-ink">{money(0)}</span>
+              </div>
+            )}
+            {abiAvailable && abiOptedIn && (
+              <div className="mt-[10px] flex items-start justify-between text-[13px]">
+                <div>
+                  <div className="font-medium text-ink">Rental Coverage</div>
+                  <div className="mt-px text-[11.5px] text-muted">{money(Number(abiAvailable.daily_price))} × {abiAvailable.days} days</div>
+                </div>
+                <span className="font-medium text-ink">{money(Number(abiAvailable.total_price))}</span>
               </div>
             )}
             <div className="my-[14px] h-px bg-card-border" />
