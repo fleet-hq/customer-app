@@ -50,9 +50,16 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
 
   const fetchId = tokenReady ? id : undefined;
 
+  const [insuranceSent, setInsuranceSent] = useState(false);
+  const [idSent, setIdSent] = useState(false);
+  const [idError, setIdError] = useState<string | null>(null);
+  const [insuranceError, setInsuranceError] = useState<string | null>(null);
+
   const { data: booking, isLoading, isError } = useBookingDetails(fetchId);
   const { data: balance } = useBookingBalance(!!fetchId, id);
-  const { data: verificationStatus } = useVerificationStatus(fetchId);
+  const { data: verificationStatus } = useVerificationStatus(fetchId, {
+    pollFast: idSent || insuranceSent,
+  });
   const { data: agreementApi } = useAgreementByBooking(fetchId);
   const { data: bookingImages = [] } = useBookingImages(fetchId);
   const { data: verificationPolicy } = useBookingVerificationPolicy();
@@ -61,9 +68,6 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
   const { mutate: createIdVerification, isPending: idPending } = useCreateIdentityVerification();
   const { mutate: createInsuranceVerification, isPending: insurancePending } =
     useCreateInsuranceVerification();
-  const [idError, setIdError] = useState<string | null>(null);
-  const [insuranceError, setInsuranceError] = useState<string | null>(null);
-  const [insuranceSent, setInsuranceSent] = useState(false);
 
   const [nowMs, setNowMs] = useState<number>(() => Date.now());
 
@@ -178,6 +182,7 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
             verifyWindow?.close();
             return;
           }
+          setIdSent(true);
           if (verifyWindow && !verifyWindow.closed) {
             try {
               verifyWindow.opener = null;
@@ -219,6 +224,7 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
             verifyWindow?.close();
             return;
           }
+          setInsuranceSent(true);
           if (verifyWindow && !verifyWindow.closed) {
             try {
               verifyWindow.opener = null;
@@ -343,6 +349,7 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
       insuranceBlocking={requireInsurance}
       idPending={idPending}
       idError={idError}
+      idLinkSent={idSent || idVerified}
       onIdVerify={handleIdVerify}
       insurancePending={insurancePending}
       insuranceError={insuranceError}

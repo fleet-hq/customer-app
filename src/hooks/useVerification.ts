@@ -13,12 +13,16 @@ export const useCreateIdentityVerification = () =>
       createIdentityVerificationSession(customerId),
   });
 
-export const useVerificationStatus = (bookingId?: number | string) =>
+export const useVerificationStatus = (
+  bookingId?: number | string,
+  opts?: { pollFast?: boolean },
+) =>
   useQuery({
     queryKey: ['verificationStatus', bookingId],
     queryFn: () => getVerificationStatus(bookingId!),
     enabled: !!bookingId,
-    refetchInterval: 30 * 1000, // Poll every 30 seconds for status updates
+    refetchInterval: opts?.pollFast ? 5 * 1000 : 30 * 1000,
+    refetchOnWindowFocus: true,
   });
 
 export const useCreateInsuranceVerification = () =>

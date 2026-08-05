@@ -70,6 +70,7 @@ interface Props {
   insuranceBlocking: boolean;
   idPending: boolean;
   idError: string | null;
+  idLinkSent: boolean;
   onIdVerify: () => void;
   insurancePending: boolean;
   insuranceError: string | null;
@@ -112,6 +113,7 @@ export function VerifyFirstConfirm(props: Props) {
     insuranceBlocking,
     idPending,
     idError,
+    idLinkSent,
     onIdVerify,
     insurancePending,
     insuranceError,
@@ -292,6 +294,7 @@ export function VerifyFirstConfirm(props: Props) {
                       verified={idVerified}
                       loading={idPending}
                       error={idError}
+                      linkSent={idLinkSent}
                       onVerify={onIdVerify}
                     />
                   )}
@@ -917,7 +920,7 @@ function VerifySubCard({
       : loading
         ? 'Sending…'
         : linkSent
-          ? 'Link sent'
+          ? 'In progress…'
           : 'Verify';
 
   const pillCopy = failed ? 'Not verified' : verified ? 'Verified' : 'Required';
