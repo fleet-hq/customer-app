@@ -815,6 +815,7 @@ export interface CreateBookingPayload {
   pickup_location_id: number;
   dropoff_location_id?: number;
   insurance_selected: boolean;
+  abi_coverage?: boolean;
   cdw_cover: boolean;
   rcli_cover: boolean;
   sli_cover: boolean;
@@ -904,6 +905,7 @@ export async function startEmbedBookingPayment(
     return_car_to_different_branch: false,
     notes: '',
     insurance_selected: payload.insurance_selected,
+    abi_coverage: payload.abi_coverage ?? false,
     cdw_cover: payload.cdw_cover,
     rcli_cover: payload.rcli_cover,
     sli_cover: payload.sli_cover,
@@ -966,6 +968,7 @@ export async function startBookingCheckout(
     return_car_to_different_branch: false,
     notes: '',
     insurance_selected: payload.insurance_selected,
+    abi_coverage: payload.abi_coverage ?? false,
     cdw_cover: payload.cdw_cover,
     rcli_cover: payload.rcli_cover,
     sli_cover: payload.sli_cover,
@@ -1051,6 +1054,7 @@ export async function createBooking(payload: CreateBookingPayload): Promise<{ id
       return_car_to_different_branch: false,
       notes: '',
       insurance_selected: payload.insurance_selected,
+      abi_coverage: payload.abi_coverage ?? false,
       cdw_cover: payload.cdw_cover,
       rcli_cover: payload.rcli_cover,
       sli_cover: payload.sli_cover,
