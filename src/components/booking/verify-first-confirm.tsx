@@ -177,6 +177,13 @@ export function VerifyFirstConfirm(props: Props) {
       value: inv.insurancePremium,
     });
   }
+  if (inv.abiPremium > 0) {
+    lineItems.push({
+      label: 'Rental Coverage',
+      sub: `${money(inv.abiPremium / Math.max(days, 1))} × ${days} day${days === 1 ? '' : 's'}`,
+      value: inv.abiPremium,
+    });
+  }
   for (const extra of inv.extras || []) {
     lineItems.push({
       label: extra.name,

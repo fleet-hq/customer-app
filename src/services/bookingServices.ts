@@ -306,6 +306,15 @@ export interface ApiBooking {
       pai_cover: boolean;
     };
   } | null;
+  abi_coverage?: {
+    id: number;
+    rental_id: string;
+    premium_amount: string | null;
+    status: string;
+    has_comp_coll: boolean;
+    start_time: string;
+    end_time: string;
+  } | null;
   offer: unknown | null;
   created_at: string;
   updated_at: string;
@@ -434,6 +443,8 @@ export interface BookingDetails {
     rentalTotal: number;
     fees: number;
     insurancePremium: number;
+    abiPremium: number;
+    abiStatus: string | null;
     subtotal: number;
     discount: number;
     discountCode: string;
@@ -683,6 +694,8 @@ function transformBooking(api: ApiBooking): BookingDetails {
       rentalTotal: rentalSum,
       fees,
       insurancePremium: Number(api.insurance_details?.premium_amount) || 0,
+      abiPremium: Number(api.abi_coverage?.premium_amount) || 0,
+      abiStatus: (api.abi_coverage?.status as string) || null,
       subtotal,
       discount,
       discountCode: (api.promo_code ?? '').toString().trim(),
