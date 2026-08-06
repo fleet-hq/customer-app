@@ -442,17 +442,23 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
       next.delete('own');
       return next;
     });
+  // Invariant: 'own' (renter brings external insurance) is mutually
+  // exclusive with every real coverage source — Bonzah tiers, ABI, and
+  // manual packages. Turning 'own' ON clears every real source below;
+  // turning any real source ON clears 'own' (handled here for Bonzah,
+  // in handleToggleAbi/handleToggleManual for the other two).
   const toggleInsurance = (id: string) => {
+    if (id === 'own') {
+      const turningOn = !selectedInsurance.has('own');
+      setSelectedInsurance(turningOn ? new Set(['own']) : new Set());
+      if (turningOn) {
+        setAbiOptedIn(false);
+        setSelectedManualIds((prev) => (prev.size ? new Set() : prev));
+      }
+      return;
+    }
     setSelectedInsurance((prev) => {
       const next = new Set(prev);
-      if (id === 'own') {
-        if (next.has('own')) next.delete('own');
-        else {
-          next.clear();
-          next.add('own');
-        }
-        return next;
-      }
       next.delete('own');
       if (next.has(id)) {
         next.delete(id);
@@ -462,10 +468,6 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
       }
       return next;
     });
-    if (id === 'own') {
-      setAbiOptedIn(false);
-      setSelectedManualIds((prev) => (prev.size ? new Set() : prev));
-    }
   };
   const handleToggleAbi = (opted: boolean) => {
     if (opted) clearOwnInsurance();
