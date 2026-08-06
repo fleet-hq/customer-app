@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { getAbiQuote, type AbiQuoteResponse, type GetAbiQuoteArgs } from '@/services/abiServices';
 
 export const useAbiQuote = ({
@@ -22,5 +22,6 @@ export const useAbiQuote = ({
     enabled,
     staleTime: 5 * 60 * 1000,
     retry: false,
+    placeholderData: keepPreviousData,
   });
 };
