@@ -278,10 +278,6 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   });
   const abiAvailable: AbiQuoteAvailable | null =
     abiQuote && abiQuote.available === true ? (abiQuote as AbiQuoteAvailable) : null;
-  const abiDefinitivelyUnavailable = abiQuote?.available === false;
-  useEffect(() => {
-    if (abiDefinitivelyUnavailable && abiOptedIn) setAbiOptedIn(false);
-  }, [abiDefinitivelyUnavailable, abiOptedIn]);
   const abiPremium = abiAvailable && abiOptedIn ? Number(abiAvailable.total_price) : 0;
 
   useEffect(() => {
@@ -620,7 +616,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
         return_car_to_different_branch: false,
         additional_drivers: 0,
         notes: '',
-        abi_coverage: abiOptedIn,
+        abi_coverage: !!abiAvailable && abiOptedIn,
         ...(promoApplied && promoCode ? { promo_code: promoCode } : {}),
         ...signaturePayload,
       };
@@ -659,7 +655,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
       pai_cover: selectedInsurance.has('pai'),
       ...(manualIds.length > 0 ? { manual_insurance_package_ids: manualIds } : {}),
       extras: activeExtraItems.length > 0 ? activeExtraItems : undefined,
-      abi_coverage: abiOptedIn,
+      abi_coverage: !!abiAvailable && abiOptedIn,
       ...(promoApplied && promoCode ? { promo_code: promoCode } : {}),
       ...signaturePayload,
     };
