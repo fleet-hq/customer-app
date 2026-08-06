@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { Check, Info } from '@/components/ui/icons';
 
 import type { InsuranceOption, ManualInsurancePackage } from '@/services/bookingServices';
+import type { AbiQuoteAvailable } from '@/services/abiServices';
 import { cn, money } from '@/lib/utils';
 
 interface Props {
@@ -19,6 +20,9 @@ interface Props {
   isBonzahDisabled: (id: string) => boolean;
   hasBonzahDetail: (id: string) => boolean;
   recommendedBonzahId?: string;
+  abiQuote?: AbiQuoteAvailable | null;
+  abiOpted?: boolean;
+  onToggleAbi?: (opted: boolean) => void;
 }
 
 // Bonzah + manual (tenant-added) insurance packages render in a single
@@ -40,8 +44,12 @@ export default function ProtectionSection({
   isBonzahDisabled,
   hasBonzahDetail,
   recommendedBonzahId,
+  abiQuote,
+  abiOpted,
+  onToggleAbi,
 }: Props): ReactNode {
-  if (bonzahPlans.length === 0 && manualPackages.length === 0) return null;
+  const hasAbi = !!abiQuote && !!onToggleAbi;
+  if (bonzahPlans.length === 0 && manualPackages.length === 0 && !hasAbi) return null;
 
   return (
     <>
@@ -61,6 +69,13 @@ export default function ProtectionSection({
             onOpenDetail={() => onOpenBonzahDetail(p.id)}
           />
         ))}
+        {hasAbi && (
+          <AbiCard
+            quote={abiQuote!}
+            selected={!!abiOpted}
+            onToggle={() => onToggleAbi!(!abiOpted)}
+          />
+        )}
         {manualPackages.map((pkg) => (
           <ManualCard
             key={pkg.id}
@@ -71,6 +86,57 @@ export default function ProtectionSection({
         ))}
       </div>
     </>
+  );
+}
+
+
+function AbiCard({
+  quote,
+  selected,
+  onToggle,
+}: {
+  quote: AbiQuoteAvailable;
+  selected: boolean;
+  onToggle: () => void;
+}) {
+  const daily = Number(quote.daily_price);
+  return (
+    <div
+      onClick={onToggle}
+      className={cn(
+        'relative flex flex-col rounded-[12px] p-[14px] transition-colors',
+        selected
+          ? 'cursor-pointer border-[1.5px] border-primary bg-primary-soft'
+          : 'cursor-pointer border border-line bg-white',
+      )}
+    >
+      <div className="flex items-center gap-[9px]">
+        <span
+          className={cn(
+            'flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-[5px] border-[1.5px]',
+            selected ? 'border-primary bg-primary' : 'border-control bg-white',
+          )}
+        >
+          {selected && <Check size={12} strokeWidth={3} className="text-white" />}
+        </span>
+        <span className="text-[13.5px] font-semibold text-ink">Rental Coverage</span>
+      </div>
+      <div className="mt-[9px] text-[12px] leading-[1.5] text-muted">
+        Liability{quote.comp_coll_included ? ' + Comprehensive & Collision' : ''} for the trip.
+        Provided by ABI Insurance.
+      </div>
+      <div className={cn('mt-auto pt-3 text-[16px] font-bold', selected ? 'text-primary' : 'text-ink')}>
+        {money(daily)}
+        <span className="text-[11px] font-normal text-muted">/day</span>
+      </div>
+      {quote.comp_coll_included && (
+        <div className={cn('mt-3 border-t pt-[10px]', selected ? 'border-primary-border' : 'border-hairline')}>
+          <span className="inline-flex items-center rounded bg-green-bg border border-green-border px-[7px] py-[3px] text-[10px] font-semibold text-success">
+            Comp/Coll included
+          </span>
+        </div>
+      )}
+    </div>
   );
 }
 

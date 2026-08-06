@@ -33,7 +33,6 @@ import { useEmbedBridge } from '@/hooks';
 import { useTenant } from '@/lib/tenant-context';
 import { useDefaultAgreementTemplate } from '@/hooks/useAgreements';
 import { RentalAgreementSignModal } from '@/components/booking/rental-agreement-sign-modal';
-import AbiCoverageCard from '@/components/checkout/AbiCoverageCard';
 import { useAbiQuote } from '@/hooks/useAbi';
 import type { AbiQuoteAvailable } from '@/services/abiServices';
 
@@ -918,15 +917,10 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               isBonzahDisabled={isInsuranceDisabled}
               hasBonzahDetail={(id) => !!INSURANCE_DETAILS[id]}
               recommendedBonzahId={recommendedPlanId ?? undefined}
+              abiQuote={abiAvailable}
+              abiOpted={abiOptedIn}
+              onToggleAbi={setAbiOptedIn}
             />
-
-            {abiAvailable && (
-              <AbiCoverageCard
-                quote={abiAvailable}
-                opted={abiOptedIn}
-                onChange={setAbiOptedIn}
-              />
-            )}
 
             {vehicle.extras.length > 0 && (
               <>
