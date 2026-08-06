@@ -278,9 +278,10 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   });
   const abiAvailable: AbiQuoteAvailable | null =
     abiQuote && abiQuote.available === true ? (abiQuote as AbiQuoteAvailable) : null;
+  const abiDefinitivelyUnavailable = abiQuote?.available === false;
   useEffect(() => {
-    if (!abiAvailable && abiOptedIn) setAbiOptedIn(false);
-  }, [abiAvailable, abiOptedIn]);
+    if (abiDefinitivelyUnavailable && abiOptedIn) setAbiOptedIn(false);
+  }, [abiDefinitivelyUnavailable, abiOptedIn]);
   const abiPremium = abiAvailable && abiOptedIn ? Number(abiAvailable.total_price) : 0;
 
   useEffect(() => {
