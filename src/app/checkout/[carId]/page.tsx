@@ -435,6 +435,13 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   const total = pricing.total + abiPremium;
 
   const isInsuranceDisabled = (id: string) => id === 'sli' && !selectedInsurance.has('rcli');
+  const clearOwnInsurance = () =>
+    setSelectedInsurance((prev) => {
+      if (!prev.has('own')) return prev;
+      const next = new Set(prev);
+      next.delete('own');
+      return next;
+    });
   const toggleInsurance = (id: string) => {
     setSelectedInsurance((prev) => {
       const next = new Set(prev);
@@ -452,6 +459,26 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
         if (id === 'rcli') next.delete('sli');
       } else {
         next.add(id);
+      }
+      return next;
+    });
+    if (id === 'own') {
+      setAbiOptedIn(false);
+      setSelectedManualIds((prev) => (prev.size ? new Set() : prev));
+    }
+  };
+  const handleToggleAbi = (opted: boolean) => {
+    if (opted) clearOwnInsurance();
+    setAbiOptedIn(opted);
+  };
+  const handleToggleManual = (id: number) => {
+    setSelectedManualIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+        clearOwnInsurance();
       }
       return next;
     });
@@ -905,21 +932,14 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               selectedBonzah={selectedInsurance}
               selectedManualIds={selectedManualIds}
               onToggleBonzah={toggleInsurance}
-              onToggleManual={(id) =>
-                setSelectedManualIds((prev) => {
-                  const next = new Set(prev);
-                  if (next.has(id)) next.delete(id);
-                  else next.add(id);
-                  return next;
-                })
-              }
+              onToggleManual={handleToggleManual}
               onOpenBonzahDetail={setDetailId}
               isBonzahDisabled={isInsuranceDisabled}
               hasBonzahDetail={(id) => !!INSURANCE_DETAILS[id]}
               recommendedBonzahId={recommendedPlanId ?? undefined}
               abiQuote={abiAvailable}
               abiOpted={abiOptedIn}
-              onToggleAbi={setAbiOptedIn}
+              onToggleAbi={handleToggleAbi}
             />
 
             {vehicle.extras.length > 0 && (
