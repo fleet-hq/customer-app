@@ -123,7 +123,6 @@ function AbiCard({
       </div>
       <div className="mt-[9px] text-[12px] leading-[1.5] text-muted">
         Liability{quote.comp_coll_included ? ' + Comprehensive & Collision' : ''} for the trip.
-        Provided by ABI Insurance.
       </div>
       <div className={cn('mt-auto pt-3 text-[16px] font-bold', selected ? 'text-primary' : 'text-ink')}>
         {money(daily)}

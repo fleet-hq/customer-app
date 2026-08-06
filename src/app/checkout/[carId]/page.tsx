@@ -1125,7 +1125,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               <span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-muted">Insurance{insuranceLabel ? ` (${insuranceLabel})` : ''}</span>
               <span onClick={scrollProtection} className="cursor-pointer text-[11px] font-semibold text-primary">Change</span>
             </div>
-            {selectedPlans.length > 0 || selectedManualPackages.length > 0 ? (
+            {selectedPlans.length > 0 || selectedManualPackages.length > 0 || (abiAvailable && abiOptedIn) ? (
               <div className="flex flex-col gap-[10px]">
                 {selectedPlans.map((p) => (
                   <div key={`bonzah-${p.id}`} className="flex items-start justify-between text-[13px]">
@@ -1145,20 +1145,20 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                     <span className="font-medium text-ink">{money(pkg.dailyRate * days)}</span>
                   </div>
                 ))}
+                {abiAvailable && abiOptedIn && (
+                  <div className="flex items-start justify-between text-[13px]">
+                    <div>
+                      <div className="font-medium text-ink">Rental Coverage</div>
+                      <div className="mt-px text-[11.5px] text-muted">{money(Number(abiAvailable.daily_price))} × {abiAvailable.days} days</div>
+                    </div>
+                    <span className="font-medium text-ink">{money(Number(abiAvailable.total_price))}</span>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="flex items-start justify-between text-[13px]">
                 <div className="font-medium text-ink">{ownSelected ? 'Own insurance' : 'No protection selected'}</div>
                 <span className="font-medium text-ink">{money(0)}</span>
-              </div>
-            )}
-            {abiAvailable && abiOptedIn && (
-              <div className="mt-[10px] flex items-start justify-between text-[13px]">
-                <div>
-                  <div className="font-medium text-ink">Rental Coverage</div>
-                  <div className="mt-px text-[11.5px] text-muted">{money(Number(abiAvailable.daily_price))} × {abiAvailable.days} days</div>
-                </div>
-                <span className="font-medium text-ink">{money(Number(abiAvailable.total_price))}</span>
               </div>
             )}
             <div className="my-[14px] h-px bg-card-border" />
