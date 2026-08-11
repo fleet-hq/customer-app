@@ -1003,6 +1003,22 @@ export async function startBookingCheckout(
   return res.data;
 }
 
+export function releaseCheckoutHold(pendingId: string): void {
+  if (!pendingId || !API_URL) return;
+  try {
+    void fetch(`${API_URL}/api/bookings/public/release-checkout-hold/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pending_id: pendingId }),
+      keepalive: true,
+    }).catch(() => {
+      /* ignore */
+    });
+  } catch {
+    /* ignore */
+  }
+}
+
 export interface BookingFromSession {
   booking_id: number;
   booking_reference: string;

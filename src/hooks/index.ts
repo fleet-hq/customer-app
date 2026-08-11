@@ -31,3 +31,4 @@ export { useBookingInvoice } from './useBookingInvoice';
 export type { BookingPricing, InvoiceItem, ExtraInvoiceItem, BookingInvoiceResult } from './useBookingInvoice';
 export { useEmbedBridge } from './useEmbedBridge';
 export type { EmbedBridgeApi } from './useEmbedBridge';
+export { useCheckoutHoldRelease } from './useCheckoutHoldRelease';

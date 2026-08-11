@@ -12,7 +12,7 @@ import { Dialog } from '@/components/ui/dialog';
 import { DateDealsCallout } from '@/components/booking/date-deals-callout';
 import { RentalBreakdown } from '@/components/booking/rental-breakdown';
 import { DEFAULT_TRIP } from '@/lib/mock-data';
-import { useFleet, useInsuranceOptions, useManualInsurancePackagesForTenant, useStartBookingCheckout, useStartEmbedBookingPayment, useCompanyLocations, useFleetUnavailableRanges, usePublicPaymentProviders } from '@/hooks';
+import { useFleet, useInsuranceOptions, useManualInsurancePackagesForTenant, useStartBookingCheckout, useStartEmbedBookingPayment, useCompanyLocations, useFleetUnavailableRanges, usePublicPaymentProviders, useCheckoutHoldRelease } from '@/hooks';
 import { EmbedPaymentPanel } from '@/components/checkout/embed-payment-panel';
 import { SquareCardEntry, buildDepositConsentCopy, type SquareCardEntryHandle } from '@/components/checkout/square-card-entry';
 import ProtectionSection from '@/components/checkout/protection-section';
@@ -116,6 +116,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   const defaultLoc = useDefaultLocation();
   const startCheckout = useStartBookingCheckout();
   const startEmbedPayment = useStartEmbedBookingPayment();
+  const { registerHold, suppressRelease, releaseNow } = useCheckoutHoldRelease(carId);
   // Single-provider policy: the tenant admin enables exactly one
   // gateway at a time on the Integrations page — customer-central
   // just uses whatever's on. No picker, no per-request override.
@@ -684,6 +685,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
       }
       try {
         const data = await startEmbedPayment.mutateAsync({ payload: commonPayload });
+        registerHold(data.pending_id);
         try { window.sessionStorage.removeItem(persistKey); } catch { /* ignore */ }
         const consentCopy = buildDepositConsentCopy({
           tenantName: tenant?.name,
@@ -700,6 +702,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
             ? { saveCardSourceId: tokens.saveCardSourceId, consentCopy }
             : null,
         });
+        suppressRelease({ clear: true });
         if (body.booking_id && body.access_token) {
           window.location.href = `/booking/${body.booking_id}?token=${encodeURIComponent(body.access_token)}`;
           return;
@@ -717,6 +720,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
     if (embed.embedded) {
       try {
         const data = await startEmbedPayment.mutateAsync({ payload: commonPayload });
+        registerHold(data.pending_id);
         try { window.sessionStorage.removeItem(persistKey); } catch { /* ignore */ }
         setEmbedIntent({
           provider: (data.provider as 'stripe' | 'square') || 'stripe',
@@ -743,7 +747,9 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
         success_url: `${origin}/booking/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${origin}/checkout/${carId}`,
       });
+      registerHold(data.pending_id);
       try { window.sessionStorage.removeItem(persistKey); } catch { /* ignore */ }
+      suppressRelease();
       window.location.href = data.checkout_url;
     } catch (error) {
       setCheckoutError(
@@ -1044,24 +1050,28 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
 
             {embedIntent ? (
               <div ref={paymentAnchorRef}>
-                <EmbedPaymentPanel
-                  provider={embedIntent.provider}
-                  clientSecret={embedIntent.clientSecret}
-                  publishableKey={embedIntent.publishableKey}
-                  stripeAccountId={embedIntent.stripeAccountId}
-                  pendingId={embedIntent.pendingId}
-                  providerExtra={embedIntent.providerExtra}
-                  returnUrl={`${origin}/booking/success?session_id=${embedIntent.pendingId}`}
-                  amount={embedIntent.amount}
-                  currency={embedIntent.currency}
-                  depositAmount={Number(vehicle?.securityDeposit) || 0}
-                  tenantName={tenant?.name}
-                  onCancel={() => setEmbedIntent(null)}
-                  onSuccess={() => {
-                    if (embed.embedded) embed.reportBookingComplete(0);
-                    setEmbedIntent(null);
-                  }}
-                />
+              <EmbedPaymentPanel
+                provider={embedIntent.provider}
+                clientSecret={embedIntent.clientSecret}
+                publishableKey={embedIntent.publishableKey}
+                stripeAccountId={embedIntent.stripeAccountId}
+                pendingId={embedIntent.pendingId}
+                providerExtra={embedIntent.providerExtra}
+                returnUrl={`${origin}/booking/success?session_id=${embedIntent.pendingId}`}
+                amount={embedIntent.amount}
+                currency={embedIntent.currency}
+                depositAmount={Number(vehicle?.securityDeposit) || 0}
+                tenantName={tenant?.name}
+                onCancel={() => {
+                  releaseNow();
+                  setEmbedIntent(null);
+                }}
+                onSuccess={() => {
+                  suppressRelease({ clear: true });
+                  if (embed.embedded) embed.reportBookingComplete(0);
+                  setEmbedIntent(null);
+                }}
+              />
               </div>
             ) : null}
 
