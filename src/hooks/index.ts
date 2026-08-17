@@ -8,7 +8,7 @@ export {
   useFleetAvailability,
   useFleetUnavailableRanges,
 } from './useFleets';
-export { useAgreement, useAgreementByBooking, useCompanySettings, useAcceptAgreement, useDefaultAgreementTemplate } from './useAgreements';
+export { useAgreement, useAgreementByBooking, useCompanySettings, useAcceptAgreement, useDefaultAgreementTemplate, useBonzahAddendum } from './useAgreements';
 export {
   useInsuranceOptions,
   useInsuranceOptionsBundle,

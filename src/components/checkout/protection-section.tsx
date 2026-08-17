@@ -85,7 +85,69 @@ export default function ProtectionSection({
           />
         ))}
       </div>
+      {bonzahPlans.length > 0 && <BonzahDisclosure />}
     </>
+  );
+}
+
+const BONZAH_LINKS = {
+  terms: 'https://bonzah.com/terms',
+  privacy: 'https://bonzah.com/privacy',
+  vehicles: 'https://bonzah.com/included-and-restricted-vehicle-types',
+  faq: 'https://bonzah.com/faq',
+} as const;
+
+function BonzahDisclosure() {
+  const linkClass = 'font-medium text-primary underline';
+  return (
+    <div className="mb-[26px] rounded-[10px] border border-line bg-subtle px-4 py-[14px]">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.04em] text-muted">
+        Insurance disclosure
+      </p>
+      <div className="mt-2 flex flex-col gap-2 text-[11.5px] leading-[1.6] text-muted">
+        <p>
+          By purchasing coverage through this site, you acknowledge that Pablow Inc. dba
+          Bonzah.com (&ldquo;Bonzah&rdquo;) is the licensed broker of record and offers
+          insurance coverage through various insurance carriers. The specific carrier issuing
+          your policy will be identified at the time of purchase and in your policy documents.
+        </p>
+        <p>
+          Coverage excludes medical payments (MedPay), Personal Injury Protection (PIP),
+          Underinsured Motorist (UIM), and Uninsured Motorist (UM) coverage where permitted by
+          law. Full terms, conditions, limits, and exclusions are set forth in the policy
+          documents provided at the time of purchase.
+        </p>
+        <p>
+          Insurance is only for drivers 21 years and older with a valid driver&apos;s license and
+          must be listed as an additional driver on the rental agreement. Unlicensed drivers are
+          not entitled to coverage under any circumstance. The renter is responsible for any
+          unlisted drivers. Insurance may not apply if the renter or additional driver violates
+          the rental agreement, insurance agreement, or violates traffic regulations.
+        </p>
+        <p>
+          By proceeding with your purchase, you agree to Bonzah.com&apos;s{' '}
+          <a href={BONZAH_LINKS.terms} target="_blank" rel="noopener noreferrer" className={linkClass}>
+            Terms of Service
+          </a>{' '}
+          and{' '}
+          <a href={BONZAH_LINKS.privacy} target="_blank" rel="noopener noreferrer" className={linkClass}>
+            Privacy Policy
+          </a>
+          .
+        </p>
+        <p>
+          See also Bonzah&apos;s{' '}
+          <a href={BONZAH_LINKS.vehicles} target="_blank" rel="noopener noreferrer" className={linkClass}>
+            Covered Vehicles
+          </a>{' '}
+          and{' '}
+          <a href={BONZAH_LINKS.faq} target="_blank" rel="noopener noreferrer" className={linkClass}>
+            FAQs
+          </a>
+          .
+        </p>
+      </div>
+    </div>
   );
 }
 

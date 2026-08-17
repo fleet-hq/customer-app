@@ -7,6 +7,7 @@ import {
   acceptAgreement,
   getCompanySettings,
   getDefaultAgreementTemplate,
+  getBonzahAddendum,
 } from '@/services/agreementServices';
 import { useTenant } from '@/lib/tenant-context';
 
@@ -41,6 +42,13 @@ export const useDefaultAgreementTemplate = () => {
     staleTime: 10 * 60 * 1000,
   });
 };
+
+export const useBonzahAddendum = () =>
+  useQuery({
+    queryKey: ['bonzah-addendum'],
+    queryFn: getBonzahAddendum,
+    staleTime: 60 * 60 * 1000,
+  });
 
 export const useAcceptAgreement = () => {
   const queryClient = useQueryClient();

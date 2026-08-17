@@ -122,6 +122,11 @@ export interface ApiAgreement {
   };
 }
 
+export interface BonzahAddendum {
+  title: string;
+  sections: { heading: string; body: string }[];
+}
+
 // Transformed types for frontend
 export interface AgreementData {
   id: number;
@@ -158,6 +163,7 @@ export interface AgreementData {
     premiumAmount?: number;
     status?: string;
   };
+  addendum?: BonzahAddendum | null;
   vehicle: {
     pickupDateTime: string;
     dropoffDateTime: string;
@@ -335,6 +341,14 @@ export async function getAgreementByBookingId(bookingId: number | string): Promi
   } catch (error) {
     throw error;
   }
+}
+
+// Bonzah Insurance Addendum text — single source of truth on the backend,
+// shared with the signed rental-agreement PDF. Static content; the caller
+// decides whether to render it based on the booking's Bonzah coverage.
+export async function getBonzahAddendum(): Promise<BonzahAddendum> {
+  const res = await axios.get<BonzahAddendum>(`${API_URL}/api/bonzah/public/addendum/`);
+  return res.data;
 }
 
 // Accept/sign agreement (uses X-Booking-Token)

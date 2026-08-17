@@ -12,6 +12,7 @@ import {
   useAgreementByBooking,
   useCompanySettings,
   useDefaultAgreementTemplate,
+  useBonzahAddendum,
 } from '@/hooks/useAgreements';
 import { useBookingDetails } from '@/hooks/useBooking';
 import { RentalAgreementPreview } from '@/components/booking/rental-agreement-preview';
@@ -74,6 +75,7 @@ function RentalAgreementIndex() {
   );
   const { data: companySettings, isLoading: companyLoading } = useCompanySettings();
   const { data: agreementTemplate, isLoading: templateLoading } = useDefaultAgreementTemplate();
+  const { data: bonzahAddendum } = useBonzahAddendum();
 
   const fallbackAgreement = useMemo<AgreementData | null>(() => {
     if (!needsFallback || !bookingData) return null;
@@ -192,9 +194,14 @@ function RentalAgreementIndex() {
 
   const agreement = useMemo(() => {
     if (!baseAgreement) return baseAgreement;
-    if (!companySettings) return baseAgreement;
+    const coverage = bookingData?.insuranceCoverage;
+    const hasIssuedBonzah =
+      !!coverage && (coverage.status === 'ACTIVE' || coverage.status === 'EXPIRED');
+    const addendum = hasIssuedBonzah && bonzahAddendum ? bonzahAddendum : null;
+    if (!companySettings) return { ...baseAgreement, addendum };
     return {
       ...baseAgreement,
+      addendum,
       company: {
         name: companySettings.name || baseAgreement.company?.name || 'N/A',
         address: companySettings.address || baseAgreement.company?.address || 'N/A',
@@ -203,7 +210,7 @@ function RentalAgreementIndex() {
         logo: companySettings.logo || baseAgreement.company?.logo || null,
       },
     };
-  }, [baseAgreement, companySettings]);
+  }, [baseAgreement, companySettings, bookingData, bonzahAddendum]);
 
   const isLoading =
     !localDataLoaded ||

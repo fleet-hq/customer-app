@@ -14,6 +14,7 @@ import {
   useAgreementByBooking,
   useDefaultAgreementTemplate,
   useCompanySettings,
+  useBonzahAddendum,
 } from '@/hooks/useAgreements';
 import { useBookingDetails } from '@/hooks/useBooking';
 import { submitBookingSignature, type AgreementData } from '@/services/agreementServices';
@@ -93,6 +94,7 @@ function TermsContent() {
   const { data: apiAgreement } = useAgreementByBooking(ready ? bookingId! : undefined);
   const { data: company } = useCompanySettings();
   const { data: template, isLoading: templateLoading } = useDefaultAgreementTemplate();
+  const { data: bonzahAddendum } = useBonzahAddendum();
 
   const agreement = useMemo<AgreementData | null>(() => {
     if (!isBound || !bookingData) return null;
@@ -163,12 +165,16 @@ function TermsContent() {
         deposit: bookingData.invoice.deposit > 0 ? `$${bookingData.invoice.deposit.toFixed(2)}` : undefined,
       },
       clauses: template?.clauses ?? [],
+      addendum:
+        ins && (ins.status === 'ACTIVE' || ins.status === 'EXPIRED') && bonzahAddendum
+          ? bonzahAddendum
+          : null,
       template: {
         title: template?.title || 'Vehicle Rental Agreement',
         description: template?.description || 'Please review and sign this rental agreement before pickup.',
       },
     };
-  }, [isBound, bookingData, apiAgreement, company, template, tenant.name]);
+  }, [isBound, bookingData, apiAgreement, company, template, tenant.name, bonzahAddendum]);
 
   if (isBound) {
     const backHref = `${paths.booking(bookingId!)}?token=${urlToken ?? ''}`;

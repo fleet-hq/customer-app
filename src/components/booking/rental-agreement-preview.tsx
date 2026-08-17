@@ -330,6 +330,22 @@ export function RentalAgreementPreview({ data, onSignatureChange }: RentalAgreem
           </div>
         </Paper>
 
+        {d.addendum && d.addendum.sections.length > 0 && (
+          <Paper>
+            <SectionTitle>{d.addendum.title}</SectionTitle>
+            <div className="mt-4 space-y-5">
+              {d.addendum.sections.map((sec, index) => (
+                <div key={index} className="clause-block">
+                  <h4 className="font-bold text-[12px] tracking-tight-2 text-[#131314] mb-2">
+                    {index + 1}. {sec.heading}
+                  </h4>
+                  <p className="text-[12px] leading-[1.6] text-[#131314]">{sec.body}</p>
+                </div>
+              ))}
+            </div>
+          </Paper>
+        )}
+
         <Paper>
           <SectionTitle>SIGNATURE AND DATE</SectionTitle>
           <p className="mt-3 text-[10px] sm:text-[12px] leading-[1.6] text-[#131314]">

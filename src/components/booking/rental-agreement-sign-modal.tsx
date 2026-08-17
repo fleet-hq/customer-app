@@ -5,13 +5,14 @@ import DOMPurify from 'dompurify';
 import { cn } from '@/lib/utils';
 import { Check, Close } from '@/components/ui/icons';
 import { SignaturePad } from '@/components/ui/signature-pad';
-import { useDefaultAgreementTemplate } from '@/hooks/useAgreements';
+import { useDefaultAgreementTemplate, useBonzahAddendum } from '@/hooks/useAgreements';
 
 interface RentalAgreementSignModalProps {
   open: boolean;
   onClose: () => void;
   onSigned: (signatureDataUri: string) => void;
   initialSignature?: string | null;
+  showBonzahAddendum?: boolean;
 }
 
 function Paper({ children }: { children: React.ReactNode }) {
@@ -37,8 +38,10 @@ export function RentalAgreementSignModal({
   onClose,
   onSigned,
   initialSignature = null,
+  showBonzahAddendum = false,
 }: RentalAgreementSignModalProps) {
   const { data: template, isLoading } = useDefaultAgreementTemplate();
+  const { data: bonzahAddendum } = useBonzahAddendum();
 
   const [agree, setAgree] = useState(false);
   const [signature, setSignature] = useState<string | null>(initialSignature);
@@ -107,6 +110,22 @@ export function RentalAgreementSignModal({
                       className="text-[12px] leading-[1.6] text-[#131314] prose prose-sm max-w-none"
                       dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(c.content) }}
                     />
+                  </div>
+                ))}
+              </div>
+            </Paper>
+          )}
+
+          {showBonzahAddendum && bonzahAddendum && bonzahAddendum.sections.length > 0 && (
+            <Paper>
+              <SectionTitle>{bonzahAddendum.title}</SectionTitle>
+              <div className="mt-4 space-y-5">
+                {bonzahAddendum.sections.map((sec, i) => (
+                  <div key={i} className="clause-block">
+                    <h4 className="font-bold text-[12px] tracking-[-0.02em] text-[#131314] mb-2">
+                      {i + 1}. {sec.heading}
+                    </h4>
+                    <p className="text-[12px] leading-[1.6] text-[#131314]">{sec.body}</p>
                   </div>
                 ))}
               </div>

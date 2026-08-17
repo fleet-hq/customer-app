@@ -1556,6 +1556,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
         open={rentalAgreementModalOpen}
         onClose={() => setRentalAgreementModalOpen(false)}
         initialSignature={rentalAgreementSignature}
+        showBonzahAddendum={selectedInsurance.size > 0}
         onSigned={(dataUri) => {
           setRentalAgreementSignature(dataUri);
           setRentalAgreementModalOpen(false);
