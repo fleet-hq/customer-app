@@ -2,8 +2,9 @@
 
 import { useRef, useState } from 'react';
 import Link from 'next/link';
-import { Check, Plus, Close } from '@/components/ui/icons';
+import { Check, Plus, Close, ChevronLeft } from '@/components/ui/icons';
 import { cn } from '@/lib/utils';
+import { Dialog } from '@/components/ui/dialog';
 import { MAX_IMAGE_UPLOAD_MB, MAX_IMAGE_UPLOAD_BYTES } from '@/lib/constants';
 import { useUploadTripImage, useDeleteTripImage } from '@/hooks/useTripImages';
 import type { TripImage, ImageType } from '@/services/tripImageServices';
@@ -186,10 +187,11 @@ function PhotoGroupRow({
   canUpload: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const { mutate: uploadImage } = useUploadTripImage();
+  const { mutateAsync: uploadImage } = useUploadTripImage();
   const { mutate: deleteImage, isPending: isDeleting } = useDeleteTripImage();
   const [pendingCount, setPendingCount] = useState(0);
   const [sizeError, setSizeError] = useState<string | null>(null);
+  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
 
   const count = group.photos.length;
   const pendingLabel =
@@ -215,11 +217,13 @@ function PhotoGroupRow({
       );
       if (ok.length > 0) {
         setPendingCount((n) => n + ok.length);
+        // Each upload gets its own promise via mutateAsync — a shared
+        // mutation's per-call onSettled only fires for the LAST mutate()
+        // call, which left the spinner stuck when uploading several files.
         ok.forEach((file) => {
-          uploadImage(
-            { bookingId, imageFile: file, imageType: group.imageType },
-            { onSettled: () => setPendingCount((n) => Math.max(0, n - 1)) },
-          );
+          uploadImage({ bookingId, imageFile: file, imageType: group.imageType })
+            .catch(() => {})
+            .finally(() => setPendingCount((n) => Math.max(0, n - 1)));
         });
       }
     }
@@ -235,7 +239,7 @@ function PhotoGroupRow({
           {group.title} <span className="font-medium text-placeholder">· {meta}</span>
         </div>
         <span className="shrink-0 text-[10px] font-medium text-placeholder">
-          Max {MAX_IMAGE_UPLOAD_MB}MB
+          Max {MAX_IMAGE_UPLOAD_MB}MB per photo
         </span>
       </div>
       {sizeError && (
@@ -245,16 +249,20 @@ function PhotoGroupRow({
         className="grid gap-[6px]"
         style={{ gridTemplateColumns: "repeat(auto-fill, minmax(64px, 72px))" }}
       >
-        {group.photos.map((p) => (
+        {group.photos.map((p, i) => (
           <div
             key={p.id}
-            className="group relative aspect-square overflow-hidden rounded-[7px] bg-cover bg-center"
+            onClick={() => setLightboxIdx(i)}
+            className="group relative aspect-square cursor-pointer overflow-hidden rounded-[7px] bg-cover bg-center"
             style={{ backgroundImage: `url('${p.imageUrl}')` }}
           >
             {canUpload && (
               <button
                 type="button"
-                onClick={() => deleteImage({ bookingId, imageId: p.id })}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteImage({ bookingId, imageId: p.id });
+                }}
                 disabled={isDeleting}
                 className="absolute top-0.5 right-0.5 flex h-[14px] w-[14px] items-center justify-center rounded-full bg-danger text-white opacity-0 transition-opacity group-hover:opacity-100 disabled:opacity-50"
               >
@@ -295,6 +303,61 @@ function PhotoGroupRow({
           />
         ))}
       </div>
+
+      {lightboxIdx !== null && group.photos[lightboxIdx] && (
+        <Dialog
+          isOpen={true}
+          onClose={() => setLightboxIdx(null)}
+          panelClassName="max-w-[92vw] sm:max-w-[820px] bg-transparent shadow-none overflow-visible"
+        >
+          <div className="relative flex items-center justify-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={group.photos[lightboxIdx].imageUrl}
+              alt={`${group.title} photo ${lightboxIdx + 1}`}
+              className="max-h-[85vh] w-full rounded-lg object-contain"
+            />
+            <button
+              type="button"
+              aria-label="Close"
+              onClick={() => setLightboxIdx(null)}
+              className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white"
+            >
+              <Close size={16} className="text-white" />
+            </button>
+            {group.photos.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  aria-label="Previous photo"
+                  onClick={() =>
+                    setLightboxIdx((n) =>
+                      n === null
+                        ? n
+                        : (n - 1 + group.photos.length) % group.photos.length,
+                    )
+                  }
+                  className="absolute left-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/60 text-white"
+                >
+                  <ChevronLeft size={18} className="text-white" />
+                </button>
+                <button
+                  type="button"
+                  aria-label="Next photo"
+                  onClick={() =>
+                    setLightboxIdx((n) =>
+                      n === null ? n : (n + 1) % group.photos.length,
+                    )
+                  }
+                  className="absolute right-2 bottom-2 flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white"
+                >
+                  <ChevronLeft size={18} className="rotate-180 text-white" />
+                </button>
+              </>
+            )}
+          </div>
+        </Dialog>
+      )}
     </div>
   );
 }
