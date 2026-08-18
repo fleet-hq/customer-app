@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { Check, Plus, Close } from '@/components/ui/icons';
 import { cn } from '@/lib/utils';
+import { MAX_IMAGE_UPLOAD_MB, MAX_IMAGE_UPLOAD_BYTES } from '@/lib/constants';
 import { useUploadTripImage, useDeleteTripImage } from '@/hooks/useTripImages';
 import type { TripImage, ImageType } from '@/services/tripImageServices';
 
@@ -188,6 +189,7 @@ function PhotoGroupRow({
   const { mutate: uploadImage } = useUploadTripImage();
   const { mutate: deleteImage, isPending: isDeleting } = useDeleteTripImage();
   const [pendingCount, setPendingCount] = useState(0);
+  const [sizeError, setSizeError] = useState<string | null>(null);
 
   const count = group.photos.length;
   const pendingLabel =
@@ -204,13 +206,22 @@ function PhotoGroupRow({
     const files = e.target.files;
     if (files && files.length > 0) {
       const fileArr = Array.from(files);
-      setPendingCount((n) => n + fileArr.length);
-      fileArr.forEach((file) => {
-        uploadImage(
-          { bookingId, imageFile: file, imageType: group.imageType },
-          { onSettled: () => setPendingCount((n) => Math.max(0, n - 1)) },
-        );
-      });
+      const ok = fileArr.filter((f) => f.size <= MAX_IMAGE_UPLOAD_BYTES);
+      const tooBig = fileArr.length - ok.length;
+      setSizeError(
+        tooBig > 0
+          ? `${tooBig} file${tooBig === 1 ? '' : 's'} skipped — each must be under ${MAX_IMAGE_UPLOAD_MB}MB.`
+          : null,
+      );
+      if (ok.length > 0) {
+        setPendingCount((n) => n + ok.length);
+        ok.forEach((file) => {
+          uploadImage(
+            { bookingId, imageFile: file, imageType: group.imageType },
+            { onSettled: () => setPendingCount((n) => Math.max(0, n - 1)) },
+          );
+        });
+      }
     }
     if (inputRef.current) inputRef.current.value = "";
   };
@@ -219,11 +230,17 @@ function PhotoGroupRow({
 
   return (
     <div>
-      <div className="mb-2 flex items-center justify-between">
+      <div className="mb-2 flex items-center justify-between gap-2">
         <div className="text-xs font-semibold text-ink">
           {group.title} <span className="font-medium text-placeholder">· {meta}</span>
         </div>
+        <span className="shrink-0 text-[10px] font-medium text-placeholder">
+          Max {MAX_IMAGE_UPLOAD_MB}MB
+        </span>
       </div>
+      {sizeError && (
+        <p className="mb-2 text-[11px] font-medium text-danger">{sizeError}</p>
+      )}
       <div
         className="grid gap-[6px]"
         style={{ gridTemplateColumns: "repeat(auto-fill, minmax(64px, 72px))" }}
