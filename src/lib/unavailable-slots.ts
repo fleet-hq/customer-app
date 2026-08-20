@@ -98,6 +98,27 @@ export function buildUnavailabilityIndex(
   return { rangesByDate, fullyBlockedDates };
 }
 
+/** First unavailable range that overlaps the selected [pickup, dropoff]
+ *  window, or null when the whole span is free. Uses the exact half-open
+ *  overlap test the backend's ``is_fleet_available`` uses
+ *  (``existing.start < new.end`` AND ``existing.end > new.start``) against
+ *  the same ranges (bookings + buffer + holds), so a span the picker's
+ *  per-day slots missed — an interior day, a boundary, or a slot that was
+ *  pre-selected before it got disabled — is still caught before submit. */
+export function firstBlockInSpan(
+  ranges: RawRange[] | undefined,
+  pickupMs: number,
+  dropoffMs: number,
+): RawRange | null {
+  for (const r of ranges ?? []) {
+    const s = new Date(r.start).getTime();
+    const e = new Date(r.end).getTime();
+    if (Number.isNaN(s) || Number.isNaN(e)) continue;
+    if (pickupMs < e && dropoffMs > s) return r;
+  }
+  return null;
+}
+
 /** Every "HH:mm" 30-min (or ``interval``-min) slot on ``date`` that
  *  overlaps a block, formatted to match the TimePicker's slot values.
  *

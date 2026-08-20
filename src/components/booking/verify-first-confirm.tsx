@@ -138,8 +138,12 @@ export function VerifyFirstConfirm(props: Props) {
   const days = rentalDays(booking);
   const inv = booking.invoice;
   const vehicleImage = booking.vehicle.image?.trim() || PLACEHOLDER_IMAGE;
-  const startShort = shortDate(booking.pickUp.rawDatetime, booking.timezone);
-  const endShort = shortDate(booking.dropOff.rawDatetime, booking.timezone);
+  const startShort = [shortDate(booking.pickUp.rawDatetime, booking.timezone), booking.pickUp.time]
+    .filter(Boolean)
+    .join(', ');
+  const endShort = [shortDate(booking.dropOff.rawDatetime, booking.timezone), booking.dropOff.time]
+    .filter(Boolean)
+    .join(', ');
   const pickupCityState = shortLocation(booking.pickUp.address);
 
   const requiredCount =

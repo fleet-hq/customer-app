@@ -27,7 +27,8 @@ import type { InsuranceOption } from '@/services/bookingServices';
 import { toUtcIso } from '@/utils/datetime';
 import { todayISO } from '@/lib/time-slots';
 import { cn, money, rentalDays } from '@/lib/utils';
-import { buildUnavailabilityIndex, slotsBlockedOn } from '@/lib/unavailable-slots';
+import { buildUnavailabilityIndex, slotsBlockedOn, firstBlockInSpan } from '@/lib/unavailable-slots';
+import { formatInTimeZone } from 'date-fns-tz';
 import { paths } from '@/lib/paths';
 import { useEmbedBridge } from '@/hooks';
 import { useTenant } from '@/lib/tenant-context';
@@ -146,12 +147,6 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   const startVerification = useStartVerificationFirstBooking();
   const { data: unavailableRanges = [] } = useFleetUnavailableRanges(carId);
   const { data: defaultTaxProfile } = useDefaultTaxProfile();
-  const locationTz = defaultLoc?.timezone ?? null;
-  const unavailabilityIndex = useMemo(
-    () => buildUnavailabilityIndex(unavailableRanges, locationTz),
-    [unavailableRanges, locationTz],
-  );
-  const unavailableDates = unavailabilityIndex.fullyBlockedDates;
   const protectionRef = useRef<HTMLHeadingElement>(null);
   const errorBannerRef = useRef<HTMLDivElement>(null);
 
@@ -194,6 +189,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   const [galleryIndex, setGalleryIndex] = useState(0);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [tripOpen, setTripOpen] = useState(false);
+  const [tripError, setTripError] = useState<string | null>(null);
   const [openLocDropdown, setOpenLocDropdown] = useState<'pickup' | 'dropoff' | null>(null);
   const urlPickupLoc = searchParams.get('pickupLocId');
   const urlDropoffLoc = searchParams.get('dropoffLocId');
@@ -261,6 +257,12 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
     const fromLoc = companyLocations?.find((l) => String(l.id) === pickupLocId)?.timezone;
     return fromLoc ?? defaultLoc?.timezone ?? null;
   }, [companyLocations, pickupLocId, defaultLoc]);
+
+  const unavailabilityIndex = useMemo(
+    () => buildUnavailabilityIndex(unavailableRanges, fleetTz),
+    [unavailableRanges, fleetTz],
+  );
+  const unavailableDates = unavailabilityIndex.fullyBlockedDates;
 
   const fleetDateArgs = useMemo(() => {
     if (!fleetTz) return undefined;
@@ -556,9 +558,22 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
     const pickupDatetime = toIso(pickupDate, pickupTime);
     const dropoffDatetime = toIso(returnDate, returnTime);
 
+    const conflict = firstBlockInSpan(
+      unavailableRanges,
+      new Date(pickupDatetime).getTime(),
+      new Date(dropoffDatetime).getTime(),
+    );
+    if (conflict) {
+      const when = formatInTimeZone(new Date(conflict.start), tz, 'MMM d, h:mm a');
+      setCheckoutError(
+        `Part of your selected time isn't available — this vehicle is already booked or blocked from ${when}. Please adjust your pickup/drop-off times or dates.`,
+      );
+      return;
+    }
+
     const isAvailable = await checkFleetAvailability(vehicle.id, pickupDatetime, dropoffDatetime);
     if (!isAvailable) {
-      setCheckoutError('This vehicle was just booked for those dates. Please choose a different time slot or vehicle.');
+      setCheckoutError('That time was just taken for this vehicle. Please pick a different time or date.');
       return;
     }
 
@@ -1547,7 +1562,30 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               isPeakPricing={vehicle.isPeakPricing}
               isPromoPricing={vehicle.isPromoPricing}
             />
-            <button onClick={() => setTripOpen(false)} className="mt-[22px] w-full rounded-[9px] bg-primary py-3 text-center text-sm font-semibold text-white">
+            {tripError && (
+              <p className="mt-3 text-[12px] leading-snug text-danger">{tripError}</p>
+            )}
+            <button
+              onClick={() => {
+                const conflict =
+                  fleetTz && pickupDate && returnDate
+                    ? firstBlockInSpan(
+                        unavailableRanges,
+                        new Date(toUtcIso(pickupDate, pickupTime || '00:00', fleetTz)).getTime(),
+                        new Date(toUtcIso(returnDate, returnTime || '00:00', fleetTz)).getTime(),
+                      )
+                    : null;
+                if (conflict && fleetTz) {
+                  setTripError(
+                    `Part of that window is unavailable — this vehicle is already booked or blocked from ${formatInTimeZone(new Date(conflict.start), fleetTz, 'MMM d, h:mm a')}. Please adjust your dates or times.`,
+                  );
+                  return;
+                }
+                setTripError(null);
+                setTripOpen(false);
+              }}
+              className="mt-[22px] w-full rounded-[9px] bg-primary py-3 text-center text-sm font-semibold text-white"
+            >
               Update trip
             </button>
       </Dialog>

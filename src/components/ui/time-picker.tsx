@@ -68,6 +68,26 @@ export function TimePicker({
   );
 
   useEffect(() => {
+    if (!value || disabledSlotSet.size === 0 || !disabledSlotSet.has(value)) return;
+    const toMin = (v: string) => {
+      const [h, m] = v.split(':').map(Number);
+      return (h || 0) * 60 + (m || 0);
+    };
+    const target = toMin(value);
+    let best: string | null = null;
+    let bestDist = Infinity;
+    for (const s of timeSlots) {
+      if (disabledSlotSet.has(s.value)) continue;
+      const d = Math.abs(toMin(s.value) - target);
+      if (d < bestDist) {
+        bestDist = d;
+        best = s.value;
+      }
+    }
+    if (best && best !== value) onChange(best);
+  }, [value, disabledSlotSet, timeSlots, onChange]);
+
+  useEffect(() => {
     if (isOpen && selectedRef.current && listRef.current) {
       selectedRef.current.scrollIntoView({ block: 'nearest' });
     }
