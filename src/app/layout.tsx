@@ -10,6 +10,7 @@ import { LayoutChrome } from '@/components/layout/layout-chrome';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { StripeProvider } from '@/components/stripe-provider';
 import { SetupInProgress } from '@/components/setup-in-progress';
+import { RenterActivityPing } from '@/components/analytics/RenterActivityPing';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -88,6 +89,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               render fires its hooks, throwing the runtime error
               "useTenant must be used within a TenantProvider". */}
           <TenantProvider tenant={tenant}>
+            <RenterActivityPing companyId={tenant.id} domain={tenant.domain} />
             <CompanyProvider>
               <StripeProvider>
                 <LayoutChrome>
