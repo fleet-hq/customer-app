@@ -1,6 +1,7 @@
 'use client';
 import { SearchBar } from '@/components/search/search-bar';
 import { HomeHero } from '@/components/sections/home/home-hero';
+import { HomeHeroFeatured } from '@/components/sections/home/home-hero-featured';
 import { PromoBanner } from '@/components/sections/home/promo-banner';
 import { FeatureBanners } from '@/components/sections/home/feature-banners';
 import { FeatureColumns } from '@/components/sections/home/feature-columns';
@@ -28,6 +29,7 @@ export default function HomePage() {
   const heroHasCopy = Boolean(
     hero?.pill || hero?.subheading || (hero?.heading_lines?.length ?? 0) > 0,
   );
+  const isFeaturedHero = hero?.layout === 'featured';
 
   // Top promo banner derives from active **weekly** fleet-discount
   // tiers only — weekly tiers all have an implicit 1-week threshold,
@@ -97,16 +99,32 @@ export default function HomePage() {
   return (
     <div className="bg-white text-ink">
       {heroHasCopy || images.hero ? (
-        <HomeHero
-          pill={co(hero?.pill ?? '')}
-          headingLines={(hero?.heading_lines ?? []).map(co)}
-          subheading={co(hero?.subheading ?? '')}
-          backgroundImage={images.hero ?? undefined}
-          mobileBackgroundImage={images.hero_mobile ?? undefined}
-        />
+        isFeaturedHero ? (
+          <HomeHeroFeatured
+            headingLines={(hero?.heading_lines ?? []).map(co)}
+            subheading={co(hero?.subheading ?? '')}
+            highlightColor={hero?.highlight_color}
+            highlightWords={hero?.highlight_words}
+            backgroundImage={images.hero ?? undefined}
+            mobileBackgroundImage={images.hero_mobile ?? undefined}
+            features={(hero?.features ?? []).map((f) => ({
+              icon: f.icon,
+              title: f.title ? co(f.title) : f.title,
+              description: f.description ? co(f.description) : f.description,
+            }))}
+          />
+        ) : (
+          <HomeHero
+            pill={co(hero?.pill ?? '')}
+            headingLines={(hero?.heading_lines ?? []).map(co)}
+            subheading={co(hero?.subheading ?? '')}
+            backgroundImage={images.hero ?? undefined}
+            mobileBackgroundImage={images.hero_mobile ?? undefined}
+          />
+        )
       ) : null}
 
-      <div className="relative z-10 mx-auto -mt-16 max-w-[1120px] px-6">
+      <div className={`relative z-10 mx-auto max-w-[1120px] px-6 ${isFeaturedHero ? '-mt-6' : '-mt-16'}`}>
         <SearchBar variant="hero" />
         {promoBanner ? (
           <PromoBanner

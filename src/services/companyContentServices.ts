@@ -54,10 +54,20 @@ export interface ImagesPayload {
    evolve without breaking the FE. Each section component applies its
    own defaults via ``mergeSection()`` in ``tenant-defaults``. ──── */
 
+export interface HeroFeatureItem {
+  icon?: string;
+  title?: string;
+  description?: string;
+}
+
 export interface HeroSection {
+  layout?: 'classic' | 'featured';
   pill?: string;
   heading_lines?: string[];
   subheading?: string;
+  highlight_color?: string;
+  highlight_words?: string[];
+  features?: HeroFeatureItem[];
 }
 
 export interface PromoSection {
