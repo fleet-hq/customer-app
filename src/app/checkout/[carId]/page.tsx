@@ -1294,15 +1294,15 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                 <span className="text-muted">Tax</span>
                 <span className="font-medium text-ink">{money(pricing.tax)}</span>
               </div>
+              {pricing.deposit > 0 && (
+                <div className="flex items-center justify-between">
+                  <span className="text-muted">
+                    Security deposit <span className="text-[11px]">(refundable)</span>
+                  </span>
+                  <span className="font-medium text-ink">{money(pricing.deposit)}</span>
+                </div>
+              )}
             </div>
-            {pricing.deposit > 0 && (
-              <div className="mt-3 flex items-center justify-between">
-                <span className="text-muted">
-                  Security deposit <span className="text-[11px] text-muted">(refundable)</span>
-                </span>
-                <span className="font-medium text-ink">{money(pricing.deposit)}</span>
-              </div>
-            )}
             <div className="my-4 h-px bg-card-border" />
 
             <div className="flex items-baseline justify-between">
@@ -1323,7 +1323,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
 
             {pricing.deposit > 0 && (
               <div className="mt-[6px] text-[11px] leading-[1.5] text-muted">
-                Includes a refundable {money(pricing.deposit)} security deposit — charged now and refunded after your trip, minus any damages.
+                Included in the total above — refunded after your trip, minus any damage claims.
               </div>
             )}
 
