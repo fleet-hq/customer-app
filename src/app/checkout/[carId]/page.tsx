@@ -1294,6 +1294,14 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                 <span className="text-muted">Tax</span>
                 <span className="font-medium text-ink">{money(pricing.tax)}</span>
               </div>
+              {pricing.deposit > 0 && (
+                <div className="flex items-center justify-between">
+                  <span className="text-muted">
+                    Security deposit <span className="text-[11px]">(refundable)</span>
+                  </span>
+                  <span className="font-medium text-ink">{money(pricing.deposit)}</span>
+                </div>
+              )}
             </div>
             <div className="my-4 h-px bg-card-border" />
 
@@ -1309,23 +1317,14 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               </div>
               <div className="text-right">
                 <span className="mr-[3px] text-[11px] text-muted">USD</span>
-                <span className="text-[22px] font-bold text-secondary">{money(total)}</span>
+                <span className="text-[22px] font-bold text-secondary">{money(total + (pricing.deposit || 0))}</span>
               </div>
             </div>
 
             {pricing.deposit > 0 && (
-              <>
-                <div className="my-4 h-px bg-card-border" />
-                <div className="flex items-center justify-between text-[13px]">
-                  <span className="text-muted">
-                    Security deposit <span className="text-[11px]">(refundable)</span>
-                  </span>
-                  <span className="font-medium text-ink">{money(pricing.deposit)}</span>
-                </div>
-                <div className="mt-[6px] text-[11px] leading-[1.5] text-muted">
-                  Charged separately and refunded after your trip, minus any damage claims.
-                </div>
-              </>
+              <div className="mt-[6px] text-[11px] leading-[1.5] text-muted">
+                Includes a refundable {money(pricing.deposit)} security deposit, refunded after your trip minus any damage claims.
+              </div>
             )}
 
             {(hasErrors || checkoutError) && (
