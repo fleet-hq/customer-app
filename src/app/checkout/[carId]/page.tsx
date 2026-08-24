@@ -1323,7 +1323,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
 
             {pricing.deposit > 0 && (
               <div className="mt-[6px] text-[11px] leading-[1.5] text-muted">
-                Included in the total above — refunded after your trip, minus any damage claims.
+                Included in the total above. Refunded after your trip, minus any damage claims.
               </div>
             )}
 
