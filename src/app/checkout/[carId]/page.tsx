@@ -688,7 +688,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
         return;
       }
       if (deposit > 0 && !squareCardRef.current.consentChecked()) {
-        setCheckoutError('Please authorize the deposit hold to continue.');
+        setCheckoutError('Please agree to the security deposit to continue.');
         return;
       }
       const tokens = await squareCardRef.current.tokenize({ withSaveCard: deposit > 0 });
@@ -1295,6 +1295,14 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                 <span className="font-medium text-ink">{money(pricing.tax)}</span>
               </div>
             </div>
+            {pricing.deposit > 0 && (
+              <div className="mt-3 flex items-center justify-between">
+                <span className="text-muted">
+                  Security deposit <span className="text-[11px] text-muted">(refundable)</span>
+                </span>
+                <span className="font-medium text-ink">{money(pricing.deposit)}</span>
+              </div>
+            )}
             <div className="my-4 h-px bg-card-border" />
 
             <div className="flex items-baseline justify-between">
@@ -1309,19 +1317,14 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               </div>
               <div className="text-right">
                 <span className="mr-[3px] text-[11px] text-muted">USD</span>
-                <span className="text-[22px] font-bold text-secondary">{money(total)}</span>
+                <span className="text-[22px] font-bold text-secondary">{money(total + (pricing.deposit || 0))}</span>
               </div>
             </div>
 
             {pricing.deposit > 0 && (
-              <>
-                <div className="my-4 h-px bg-card-border" />
-                <div className="flex items-center justify-between text-[13px]">
-                  <span className="font-semibold text-ink">Security deposit</span>
-                  <span className="font-semibold text-ink">{money(pricing.deposit)}</span>
-                </div>
-                <div className="mt-[6px] text-[11px] leading-[1.5] text-muted">Refundable hold, collected separately at pick-up.</div>
-              </>
+              <div className="mt-[6px] text-[11px] leading-[1.5] text-muted">
+                Includes a refundable {money(pricing.deposit)} security deposit — charged now and refunded after your trip, minus any damages.
+              </div>
             )}
 
             {(hasErrors || checkoutError) && (
@@ -1577,7 +1580,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                     : null;
                 if (conflict && fleetTz) {
                   setTripError(
-                    `Part of that window is unavailable — this vehicle is already booked or blocked from ${formatInTimeZone(new Date(conflict.start), fleetTz, 'MMM d, h:mm a')}. Please adjust your dates or times.`,
+                    `Part of that window is unavailable | this vehicle is already booked or blocked from ${formatInTimeZone(new Date(conflict.start), fleetTz, 'MMM d, h:mm a')}. Please adjust your dates or times.`,
                   );
                   return;
                 }

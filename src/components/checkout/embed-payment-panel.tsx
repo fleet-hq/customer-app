@@ -254,7 +254,7 @@ function SquarePanel(props: EmbedPaymentPanelProps) {
     event.preventDefault();
     if (!cardRef.current) return;
     if (requiresConsent && !consentChecked) {
-      setError('Please authorize the deposit hold to continue.');
+      setError('Please agree to the security deposit to continue.');
       return;
     }
     setSubmitting(true);
@@ -365,9 +365,9 @@ function buildDepositConsentCopy(args: {
   const currency = (args.currency || 'usd').toUpperCase();
   const amount = Math.round(args.amount);
   return (
-    `I authorize ${tenant} to securely save my card and charge up to ` +
-    `${currency} ${amount.toLocaleString()} within 7 days after my return ` +
-    `for any damages, additional charges, or fees per the rental terms.`
+    `I authorize ${tenant} to charge ${currency} ${amount.toLocaleString()} now ` +
+    `as a refundable security deposit. It is refunded after my return, minus any ` +
+    `damages, additional charges, or fees per the rental terms.`
   );
 }
 

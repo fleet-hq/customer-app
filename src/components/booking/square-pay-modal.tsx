@@ -77,7 +77,7 @@ export function SquarePayModal({
       return;
     }
     if (requiresDeposit && !cardRef.current.consentChecked()) {
-      setCardError('Please authorize the deposit hold to continue.');
+      setCardError('Please agree to the security deposit to continue.');
       return;
     }
     const tokens = await cardRef.current.tokenize({ withSaveCard: requiresDeposit });
@@ -103,7 +103,7 @@ export function SquarePayModal({
             <h3 className="text-[15px] font-semibold text-ink">Pay to confirm booking</h3>
             <p className="mt-0.5 text-[12px] text-muted">
               {currencyLabel} {amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} charged now
-              {requiresDeposit ? ` · card saved for ${currencyLabel} ${deposit.toLocaleString()} deposit` : ''}
+              {requiresDeposit ? ` · plus a refundable ${currencyLabel} ${deposit.toLocaleString()} deposit` : ''}
             </p>
           </div>
           <button

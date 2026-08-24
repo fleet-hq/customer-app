@@ -251,7 +251,7 @@ export const SquareCardEntry = forwardRef<SquareCardEntryHandle, Props>(function
             )}
           </span>
           <span className="min-w-0 flex-1 break-words text-[11.5px] leading-[1.55] text-ink">
-            <span className="mb-0.5 block text-[10.5px] font-semibold uppercase tracking-[0.04em] text-primary">Deposit authorization</span>
+            <span className="mb-0.5 block text-[10.5px] font-semibold uppercase tracking-[0.04em] text-primary">Refundable security deposit</span>
             {depositConsentCopy}
           </span>
         </button>
@@ -269,9 +269,9 @@ export function buildDepositConsentCopy(args: {
   const currency = (args.currency || 'usd').toUpperCase();
   const amount = Math.round(args.amount);
   return (
-    `I authorize ${tenant} to securely save my card and charge up to ` +
-    `${currency} ${amount.toLocaleString()} within 7 days after my return ` +
-    `for any damages, additional charges, or fees per the rental terms.`
+    `I authorize ${tenant} to charge ${currency} ${amount.toLocaleString()} now ` +
+    `as a refundable security deposit. It is refunded after my return, minus any ` +
+    `damages, additional charges, or fees per the rental terms.`
   );
 }
 

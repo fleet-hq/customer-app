@@ -57,7 +57,7 @@ export const DEFAULT_TERMS_SECTIONS: PolicySection[] = [
   {
     heading: '2. Reservations & Payment',
     paras: [
-      'A reservation is confirmed once a deposit has been authorized against the payment method provided. The renter must be the cardholder and may be asked to present the physical card at pickup.',
+      'A reservation is confirmed once the refundable security deposit has been charged to the payment method provided. The deposit is refunded after your return, minus any damages or fees. The renter must be the cardholder and may be asked to present the physical card at pickup.',
       'Rates quoted include the base daily rate and any extras you select. Applicable taxes and fees, where they apply, are itemized on your invoice before you confirm.',
     ],
   },
