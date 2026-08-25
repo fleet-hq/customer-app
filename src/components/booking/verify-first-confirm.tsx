@@ -389,6 +389,17 @@ export function VerifyFirstConfirm(props: Props) {
                     </span>
                   </div>
                 )}
+                {inv.deposit > 0 && (
+                  <div className="flex items-start justify-between gap-3 text-[13px]">
+                    <p className="text-ink">
+                      Security deposit{' '}
+                      <span className="text-[11px] text-faint">(refundable)</span>
+                    </p>
+                    <span className="whitespace-nowrap font-medium text-ink">
+                      {money(inv.deposit)}
+                    </span>
+                  </div>
+                )}
               </div>
               <div className="my-5 h-px bg-card-border" />
               <div className="flex items-baseline justify-between">
@@ -403,10 +414,20 @@ export function VerifyFirstConfirm(props: Props) {
                       mode === 'confirmed_paid' ? 'text-success' : 'text-secondary',
                     )}
                   >
-                    {money(mode === 'payment_due' ? outstanding || totalDue : totalDue)}
+                    {money(
+                      mode === 'payment_due'
+                        ? outstanding || totalDue
+                        : totalDue + (inv.deposit || 0),
+                    )}
                   </span>
                 </span>
               </div>
+              {inv.deposit > 0 && mode !== 'payment_due' && (
+                <p className="mt-2 text-[11px] leading-[1.5] text-faint">
+                  Includes a refundable {money(inv.deposit)} security deposit,
+                  refunded after your trip minus any damage claims.
+                </p>
+              )}
 
               {mode === 'pending_verification' && (
                 <PayCTA
