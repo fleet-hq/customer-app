@@ -59,6 +59,8 @@ export default function CancelBookingPage({ params }: { params: Promise<{ id: st
   const refundAmount = preview?.refund_amount ? parseFloat(preview.refund_amount) : 0;
   const cancellationFee = preview?.modification_fee ? parseFloat(preview.modification_fee) : 0;
   const insuranceExcluded = preview?.insurance_excluded ? parseFloat(preview.insurance_excluded) : 0;
+  const depositRefund = preview?.deposit_refund ? parseFloat(preview.deposit_refund) : 0;
+  const totalRefund = refundAmount + depositRefund;
 
   const handleCancel = async () => {
     if (!reason) {
@@ -146,12 +148,18 @@ export default function CancelBookingPage({ params }: { params: Promise<{ id: st
                   <span className="text-[14px] font-semibold text-danger">-{money(cancellationFee)}</span>
                 </div>
               )}
+              {depositRefund > 0 && (
+                <div className="mt-2 flex items-center justify-between">
+                  <span className="text-[13px] text-muted">Security deposit</span>
+                  <span className="text-[14px] font-semibold text-success">+{money(depositRefund)}</span>
+                </div>
+              )}
             </div>
 
             <div className="mt-4 flex items-start gap-[10px] rounded-[10px] border border-primary-border bg-primary-soft px-[14px] py-[12px]">
               <Info size={15} strokeWidth={2} className="mt-px flex-shrink-0 text-primary" />
               <span className="text-[11.5px] leading-[1.5] text-secondary">
-                You&apos;ll receive a refund of {money(refundAmount)} to your original payment method.
+                You&apos;ll receive a refund of {money(totalRefund)} to your original payment method.
               </span>
             </div>
 
@@ -228,7 +236,7 @@ export default function CancelBookingPage({ params }: { params: Promise<{ id: st
             <div className="mx-auto mt-6 max-w-[360px] rounded-[12px] border border-green-border-2 bg-green-bg px-5 py-4">
               <div className="flex items-center justify-between">
                 <span className="text-[13px] font-semibold text-success">Refund issued</span>
-                <span className="text-[16px] font-bold text-success">{money(refundAmount)}</span>
+                <span className="text-[16px] font-bold text-success">{money(totalRefund)}</span>
               </div>
               <div className="mt-1 text-left text-[11.5px] text-success">Expect it on your original payment method within 5-10 business days.</div>
             </div>
