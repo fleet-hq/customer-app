@@ -30,7 +30,7 @@ export function Footer() {
               />
             ) : null}
             {description ? (
-              <p className="mb-5 text-[11px] leading-[1.65] font-light text-white/60">{description}</p>
+              <p className={`mb-5 text-[11px] leading-[1.65] font-light text-white/60${brand.logoMono ? '' : ' mt-8'}`}>{description}</p>
             ) : null}
             {socials.length > 0 ? (
               <div className="flex gap-[10px]">
