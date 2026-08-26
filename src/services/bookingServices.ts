@@ -602,7 +602,7 @@ function transformBooking(api: ApiBooking): BookingDetails {
   const deposit = Number(api.security_deposit) || 0;
   const balance = total - deposit;
 
-  const PLACEHOLDER = '/images/vehicles/car_placeholder.png';
+  const PLACEHOLDER = '/images/vehicles/car_placeholder.svg';
   const thumbnailImg = api.fleet.images?.find((img) => img.is_thumbnail);
   const firstImg = api.fleet.images?.[0];
   const imageUrl = thumbnailImg?.image || firstImg?.image || '';

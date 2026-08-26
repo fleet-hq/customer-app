@@ -12,7 +12,7 @@ import { setBookingToken } from '@/utils/booking-token';
 import type { BookingLookupResponse, LookupBookingItem } from '@/services/bookingServices';
 
 const LOOKUP_STORAGE_KEY = 'cc_lookup';
-const PLACEHOLDER_IMAGE = '/images/car-cherokee.png';
+const PLACEHOLDER_IMAGE = '/images/vehicles/car_placeholder.svg';
 
 const STATUS_META: Record<string, { label: string; className: string }> = {
   confirmed: { label: 'Confirmed', className: 'bg-green-bg-2 text-success' },

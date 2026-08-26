@@ -193,7 +193,7 @@ export interface VehicleExtra {
   icon?: string;
 }
 
-const PLACEHOLDER_IMAGE = '/images/vehicles/car_placeholder.png';
+const PLACEHOLDER_IMAGE = '/images/vehicles/car_placeholder.svg';
 
 export function parseTaxProfile(raw: ApiTaxProfile | number | null | undefined): TaxProfile | null {
   if (!raw || typeof raw === 'number') return null;

@@ -125,7 +125,7 @@ export default function SwapVehiclePage({ params }: { params: Promise<{ id: stri
   const unitLabel = booking?.invoice.items[0]?.unit || 'day';
   const newVehiclePrice = newFleet?.pricePerDay || newFleet?.pricePerHour || selectedVehicle?.pricePerDay || selectedVehicle?.pricePerHour || 0;
   const newVehicleName = newFleet?.name || selectedVehicle?.name || 'New vehicle';
-  const newVehicleImage = newFleet?.image || selectedVehicle?.image || '/images/vehicles/car_placeholder.png';
+  const newVehicleImage = newFleet?.image || selectedVehicle?.image || '/images/vehicles/car_placeholder.svg';
 
   const handleConfirm = async () => {
     if (!selected || !booking) return;
@@ -219,7 +219,7 @@ export default function SwapVehiclePage({ params }: { params: Promise<{ id: stri
             {vehicles.map((v) => {
               const vid = String(v.id);
               const isSelected = selected === vid;
-              const image = v.image || '/images/vehicles/car_placeholder.png';
+              const image = v.image || '/images/vehicles/car_placeholder.svg';
               const unitPrice = v.pricePerDay || v.pricePerHour || 0;
               return (
                 <button

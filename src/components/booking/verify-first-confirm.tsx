@@ -11,7 +11,7 @@ import { useState } from 'react';
 import type { BillingChargeRow } from '@/services/billingServices';
 import type { TripImage } from '@/services/tripImageServices';
 
-const PLACEHOLDER_IMAGE = '/images/car-cherokee.png';
+const PLACEHOLDER_IMAGE = '/images/vehicles/car_placeholder.svg';
 
 const FAILED_PILL_CLASSES = 'bg-[#FEF3F2] text-[#B42318]';
 const FAILED_BUTTON_CLASSES = 'bg-[#FEF3F2] text-[#B42318] hover:bg-[#FEE4E2]';

@@ -37,7 +37,7 @@ import { RentalAgreementSignModal } from '@/components/booking/rental-agreement-
 import { useAbiQuote } from '@/hooks/useAbi';
 import type { AbiQuoteAvailable } from '@/services/abiServices';
 
-const PLACEHOLDER_IMAGE = '/images/vehicles/car_placeholder.png';
+const PLACEHOLDER_IMAGE = '/images/vehicles/car_placeholder.svg';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -429,7 +429,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   const selectedPlans = plans.filter((p) => selectedInsurance.has(p.id) && p.id !== 'own');
   const ownSelected = selectedInsurance.has('own');
 
-  const galleryImages = vehicle.images.length > 0 ? vehicle.images : ['/images/car-cherokee.png'];
+  const galleryImages = vehicle.images.length > 0 ? vehicle.images : ['/images/vehicles/car_placeholder.svg'];
 
   const discount = pricing.discount;
   const total = pricing.total + abiPremium;

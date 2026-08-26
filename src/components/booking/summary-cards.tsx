@@ -20,7 +20,7 @@ function looksLikeModification(reason?: string | null): boolean {
   return MODIFICATION_REASON_PATTERNS.some((r) => r.test(reason));
 }
 
-const PLACEHOLDER_IMAGE = '/images/car-cherokee.png';
+const PLACEHOLDER_IMAGE = '/images/vehicles/car_placeholder.svg';
 
 function rentalDays(booking: BookingDetails): number {
   const start = new Date(booking.pickUp.rawDatetime).getTime();
