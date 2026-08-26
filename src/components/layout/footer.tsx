@@ -19,18 +19,16 @@ export function Footer() {
       <div className="mx-auto max-w-[1200px] px-6 pt-[60px] pb-[26px]">
         <div className="grid grid-cols-1 gap-12 md:grid-cols-[2fr_1fr_1.4fr]">
           <div className="max-w-[340px]">
-            {brand.logoMono || brand.logo ? (
+            {brand.logoMono ? (
               <Image
-                src={(brand.logoMono || brand.logo) as string}
+                src={brand.logoMono}
                 alt={tenant.name}
                 width={412}
                 height={412}
                 className="mb-4 h-12 w-auto"
                 unoptimized
               />
-            ) : (
-              <p className="mb-4 text-[20px] font-semibold tracking-[-0.01em] text-white">{tenant.name}</p>
-            )}
+            ) : null}
             {description ? (
               <p className="mb-5 text-[11px] leading-[1.65] font-light text-white/60">{description}</p>
             ) : null}
