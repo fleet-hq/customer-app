@@ -85,7 +85,7 @@ export default function ProtectionSection({
           />
         ))}
       </div>
-      {bonzahPlans.length > 0 && <BonzahDisclosure />}
+      {bonzahPlans.some((p) => p.id !== 'own') && <BonzahDisclosure />}
     </>
   );
 }
