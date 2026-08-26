@@ -4,7 +4,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useTenant } from '@/lib/tenant-context';
 import { paths } from '@/lib/paths';
-import { cn } from '@/lib/utils';
 import { Mail, MapPin, Phone } from '@/components/ui/icons';
 
 export function Footer() {
@@ -26,7 +25,7 @@ export function Footer() {
                 alt={tenant.name}
                 width={412}
                 height={412}
-                className={cn('mb-4 h-12 w-auto', !brand.logoMono && 'brightness-0 invert')}
+                className="mb-4 h-12 w-auto"
                 unoptimized
               />
             ) : (
