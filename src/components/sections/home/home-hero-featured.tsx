@@ -77,46 +77,52 @@ export function HomeHeroFeatured({
 
   return (
     <section
-      className="relative flex min-h-[560px] flex-col justify-between overflow-hidden pb-8 md:min-h-[640px] md:pb-10"
+      className="relative flex flex-col overflow-hidden"
       style={hasBg ? undefined : { backgroundColor: 'var(--color-secondary)' }}
     >
       {hasBg ? (
         <>
           {hasMobileBg ? (
-            <div
-              className="absolute inset-0 bg-cover bg-center sm:hidden"
-              style={{ backgroundImage: `url('${mobileBackgroundImage}')` }}
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={mobileBackgroundImage}
+              alt=""
+              className="block h-auto w-full sm:hidden"
             />
           ) : null}
-          <div
-            className={`absolute inset-0 bg-cover bg-center ${hasMobileBg ? 'hidden sm:block' : ''}`}
-            style={{ backgroundImage: `url('${backgroundImage}')` }}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={backgroundImage}
+            alt=""
+            className={`block h-auto w-full ${hasMobileBg ? 'hidden sm:block' : ''}`}
           />
           <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/45 to-black/10" />
         </>
-      ) : null}
+      ) : (
+        <div className="min-h-[560px] w-full md:min-h-[640px]" />
+      )}
 
-      <div className="relative z-10 flex flex-1 flex-col justify-center px-6 pt-[110px] pb-10 md:px-14 md:pt-[130px]">
-        <div className="max-w-[620px]">
-          {headingLines.length > 0 ? (
-            <h1 className="m-0 text-[40px] leading-[0.98] font-extrabold tracking-[-0.02em] text-white uppercase sm:text-[52px] md:text-[68px]">
-              {headingLines.map((line, i) => (
-                <span key={i} className="block">
-                  {renderLine(line)}
-                </span>
-              ))}
-            </h1>
-          ) : null}
-          {subheading ? (
-            <p className="mt-5 max-w-[440px] text-[15px] leading-[1.55] text-white/85 md:text-[17px]">
-              {subheading}
-            </p>
-          ) : null}
+      <div className="absolute inset-0 z-10 flex flex-col justify-between pb-8 md:pb-10">
+        <div className="flex flex-1 flex-col justify-center px-6 pt-[110px] pb-10 md:px-14 md:pt-[130px]">
+          <div className="max-w-[620px]">
+            {headingLines.length > 0 ? (
+              <h1 className="m-0 text-[40px] leading-[0.98] font-extrabold tracking-[-0.02em] text-white uppercase sm:text-[52px] md:text-[68px]">
+                {headingLines.map((line, i) => (
+                  <span key={i} className="block">
+                    {renderLine(line)}
+                  </span>
+                ))}
+              </h1>
+            ) : null}
+            {subheading ? (
+              <p className="mt-5 max-w-[440px] text-[15px] leading-[1.55] text-white/85 md:text-[17px]">
+                {subheading}
+              </p>
+            ) : null}
+          </div>
         </div>
-      </div>
 
-      {items.length > 0 ? (
-        <div className="relative z-10">
+        {items.length > 0 ? (
           <div className="grid grid-cols-2 gap-y-4 px-6 py-6 sm:grid-cols-3 md:flex md:items-center md:justify-between md:px-14">
             {items.map((f, i) => {
               const Icon = FEATURE_ICONS[(f.icon || '').toLowerCase()] ?? Sparkles;
@@ -142,8 +148,8 @@ export function HomeHeroFeatured({
               );
             })}
           </div>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
     </section>
   );
 }

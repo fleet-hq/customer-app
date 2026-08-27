@@ -92,6 +92,27 @@ textarea::placeholder {
   font-variant-numeric: tabular-nums;
 }
 
+@media (min-width: 1600px) {
+  body:not(.fleethq-embedded) {
+    zoom: 1.08;
+  }
+}
+@media (min-width: 1920px) {
+  body:not(.fleethq-embedded) {
+    zoom: 1.2;
+  }
+}
+@media (min-width: 2400px) {
+  body:not(.fleethq-embedded) {
+    zoom: 1.4;
+  }
+}
+@media (min-width: 3000px) {
+  body:not(.fleethq-embedded) {
+    zoom: 1.6;
+  }
+}
+
 /* Print stylesheet — drives the "Download PDF" flow on the booking
  * detail page (the Download button calls window.print()). Anything
  * tagged ``.no-print`` is hidden: site header / footer, search bar,
