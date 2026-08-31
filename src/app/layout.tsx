@@ -11,6 +11,7 @@ import { ErrorBoundary } from '@/components/error-boundary';
 import { StripeProvider } from '@/components/stripe-provider';
 import { SetupInProgress } from '@/components/setup-in-progress';
 import { RenterActivityPing } from '@/components/analytics/RenterActivityPing';
+import { SiteTracking } from '@/components/tracking/site-tracking';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -81,6 +82,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en" data-tenant={tenant.slug} style={brandVars} className={`${inter.variable} ${manrope.variable} ${caveat.variable}`}>
       <body>
+        <SiteTracking tracking={tenant.tracking} />
         <Providers>
           {/* TenantProvider must wrap CompanyProvider. CompanyProvider
               calls useCompanySettings which reads useTenant for the

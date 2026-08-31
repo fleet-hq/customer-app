@@ -4,6 +4,7 @@ import { Suspense, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getBookingBySession, BookingNotReadyYet } from '@/services/bookingServices';
 import { setBookingToken } from '@/utils/booking-token';
+import { trackPurchase } from '@/lib/tracking-events';
 import { paths } from '@/lib/paths';
 import { useEmbedBridge } from '@/hooks';
 
@@ -39,6 +40,13 @@ function SuccessContent() {
           const booking = await getBookingBySession(sessionId);
           if (cancelled) return;
           if (booking.access_token) setBookingToken(booking.access_token);
+          // Fire the conversion once, here — the success page is only ever
+          // reached immediately after a completed checkout, so tenant GTM /
+          // Meta Pixel conversions can't double-count on later booking views.
+          trackPurchase({
+            transactionId: booking.booking_id,
+            value: booking.total_price ? Number(booking.total_price) : undefined,
+          });
           if (embed.embedded) embed.reportBookingComplete(booking.booking_id);
           router.replace(`${paths.booking(String(booking.booking_id))}?token=${encodeURIComponent(booking.access_token)}`);
           return;

@@ -37,6 +37,19 @@ export interface TenantLocation {
   id: string;
   name: string;
 }
+/** Per-tenant marketing / analytics tracking. Empty strings mean "not
+ *  configured" so the site can guard each script with a single falsy
+ *  check before injecting it. IDs render from fixed vendor templates;
+ *  the raw script slots are super-admin-only escape hatches. */
+export interface TenantTracking {
+  facebookPixelId: string;
+  googleAnalyticsId: string;
+  gtmId: string;
+  tiktokPixelId: string;
+  headScript: string;
+  bodyScript: string;
+  thankYouScript: string;
+}
 
 /** Tenant view consumed by every server/client component. Any field
  *  that can legitimately be "not configured yet" is nullable — the
@@ -63,6 +76,7 @@ export interface Tenant {
   footer: FooterPayload;
   images: ImagesPayload;
   sections: TenantSections;
+  tracking: TenantTracking;
 }
 
 export function defaultLocation(tenant: Tenant): TenantLocation | undefined {
@@ -102,6 +116,15 @@ interface ApiCompanyDetail {
     footer?: Partial<FooterPayload>;
     images?: Partial<ImagesPayload>;
     sections?: ContentSections;
+    tracking?: {
+      facebook_pixel_id?: string;
+      google_analytics_id?: string;
+      google_tag_manager_id?: string;
+      tiktok_pixel_id?: string;
+      head_script?: string;
+      body_script?: string;
+      thank_you_script?: string;
+    };
   };
 }
 
@@ -126,6 +149,7 @@ export function tenantFromApi(detail: ApiCompanyDetail, locations: ApiLocation[]
   const footer = content.footer ?? {};
   const images = content.images ?? {};
   const sections = content.sections ?? {};
+  const tracking = content.tracking ?? {};
 
   return {
     id: String(detail.id),
@@ -174,6 +198,15 @@ export function tenantFromApi(detail: ApiCompanyDetail, locations: ApiLocation[]
       testimonials: sections.testimonials ?? null,
       faqs: sections.faqs ?? null,
       cta: sections.cta ?? null,
+    },
+    tracking: {
+      facebookPixelId: nonEmpty(tracking.facebook_pixel_id),
+      googleAnalyticsId: nonEmpty(tracking.google_analytics_id),
+      gtmId: nonEmpty(tracking.google_tag_manager_id),
+      tiktokPixelId: nonEmpty(tracking.tiktok_pixel_id),
+      headScript: nonEmpty(tracking.head_script),
+      bodyScript: nonEmpty(tracking.body_script),
+      thankYouScript: nonEmpty(tracking.thank_you_script),
     },
   };
 }
