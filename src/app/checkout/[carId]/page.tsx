@@ -111,7 +111,6 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   const [squareCardError, setSquareCardError] = useState<string | null>(null);
   const tenant = useTenant();
 
-  const { data: insuranceOptions, isLoading: insuranceOptionsLoading } = useInsuranceOptions();
   const { data: manualInsurancePackages } = useManualInsurancePackagesForTenant();
   const { data: companyLocations } = useCompanyLocations();
   const defaultLoc = useDefaultLocation();
@@ -273,6 +272,8 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   }, [fleetTz, pickupDate, pickupTime, returnDate, returnTime]);
 
   const { data: vehicle, isLoading } = useFleet(carId, true, fleetDateArgs);
+  const { data: insuranceOptions, isLoading: insuranceOptionsLoading } =
+    useInsuranceOptions(fleetDateArgs);
 
   const { data: abiQuote } = useAbiQuote({
     fleetId: vehicle?.id,

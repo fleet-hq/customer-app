@@ -1,5 +1,6 @@
 import { Download } from '@/components/ui/icons';
 import { money } from '@/lib/utils';
+import { insuranceCoverageLines } from '@/lib/insurance-lines';
 import type { BookingDetails } from '@/services/bookingServices';
 import type { BillingChargeRow } from '@/services/billingServices';
 
@@ -183,6 +184,7 @@ export function Invoice({
 }) {
   const inv = booking.invoice;
   const extraLines = inv.extras.map((e) => ({ label: e.name, amount: e.price }));
+  const coverageLines = insuranceCoverageLines(inv.insuranceCoverages);
   const grandTotal = total ?? inv.total;
 
   // Extension charges from the booking API's modification_requests —
@@ -361,13 +363,21 @@ export function Invoice({
         </>
       )}
 
-      {inv.insurancePremium > 0 && (
+      {coverageLines.length > 0 ? (
+        <>
+          {divider}
+          <Group title="Insurance" />
+          {coverageLines.map((line, i) => (
+            <InvoiceRow key={i} label={line.label} sub={line.sub} amount={money(line.amount)} />
+          ))}
+        </>
+      ) : inv.insurancePremium > 0 ? (
         <>
           {divider}
           <Group title="Insurance" />
           <InvoiceRow label="Protection plan" amount={money(inv.insurancePremium)} />
         </>
-      )}
+      ) : null}
 
       {extraLines.length > 0 && (
         <>

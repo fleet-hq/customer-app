@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Check, Clock, Close, Download, IdCard, Pencil, ShieldCheck, Swap } from '@/components/ui/icons';
 import { BackLink } from '@/components/ui/back-link';
 import { cn, money } from '@/lib/utils';
+import { insuranceCoverageLines } from '@/lib/insurance-lines';
 import { paths } from '@/lib/paths';
 import { TripPhotos } from '@/components/booking/side-panels';
 import type { BookingDetails, InsuranceVerificationDetails } from '@/services/bookingServices';
@@ -174,7 +175,12 @@ export function VerifyFirstConfirm(props: Props) {
       value: rentalLine,
     });
   }
-  if (inv.insurancePremium > 0) {
+  const coverageLines = insuranceCoverageLines(inv.insuranceCoverages);
+  if (coverageLines.length > 0) {
+    for (const line of coverageLines) {
+      lineItems.push({ label: line.label, sub: line.sub, value: line.amount });
+    }
+  } else if (inv.insurancePremium > 0) {
     lineItems.push({
       label: 'Standard Protection',
       sub: `${money(inv.insurancePremium / Math.max(days, 1))} × ${days} day${days === 1 ? '' : 's'}`,

@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, keepPreviousData } from '@tanstack/react-query';
 import {
   getInsuranceOptions,
   getInsuranceOptionsBundle,
@@ -28,6 +28,7 @@ export const useInsuranceOptions = (args?: {
     ],
     queryFn: () => getInsuranceOptions(args),
     staleTime: 5 * 60 * 1000,
+    placeholderData: keepPreviousData,
   });
 
 /** Full insurance bundle — Bonzah options + manual packages together.

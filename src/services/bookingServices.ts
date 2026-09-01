@@ -305,6 +305,13 @@ export interface ApiBooking {
       sli_cover: boolean;
       pai_cover: boolean;
     };
+    coverages?: {
+      code: string;
+      name: string;
+      daily: number;
+      days: number;
+      amount: number;
+    }[];
   } | null;
   abi_coverage?: {
     id: number;
@@ -443,6 +450,13 @@ export interface BookingDetails {
     rentalTotal: number;
     fees: number;
     insurancePremium: number;
+    insuranceCoverages: {
+      code: string;
+      name: string;
+      daily: number;
+      days: number;
+      amount: number;
+    }[];
     abiPremium: number;
     abiStatus: string | null;
     subtotal: number;
@@ -694,6 +708,15 @@ function transformBooking(api: ApiBooking): BookingDetails {
       rentalTotal: rentalSum,
       fees,
       insurancePremium: Number(api.insurance_details?.premium_amount) || 0,
+      insuranceCoverages: Array.isArray(api.insurance_details?.coverages)
+        ? api.insurance_details.coverages.map((c: any) => ({
+            code: String(c?.code ?? ''),
+            name: String(c?.name ?? ''),
+            daily: Number(c?.daily) || 0,
+            days: Number(c?.days) || 0,
+            amount: Number(c?.amount) || 0,
+          }))
+        : [],
       abiPremium: Number(api.abi_coverage?.premium_amount) || 0,
       abiStatus: (api.abi_coverage?.status as string) || null,
       subtotal,
