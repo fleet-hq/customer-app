@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useMemo, useEffect, type ReactNode, type
 import { cn } from '@/lib/utils';
 import { useClickOutside } from '@/lib/use-click-outside';
 import { buildLocationTimeSlots, type TimeSlot } from '@/lib/time-slots';
+import { computeAnchoredPanelPosition } from '@/lib/anchored-position';
 
 export interface TimePickerProps {
   value: string;
@@ -22,7 +23,7 @@ export interface TimePickerProps {
 }
 
 const PANEL_HEIGHT = 260;
-const GAP = 8;
+const PANEL_WIDTH = 160;
 
 function formatTimeDisplay(value: string): string {
   const parts = value.split(':');
@@ -95,18 +96,12 @@ export function TimePicker({
 
   const computePosition = useCallback(() => {
     if (!triggerRef.current) return;
-    const rect = triggerRef.current.getBoundingClientRect();
-    const spaceBelow = window.innerHeight - rect.bottom;
-    const openUp = spaceBelow < PANEL_HEIGHT && rect.top > PANEL_HEIGHT;
-    const left = Math.max(8, Math.min(rect.left, window.innerWidth - 168));
-
-    if (openUp) {
-      setDropdownStyle({ position: 'fixed', bottom: window.innerHeight - rect.top + GAP, left });
-      setOriginClass('origin-bottom');
-    } else {
-      setDropdownStyle({ position: 'fixed', top: rect.bottom + GAP, left });
-      setOriginClass('origin-top');
-    }
+    const { style, origin } = computeAnchoredPanelPosition(triggerRef.current, {
+      panelWidth: PANEL_WIDTH,
+      panelHeight: PANEL_HEIGHT,
+    });
+    setDropdownStyle(style);
+    setOriginClass(origin);
   }, []);
 
   const openDropdown = useCallback(() => {

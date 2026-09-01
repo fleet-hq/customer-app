@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useMemo, useEffect, type ReactNode, type CSSProperties } from 'react';
 import { cn } from '@/lib/utils';
 import { useClickOutside } from '@/lib/use-click-outside';
+import { computeAnchoredPanelPosition } from '@/lib/anchored-position';
 
 export interface DatePickerProps {
   value: string;
@@ -19,7 +20,7 @@ export interface DatePickerProps {
 
 const DAYS_OF_WEEK = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'] as const;
 const PANEL_HEIGHT = 320;
-const GAP = 8;
+const PANEL_WIDTH = 256;
 
 function getDaysInMonth(year: number, month: number): number {
   return new Date(year, month + 1, 0).getDate();
@@ -81,18 +82,12 @@ export function DatePicker({
 
   const computePosition = useCallback(() => {
     if (!triggerRef.current) return;
-    const rect = triggerRef.current.getBoundingClientRect();
-    const spaceBelow = window.innerHeight - rect.bottom;
-    const openUp = spaceBelow < PANEL_HEIGHT && rect.top > PANEL_HEIGHT;
-    const left = Math.max(8, Math.min(rect.left, window.innerWidth - 264));
-
-    if (openUp) {
-      setDropdownStyle({ position: 'fixed', bottom: window.innerHeight - rect.top + GAP, left });
-      setOriginClass('origin-bottom');
-    } else {
-      setDropdownStyle({ position: 'fixed', top: rect.bottom + GAP, left });
-      setOriginClass('origin-top');
-    }
+    const { style, origin } = computeAnchoredPanelPosition(triggerRef.current, {
+      panelWidth: PANEL_WIDTH,
+      panelHeight: PANEL_HEIGHT,
+    });
+    setDropdownStyle(style);
+    setOriginClass(origin);
   }, []);
 
   const openDropdown = useCallback(() => {
