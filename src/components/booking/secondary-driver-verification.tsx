@@ -5,30 +5,46 @@ import type { ReactNode } from 'react';
 
 import { IdCard, ShieldCheck } from '@/components/ui/icons';
 import { cn } from '@/lib/utils';
-import type { BookingDriver } from '@/services/bookingServices';
+import {
+  mapInsuranceVerificationDetails,
+  isInsuranceVerified,
+  isInsuranceFailed,
+  type BookingDriver,
+  type InsuranceVerificationDetails,
+} from '@/services/bookingServices';
 import {
   createDriverIdVerificationSession,
   createDriverInsuranceVerification,
 } from '@/services/verificationServices';
+import { FailedInsurancePanel } from '@/components/booking/failed-insurance-panel';
 
 function DriverVerifyCard({
   icon,
   title,
   description,
   verified,
+  failed,
+  failureDetails,
   onVerify,
 }: {
   icon: ReactNode;
   title: string;
   description: string;
   verified: boolean;
+  failed?: boolean;
+  failureDetails?: InsuranceVerificationDetails | null;
   onVerify: () => Promise<string | null>;
 }) {
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   const handleClick = () => {
+    if (failed) {
+      setDetailsOpen((v) => !v);
+      return;
+    }
     if (verified || loading) return;
     setError(null);
     setLoading(true);
@@ -61,7 +77,21 @@ function DriverVerifyCard({
       .finally(() => setLoading(false));
   };
 
-  const label = verified ? 'Verified' : sent ? 'Link opened' : loading ? 'Starting…' : 'Verify';
+  const label = failed
+    ? detailsOpen
+      ? 'Hide details'
+      : 'View details'
+    : verified
+      ? 'Verified'
+      : loading
+        ? 'Sending…'
+        : sent
+          ? 'In progress…'
+          : 'Verify';
+
+  const pillCopy = failed ? 'Not verified' : verified ? 'Verified' : 'Required';
+
+  const buttonDisabled = !failed && (verified || loading || sent);
 
   return (
     <div className="flex flex-col rounded-xl border border-card-border bg-white p-4">
@@ -70,10 +100,14 @@ function DriverVerifyCard({
         <span
           className={cn(
             'rounded-md px-2 py-0.5 text-[10.5px] font-semibold',
-            verified ? 'bg-green-bg-2 text-success' : 'bg-amber-bg text-amber-text-2',
+            failed
+              ? 'bg-[#FEF3F2] text-[#B42318]'
+              : verified
+                ? 'bg-green-bg-2 text-success'
+                : 'bg-amber-bg text-amber-text-2',
           )}
         >
-          {verified ? 'Verified' : 'Pending'}
+          {pillCopy}
         </span>
       </div>
       <div className="mt-3 flex-1">
@@ -83,18 +117,23 @@ function DriverVerifyCard({
       <button
         type="button"
         onClick={handleClick}
-        disabled={verified || loading}
+        disabled={buttonDisabled}
         className={cn(
           'mt-4 w-full rounded-[9px] py-2.5 text-center text-[12.5px] font-semibold transition-colors',
-          verified
-            ? 'cursor-default bg-green-bg-2 text-success'
-            : loading
-              ? 'cursor-not-allowed bg-track text-muted'
-              : 'bg-secondary text-white hover:opacity-90',
+          failed
+            ? 'bg-[#FEF3F2] text-[#B42318] hover:bg-[#FEE4E2]'
+            : verified
+              ? 'cursor-default bg-green-bg-2 text-success'
+              : buttonDisabled
+                ? 'cursor-not-allowed bg-track text-muted'
+                : 'bg-secondary text-white hover:opacity-90',
         )}
       >
         {label}
       </button>
+      {failed && detailsOpen && failureDetails && (
+        <FailedInsurancePanel details={failureDetails} />
+      )}
       {error && <p className="mt-2 text-[11.5px] text-danger">{error}</p>}
     </div>
   );
@@ -120,7 +159,11 @@ export default function SecondaryDriverVerification({
         Each additional driver verifies their own ID and insurance.
       </p>
       <div className="mt-4 space-y-5">
-        {drivers.map((d) => (
+        {drivers.map((d) => {
+          const insDetails = mapInsuranceVerificationDetails(d.insurance_verification);
+          const insVerified = isInsuranceVerified(insDetails?.status, insDetails);
+          const insFailed = isInsuranceFailed(insDetails?.status, insDetails);
+          return (
           <div key={d.id}>
             <p className="text-[13px] font-semibold text-ink">{d.full_name}</p>
             <div className="mt-2 grid gap-3 sm:grid-cols-2">
@@ -137,7 +180,9 @@ export default function SecondaryDriverVerification({
                 icon={<ShieldCheck size={18} className="text-muted" />}
                 title="Insurance verification"
                 description="Confirm this driver's insurance coverage."
-                verified={d.insurance_verification?.status === 'verified'}
+                verified={insVerified}
+                failed={insFailed}
+                failureDetails={insDetails}
                 onVerify={() =>
                   createDriverInsuranceVerification(
                     bookingId,
@@ -149,7 +194,8 @@ export default function SecondaryDriverVerification({
               />
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
