@@ -93,3 +93,36 @@ export async function createInsuranceVerification(
     magicLink: res.data.magic_link ?? null,
   };
 }
+
+// Per-driver ID verification — Stripe Identity on a specific BookingDriver.
+export async function createDriverIdVerificationSession(
+  bookingId: number | string,
+  driverId: number
+): Promise<{ url: string | null }> {
+  const res = await axios.post<{ session_url?: string; client_secret?: string }>(
+    `${API_URL}/api/bookings/${bookingId}/booking-driver/${driverId}/verify-identity/`,
+    {},
+    { headers: getBookingTokenHeaders() }
+  );
+  return { url: res.data.session_url ?? null };
+}
+
+// Per-driver insurance verification — backend derives the customer from driver_id.
+export async function createDriverInsuranceVerification(
+  bookingId: number | string,
+  driverId: number,
+  rentalStartDate: string,
+  rentalEndDate: string
+): Promise<{ magicLink: string | null }> {
+  const res = await axios.post<{ magic_link?: string | null }>(
+    `${API_URL}/api/modives/verifications/create_verification/`,
+    {
+      driver_id: driverId,
+      booking_id: bookingId,
+      rental_start_date: rentalStartDate,
+      rental_end_date: rentalEndDate,
+    },
+    { headers: getBookingTokenHeaders() }
+  );
+  return { magicLink: res.data.magic_link ?? null };
+}

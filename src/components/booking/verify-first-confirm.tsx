@@ -7,7 +7,8 @@ import { cn, money } from '@/lib/utils';
 import { insuranceCoverageLines } from '@/lib/insurance-lines';
 import { paths } from '@/lib/paths';
 import { TripPhotos } from '@/components/booking/side-panels';
-import type { BookingDetails, InsuranceVerificationDetails } from '@/services/bookingServices';
+import type { BookingDetails, BookingDriver, InsuranceVerificationDetails } from '@/services/bookingServices';
+import SecondaryDriverVerification from '@/components/booking/secondary-driver-verification';
 import { useState } from 'react';
 import type { BillingChargeRow } from '@/services/billingServices';
 import type { TripImage } from '@/services/tripImageServices';
@@ -91,6 +92,9 @@ interface Props {
   agreementHref: string | null;
   bookingId: string;
   token: string | null;
+  secondaryDrivers: BookingDriver[];
+  rentalStartDate: string;
+  rentalEndDate: string;
   canModify: BookingDetails['canModify'];
   preTripPhotos: TripImage[];
   postTripPhotos: TripImage[];
@@ -130,6 +134,9 @@ export function VerifyFirstConfirm(props: Props) {
     agreementHref,
     bookingId,
     token,
+    secondaryDrivers,
+    rentalStartDate,
+    rentalEndDate,
     canModify,
     preTripPhotos,
     postTripPhotos,
@@ -330,6 +337,15 @@ export function VerifyFirstConfirm(props: Props) {
                   )}
                 </div>
               </div>
+            )}
+
+            {mode === 'pending_verification' && (
+              <SecondaryDriverVerification
+                drivers={secondaryDrivers}
+                bookingId={bookingId}
+                rentalStartDate={rentalStartDate}
+                rentalEndDate={rentalEndDate}
+              />
             )}
 
             {mode === 'payment_due' && charges.length > 0 && (

@@ -4,7 +4,7 @@ import { use, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { BackLink } from '@/components/ui/back-link';
 import { VerifyFirstConfirm } from '@/components/booking/verify-first-confirm';
-import { useBookingDetails } from '@/hooks/useBooking';
+import { useBookingDetails, useBookingDrivers } from '@/hooks/useBooking';
 import { useBookingBalance } from '@/hooks/useBookingBalance';
 import { useAgreementByBooking } from '@/hooks/useAgreements';
 import { useBookingImages } from '@/hooks/useTripImages';
@@ -61,6 +61,7 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
     pollFast: idSent || insuranceSent,
   });
   const { data: agreementApi } = useAgreementByBooking(fetchId);
+  const { data: secondaryDrivers } = useBookingDrivers(fetchId);
   const { data: bookingImages = [] } = useBookingImages(fetchId);
   const { data: verificationPolicy } = useBookingVerificationPolicy();
   const { mutateAsync: startVerifyFirstPayment } = useStartVerificationFirstPayment();
@@ -378,6 +379,9 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
       agreementHref={agreementHref}
       bookingId={id}
       token={token}
+      secondaryDrivers={secondaryDrivers ?? []}
+      rentalStartDate={booking.pickUp.rawDatetime.slice(0, 10)}
+      rentalEndDate={booking.dropOff.rawDatetime.slice(0, 10)}
       canModify={booking.canModify}
       preTripPhotos={preTrip}
       postTripPhotos={postTrip}

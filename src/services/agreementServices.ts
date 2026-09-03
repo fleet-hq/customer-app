@@ -155,6 +155,17 @@ export interface AgreementData {
     licenseNumber: string;
     licenseExpiry: string;
   };
+  secondaryDrivers?: {
+    name: string;
+    homeAddress: string;
+    city: string;
+    state: string;
+    zip: string;
+    phone: string;
+    birthDate: string;
+    licenseNumber: string;
+    licenseExpiry: string;
+  }[];
   insurance: {
     carrierName: string;
     policyNumber: string;

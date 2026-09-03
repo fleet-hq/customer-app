@@ -1222,12 +1222,28 @@ export async function lookupBooking(payload: BookingLookupPayload): Promise<Book
 }
 
 // Booking Driver Types
+export interface DriverIdentityDetails {
+  first_name?: string;
+  last_name?: string;
+  dob?: string;
+  document_number?: string;
+  document_expiration_date?: string;
+  street_address_1?: string;
+  city?: string;
+  state?: string;
+  postal_code?: string;
+}
+
 export interface BookingDriver {
   id: number;
   full_name: string;
   email: string;
   phone: string;
   identity_verified: boolean;
+  is_primary?: boolean;
+  identity_verification_details?: DriverIdentityDetails | null;
+  insurance_verification?: { status?: string } | null;
+  criminal_verification?: { status?: string; has_records?: boolean } | null;
 }
 
 // Get booking drivers (uses X-Booking-Token)

@@ -305,6 +305,27 @@ export function RentalAgreementPreview({ data, onSignatureChange }: RentalAgreem
             <SpecTable rows={driverDetails} />
           </div>
 
+          {(d.secondaryDrivers ?? []).map((sd, i) => (
+            <div key={i} className="mt-8">
+              <SectionTitle>{`Additional Driver ${i + 1}`}</SectionTitle>
+              <div className="mt-4">
+                <SpecTable
+                  rows={[
+                    ['Driver Name', dash(sd.name)],
+                    ['Home Address', dash(sd.homeAddress)],
+                    ['City', dash(sd.city)],
+                    ['State', dash(sd.state)],
+                    ['Zip', dash(sd.zip)],
+                    ['Phone', dash(sd.phone)],
+                    ['Birth Date', dash(sd.birthDate)],
+                    ['Drivers License Number', dash(sd.licenseNumber)],
+                    ['Driver license Expiry Date', dash(sd.licenseExpiry)],
+                  ]}
+                />
+              </div>
+            </div>
+          ))}
+
           <SectionTitle className="mt-10">INSURANCE</SectionTitle>
           <SpecTable rows={insuranceRows} />
 

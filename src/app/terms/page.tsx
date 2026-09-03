@@ -16,7 +16,7 @@ import {
   useCompanySettings,
   useBonzahAddendum,
 } from '@/hooks/useAgreements';
-import { useBookingDetails } from '@/hooks/useBooking';
+import { useBookingDetails, useBookingDrivers } from '@/hooks/useBooking';
 import { submitBookingSignature, type AgreementData } from '@/services/agreementServices';
 import { setBookingToken } from '@/utils/booking-token';
 import { RentalAgreementPreview } from '@/components/booking/rental-agreement-preview';
@@ -92,6 +92,7 @@ function TermsContent() {
     ready ? bookingId! : undefined,
   );
   const { data: apiAgreement } = useAgreementByBooking(ready ? bookingId! : undefined);
+  const { data: bookingDrivers } = useBookingDrivers(ready ? bookingId! : undefined);
   const { data: company } = useCompanySettings();
   const { data: template, isLoading: templateLoading } = useDefaultAgreementTemplate();
   const { data: bonzahAddendum } = useBonzahAddendum();
@@ -128,6 +129,20 @@ function TermsContent() {
         licenseNumber: bookingData.customer.licenseNumber || 'N/A',
         licenseExpiry: bookingData.customer.licenseExpiry || 'N/A',
       },
+      secondaryDrivers: (bookingDrivers ?? []).map((dr) => {
+        const iv = dr.identity_verification_details;
+        return {
+          name: dr.full_name || 'N/A',
+          homeAddress: iv?.street_address_1 || 'N/A',
+          city: iv?.city || 'N/A',
+          state: iv?.state || 'N/A',
+          zip: iv?.postal_code || 'N/A',
+          phone: dr.phone || 'N/A',
+          birthDate: iv?.dob || 'N/A',
+          licenseNumber: iv?.document_number || 'N/A',
+          licenseExpiry: iv?.document_expiration_date || 'N/A',
+        };
+      }),
       insurance: {
         carrierName: ins ? 'Bonzah Insurance' : bookingData.hasOwnInsurance ? 'Own Insurance' : 'N/A',
         policyNumber: ins?.policyId || 'N/A',
@@ -174,7 +189,7 @@ function TermsContent() {
         description: template?.description || 'Please review and sign this rental agreement before pickup.',
       },
     };
-  }, [isBound, bookingData, apiAgreement, company, template, tenant.name, bonzahAddendum]);
+  }, [isBound, bookingData, apiAgreement, bookingDrivers, company, template, tenant.name, bonzahAddendum]);
 
   if (isBound) {
     const backHref = `${paths.booking(bookingId!)}?token=${urlToken ?? ''}`;
