@@ -339,14 +339,12 @@ export function VerifyFirstConfirm(props: Props) {
               </div>
             )}
 
-            {mode === 'pending_verification' && (
-              <SecondaryDriverVerification
-                drivers={secondaryDrivers}
-                bookingId={bookingId}
-                rentalStartDate={rentalStartDate}
-                rentalEndDate={rentalEndDate}
-              />
-            )}
+            <SecondaryDriverVerification
+              drivers={secondaryDrivers}
+              bookingId={bookingId}
+              rentalStartDate={rentalStartDate}
+              rentalEndDate={rentalEndDate}
+            />
 
             {mode === 'payment_due' && charges.length > 0 && (
               <OutstandingChargesCard
