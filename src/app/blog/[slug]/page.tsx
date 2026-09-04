@@ -57,7 +57,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
               'radial-gradient(90% 120% at 85% -10%, color-mix(in srgb, var(--color-primary) 12%, transparent) 0%, transparent 60%)',
           }}
         />
-        <div className="relative mx-auto w-full max-w-[760px] px-4 pt-[28px] pb-[36px] sm:px-6 sm:pt-[34px] sm:pb-[44px]">
+        <div className="relative mx-auto w-full max-w-[840px] px-4 pt-[28px] pb-[36px] sm:px-6 sm:pt-[34px] sm:pb-[44px]">
           <BackLink href={paths.blog}>All articles</BackLink>
           <div className="mt-[22px] flex flex-wrap items-center gap-[10px] text-[13px]">
             {post.category ? (
@@ -72,13 +72,13 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
               </span>
             ) : null}
           </div>
-          <h1 className="mt-[16px] font-manrope text-[30px] font-bold leading-[1.16] tracking-[-0.02em] text-ink text-balance sm:text-[40px]">
+          <h1 className="mt-[16px] font-manrope text-[32px] font-bold leading-[1.14] tracking-[-0.02em] text-ink text-pretty sm:text-[44px]">
             {post.title}
           </h1>
         </div>
       </section>
 
-      <article className="mx-auto w-full max-w-[760px] px-4 pb-[16px] sm:px-6">
+      <article className="mx-auto w-full max-w-[840px] px-4 pb-[16px] sm:px-6">
         {post.coverImage ? (
           <div className="-mt-[8px] mb-[36px] overflow-hidden rounded-[18px] border border-card-border bg-subtle shadow-[var(--shadow-card)] sm:-mt-[4px]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -95,7 +95,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         <BlogBody html={post.body} />
       </article>
 
-      <section className="mx-auto w-full max-w-[760px] px-4 pt-[44px] pb-[24px] sm:px-6">
+      <section className="mx-auto w-full max-w-[840px] px-4 pt-[44px] pb-[24px] sm:px-6">
         <BrandCta
           eyebrow={tenant.name}
           title="Ready to hit the road?"

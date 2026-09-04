@@ -172,6 +172,22 @@ body.fleethq-embedded {
 }
 .blog-prose p {
   margin: 0;
+  text-align: justify;
+  text-justify: inter-word;
+  hyphens: auto;
+  overflow-wrap: break-word;
+}
+.blog-prose li {
+  text-align: justify;
+  text-justify: inter-word;
+  hyphens: auto;
+}
+@media (max-width: 640px) {
+  .blog-prose p,
+  .blog-prose li {
+    text-align: left;
+    hyphens: manual;
+  }
 }
 .blog-prose a {
   color: var(--color-primary);
