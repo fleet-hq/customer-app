@@ -12,6 +12,7 @@ import {
   Check,
   Sparkles,
 } from '@/components/ui/icons';
+import { HeroImage } from '@/components/sections/home/hero-image';
 
 type IconCmp = (p: SVGProps<SVGSVGElement> & { size?: number }) => ReactNode;
 
@@ -83,18 +84,11 @@ export function HomeHeroFeatured({
       {hasBg ? (
         <>
           {hasMobileBg ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={mobileBackgroundImage}
-              alt=""
-              className="block h-auto max-h-[86vh] w-full object-contain sm:hidden"
-            />
+            <HeroImage src={mobileBackgroundImage!} className="sm:hidden" />
           ) : null}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={backgroundImage}
-            alt=""
-            className={`block h-auto max-h-[86vh] w-full object-contain ${hasMobileBg ? 'hidden sm:block' : ''}`}
+          <HeroImage
+            src={backgroundImage!}
+            className={hasMobileBg ? 'hidden sm:block' : ''}
           />
           <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/45 to-black/10" />
         </>

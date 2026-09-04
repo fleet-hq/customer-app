@@ -1,4 +1,5 @@
 import { MapPin } from '@/components/ui/icons';
+import { HeroImage } from '@/components/sections/home/hero-image';
 
 interface HomeHeroProps {
   pill: string;
@@ -34,23 +35,16 @@ export function HomeHero({
     >
       {hasBg ? (
         <>
-          {/* Whole hero image, never cropped: full width at its natural
-              aspect until it would pass 86vh, then object-contain scales it
-              down to fit (brand-colored gutters on very wide screens) so no
-              baked-in branding — top or bottom — is ever cut off. */}
+          {/* Landscape images fill the width at their natural aspect (never
+              cropped, no gutters). Only genuinely tall/square images — which
+              would otherwise run past the fold — are capped and centered
+              (HeroImage decides from the loaded image's aspect ratio). */}
           {hasMobileBg ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={mobileBackgroundImage}
-              alt=""
-              className="block h-auto max-h-[86vh] w-full object-contain sm:hidden"
-            />
+            <HeroImage src={mobileBackgroundImage!} className="sm:hidden" />
           ) : null}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={backgroundImage}
-            alt=""
-            className={`block h-auto max-h-[86vh] w-full object-contain ${hasMobileBg ? 'hidden sm:block' : ''}`}
+          <HeroImage
+            src={backgroundImage!}
+            className={hasMobileBg ? 'hidden sm:block' : ''}
           />
           {hasCopy ? <div className="absolute inset-0 bg-black/15" /> : null}
         </>
