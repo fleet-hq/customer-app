@@ -12,6 +12,8 @@ import type {
   TestimonialsSection,
   FaqsSection,
   FeatureColumnsSection,
+  ServicesSection,
+  InquiryFormConfig,
 } from '@/services/companyContentServices';
 import { DEFAULT_NAV_LINKS, DEFAULT_THEME } from './tenant-defaults';
 
@@ -31,6 +33,8 @@ export interface TenantSections {
   testimonials: TestimonialsSection | null;
   faqs: FaqsSection | null;
   cta: CopyBlockSection | null;
+  services: ServicesSection | null;
+  inquiry_form: InquiryFormConfig | null;
 }
 
 export interface TenantLocation {
@@ -198,6 +202,8 @@ export function tenantFromApi(detail: ApiCompanyDetail, locations: ApiLocation[]
       testimonials: sections.testimonials ?? null,
       faqs: sections.faqs ?? null,
       cta: sections.cta ?? null,
+      services: sections.services ?? null,
+      inquiry_form: sections.inquiry_form ?? null,
     },
     tracking: {
       facebookPixelId: nonEmpty(tracking.facebook_pixel_id),

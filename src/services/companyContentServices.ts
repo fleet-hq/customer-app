@@ -123,6 +123,37 @@ export interface FaqsSection {
   items?: FaqItem[];
 }
 
+export interface ServicesBlock {
+  heading?: string;
+  paragraphs?: string[];
+  steps?: string[];
+  bullets?: string[];
+}
+
+export interface ServicesSection {
+  meta_title?: string;
+  meta_description?: string;
+  h1?: string;
+  intro?: string[];
+  blocks?: ServicesBlock[];
+  cta?: { title?: string; description?: string; cta_label?: string; cta_href?: string };
+}
+
+export interface InquiryFormConfig {
+  title?: string;
+  intro?: string[];
+  promo_note?: string;
+  vehicle_options?: string[];
+  pickup_options?: string[];
+  dropoff_options?: string[];
+  heard_about_options?: string[];
+  submit_label?: string;
+  submit_microcopy?: string;
+  confirmation_title?: string;
+  confirmation_body?: string[];
+  whatsapp_number?: string;
+}
+
 export interface ContentSections {
   hero?: HeroSection | null;
   promo?: PromoSection | null;
@@ -134,6 +165,8 @@ export interface ContentSections {
   testimonials?: TestimonialsSection | null;
   faqs?: FaqsSection | null;
   cta?: CopyBlockSection | null;
+  services?: ServicesSection | null;
+  inquiry_form?: InquiryFormConfig | null;
 }
 
 export interface CompanyContent {
