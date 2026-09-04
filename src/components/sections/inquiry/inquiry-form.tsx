@@ -3,20 +3,36 @@
 import { useState } from 'react';
 import type { InquiryFormConfig } from '@/services/companyContentServices';
 import { submitInquiry } from '@/services/inquiryServices';
+import { Check, ArrowRight } from '@/components/ui/icons';
 
 const OTHER_RE = /other/i;
 
-function Label({ children, required }: { children: React.ReactNode; required?: boolean }) {
+function Field({
+  label,
+  required,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  children: React.ReactNode;
+}) {
   return (
-    <span className="text-[13px] font-semibold text-ink">
+    <label className="flex flex-col gap-[7px]">
+      <span className="text-[13px] font-semibold text-label">
+        {label}
+        {required ? <span className="text-primary"> *</span> : null}
+      </span>
       {children}
-      {required ? <span className="text-primary"> *</span> : null}
-    </span>
+    </label>
   );
 }
 
 const inputClass =
-  'w-full rounded-[10px] border border-card-border bg-white px-3.5 py-2.5 text-[15px] text-ink outline-none transition-colors focus:border-primary';
+  'w-full rounded-[12px] border border-card-border bg-white px-[14px] py-[12px] text-[15px] text-ink outline-none transition-all placeholder:text-placeholder focus:border-primary focus:ring-2 focus:ring-[color-mix(in_srgb,var(--color-primary)_16%,transparent)]';
+
+const selectClass = inputClass + ' appearance-none bg-[length:16px] pr-[38px]';
+const CHEVRON =
+  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23637083' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E\")";
 
 export function InquiryForm({
   config,
@@ -43,6 +59,8 @@ export function InquiryForm({
 
   const pickupIsOther = OTHER_RE.test(pickup);
   const dropoffIsOther = OTHER_RE.test(dropoff);
+
+  const selectStyle = { backgroundImage: CHEVRON, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 14px center' } as React.CSSProperties;
 
   const toIso = (local: string): string | null => {
     if (!local) return null;
@@ -80,15 +98,18 @@ export function InquiryForm({
 
   if (status === 'done') {
     return (
-      <div className="rounded-[16px] border border-card-border bg-subtle p-8 text-center">
-        <h2 className="text-[24px] font-extrabold text-ink">
+      <div className="flex flex-col items-center gap-[16px] py-[24px] text-center">
+        <span className="flex h-[64px] w-[64px] items-center justify-center rounded-full bg-primary-soft text-primary">
+          <Check size={30} />
+        </span>
+        <h2 className="font-manrope text-[26px] font-bold text-ink">
           {config.confirmation_title || 'Thank you!'}
         </h2>
-        <div className="mx-auto mt-3 flex max-w-[460px] flex-col gap-2">
+        <div className="flex max-w-[440px] flex-col gap-[8px]">
           {(config.confirmation_body ?? [
             "We've received your form. Our team will be reaching out to you soon regarding your booking.",
           ]).map((line, i) => (
-            <p key={i} className="text-[15px] leading-[1.6] text-muted">
+            <p key={i} className="text-[15px] leading-[1.65] text-muted">
               {line}
             </p>
           ))}
@@ -98,9 +119,8 @@ export function InquiryForm({
   }
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-5">
-      <div className="flex flex-col gap-1.5">
-        <Label required>Passenger Name</Label>
+    <form onSubmit={onSubmit} className="flex flex-col gap-[18px]">
+      <Field label="Passenger Name" required>
         <input
           className={inputClass}
           value={name}
@@ -108,11 +128,10 @@ export function InquiryForm({
           placeholder="First and last name"
           required
         />
-      </div>
+      </Field>
 
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-        <div className="flex flex-col gap-1.5">
-          <Label required>Contact Number</Label>
+      <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-2">
+        <Field label="Contact Number" required>
           <input
             className={inputClass}
             type="tel"
@@ -121,9 +140,8 @@ export function InquiryForm({
             placeholder="(303) 555-0100"
             required
           />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label required>Email Address</Label>
+        </Field>
+        <Field label="Email Address" required>
           <input
             className={inputClass}
             type="email"
@@ -132,13 +150,12 @@ export function InquiryForm({
             placeholder="you@example.com"
             required
           />
-        </div>
+        </Field>
       </div>
 
       {config.vehicle_options?.length ? (
-        <div className="flex flex-col gap-1.5">
-          <Label>Select Vehicle</Label>
-          <select className={inputClass} value={vehicle} onChange={(e) => setVehicle(e.target.value)}>
+        <Field label="Select Vehicle">
+          <select className={selectClass} style={selectStyle} value={vehicle} onChange={(e) => setVehicle(e.target.value)}>
             <option value="">Choose a vehicle…</option>
             {config.vehicle_options.map((opt) => (
               <option key={opt} value={opt}>
@@ -146,14 +163,13 @@ export function InquiryForm({
               </option>
             ))}
           </select>
-        </div>
+        </Field>
       ) : null}
 
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-        <div className="flex flex-col gap-1.5">
-          <Label required>Pickup Location</Label>
+      <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-2">
+        <Field label="Pickup Location" required>
           {config.pickup_options?.length ? (
-            <select className={inputClass} value={pickup} onChange={(e) => setPickup(e.target.value)} required>
+            <select className={selectClass} style={selectStyle} value={pickup} onChange={(e) => setPickup(e.target.value)} required>
               <option value="">Choose…</option>
               {config.pickup_options.map((opt) => (
                 <option key={opt} value={opt}>
@@ -166,17 +182,16 @@ export function InquiryForm({
           )}
           {pickupIsOther ? (
             <input
-              className={`${inputClass} mt-1.5`}
+              className={inputClass}
               value={pickupOther}
               onChange={(e) => setPickupOther(e.target.value)}
               placeholder="Please specify pickup location"
             />
           ) : null}
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label>Drop-off Location</Label>
+        </Field>
+        <Field label="Drop-off Location">
           {config.dropoff_options?.length ? (
-            <select className={inputClass} value={dropoff} onChange={(e) => setDropoff(e.target.value)}>
+            <select className={selectClass} style={selectStyle} value={dropoff} onChange={(e) => setDropoff(e.target.value)}>
               <option value="">Choose…</option>
               {config.dropoff_options.map((opt) => (
                 <option key={opt} value={opt}>
@@ -189,40 +204,37 @@ export function InquiryForm({
           )}
           {dropoffIsOther ? (
             <input
-              className={`${inputClass} mt-1.5`}
+              className={inputClass}
               value={dropoffOther}
               onChange={(e) => setDropoffOther(e.target.value)}
               placeholder="Please specify drop-off location"
             />
           ) : null}
-        </div>
+        </Field>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-        <div className="flex flex-col gap-1.5">
-          <Label>Pickup Date &amp; Time</Label>
+      <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-2">
+        <Field label="Pickup Date & Time">
           <input
             className={inputClass}
             type="datetime-local"
             value={pickupAt}
             onChange={(e) => setPickupAt(e.target.value)}
           />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label>Drop-off Date &amp; Time</Label>
+        </Field>
+        <Field label="Drop-off Date & Time">
           <input
             className={inputClass}
             type="datetime-local"
             value={dropoffAt}
             onChange={(e) => setDropoffAt(e.target.value)}
           />
-        </div>
+        </Field>
       </div>
 
       {config.heard_about_options?.length ? (
-        <div className="flex flex-col gap-1.5">
-          <Label>How Did You Hear About Us?</Label>
-          <select className={inputClass} value={heardAbout} onChange={(e) => setHeardAbout(e.target.value)}>
+        <Field label="How Did You Hear About Us?">
+          <select className={selectClass} style={selectStyle} value={heardAbout} onChange={(e) => setHeardAbout(e.target.value)}>
             <option value="">Choose…</option>
             {config.heard_about_options.map((opt) => (
               <option key={opt} value={opt}>
@@ -230,35 +242,35 @@ export function InquiryForm({
               </option>
             ))}
           </select>
-        </div>
+        </Field>
       ) : null}
 
-      <div className="flex flex-col gap-1.5">
-        <Label>Anything else?</Label>
+      <Field label="Anything else?">
         <textarea
-          className={`${inputClass} min-h-[96px] resize-y`}
+          className={`${inputClass} min-h-[104px] resize-y`}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Special requests, questions, etc."
         />
-      </div>
+      </Field>
 
       {status === 'error' ? (
-        <p className="text-[14px] font-medium text-danger">
-          Something went wrong sending your inquiry. Please try again.
+        <p className="rounded-[10px] border border-danger-border bg-danger-bg px-[14px] py-[10px] text-[14px] font-medium text-danger-text">
+          Something went wrong sending your inquiry. Please try again, or contact us directly.
         </p>
       ) : null}
 
-      <div className="flex flex-col gap-2">
+      <div className="mt-[4px] flex flex-col gap-[10px]">
         <button
           type="submit"
           disabled={status === 'submitting'}
-          className="inline-flex items-center justify-center rounded-full bg-primary px-7 py-3 text-[15px] font-semibold text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex items-center justify-center gap-[9px] rounded-full bg-primary px-[30px] py-[15px] text-[15px] font-semibold text-white transition-all hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
         >
           {status === 'submitting' ? 'Sending…' : config.submit_label || 'Submit Form'}
+          {status === 'submitting' ? null : <ArrowRight size={17} />}
         </button>
         {config.submit_microcopy ? (
-          <p className="text-[13px] leading-[1.55] text-faint">{config.submit_microcopy}</p>
+          <p className="text-center text-[13px] leading-[1.55] text-faint">{config.submit_microcopy}</p>
         ) : null}
       </div>
     </form>

@@ -6,13 +6,13 @@ import { InquiryPageBody } from '@/components/sections/inquiry/inquiry-page';
 export async function generateMetadata(): Promise<Metadata> {
   try {
     const tenant = await getCurrentTenant();
-    return { title: `${tenant.sections.inquiry_form?.title || 'Book a Car'} — ${tenant.name}` };
+    return { title: `Contact — ${tenant.name}` };
   } catch (err) {
-    if (err instanceof TenantNotFoundError) return { title: 'Inquiry' };
+    if (err instanceof TenantNotFoundError) return { title: 'Contact' };
     throw err;
   }
 }
 
-export default function InquiryPage() {
+export default function ContactPage() {
   return <InquiryPageBody />;
 }

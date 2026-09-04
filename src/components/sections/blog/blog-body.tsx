@@ -11,7 +11,7 @@ export function BlogBody({ html }: { html: string }) {
 
   return (
     <div
-      className="blog-prose flex flex-col gap-5 text-[16px] leading-[1.75] text-ink-2"
+      className="blog-prose flex flex-col gap-[18px] text-[17px] leading-[1.8] text-label"
       dangerouslySetInnerHTML={{ __html: clean }}
     />
   );

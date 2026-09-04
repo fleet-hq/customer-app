@@ -6,6 +6,7 @@ export const paths = {
   blogPost: (slug: string) => `/blog/${slug}`,
   services: '/services',
   inquiry: '/inquiry',
+  contact: '/contact',
   checkout: (carId: string) => `/checkout/${carId}`,
   verifyId: '/booking/verify/id',
   verifyInsurance: '/booking/verify/insurance',
