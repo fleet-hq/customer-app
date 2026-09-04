@@ -87,14 +87,14 @@ export function HomeHeroFeatured({
             <img
               src={mobileBackgroundImage}
               alt=""
-              className="block h-auto w-full sm:hidden"
+              className="block h-auto max-h-[86vh] w-full object-cover object-bottom sm:hidden"
             />
           ) : null}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={backgroundImage}
             alt=""
-            className={`block h-auto w-full ${hasMobileBg ? 'hidden sm:block' : ''}`}
+            className={`block h-auto max-h-[86vh] w-full object-cover object-bottom ${hasMobileBg ? 'hidden sm:block' : ''}`}
           />
           <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/45 to-black/10" />
         </>

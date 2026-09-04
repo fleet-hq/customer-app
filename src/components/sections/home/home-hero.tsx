@@ -34,23 +34,23 @@ export function HomeHero({
     >
       {hasBg ? (
         <>
-          {/* Full hero image — rendered at its natural aspect ratio so it
-              is never cropped. Baked-in branding / feature strips stay
-              fully readable at any viewport width (the hero simply scales
-              taller as the screen widens instead of cutting top + bottom). */}
+          {/* Full hero image at its natural aspect, capped at 86vh so a
+              tall image / wide screen can't push the hero past the fold;
+              when the cap engages the bottom stays anchored (object-bottom)
+              so baked-in bottom items are never the part that gets cut. */}
           {hasMobileBg ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={mobileBackgroundImage}
               alt=""
-              className="block h-auto w-full sm:hidden"
+              className="block h-auto max-h-[86vh] w-full object-cover object-bottom sm:hidden"
             />
           ) : null}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={backgroundImage}
             alt=""
-            className={`block h-auto w-full ${hasMobileBg ? 'hidden sm:block' : ''}`}
+            className={`block h-auto max-h-[86vh] w-full object-cover object-bottom ${hasMobileBg ? 'hidden sm:block' : ''}`}
           />
           {hasCopy ? <div className="absolute inset-0 bg-black/15" /> : null}
         </>
