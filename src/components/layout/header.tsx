@@ -84,7 +84,7 @@ export function Header({
         <div className="flex items-center gap-[34px]">
           <Link href={paths.home} className="flex flex-shrink-0 items-center">
             {tenant.brand.logo ? (
-              <Image src={tenant.brand.logo} alt={tenant.name} width={412} height={412} className="h-9 w-auto" priority unoptimized />
+              <Image src={tenant.brand.logo} alt={tenant.name} width={412} height={412} className="h-11 w-auto max-w-[200px] object-contain sm:h-12" priority unoptimized />
             ) : (
               // No uploaded logo → render the tenant name as a wordmark
               // instead of a bundled placeholder image.
