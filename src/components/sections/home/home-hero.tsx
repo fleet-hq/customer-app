@@ -30,27 +30,27 @@ export function HomeHero({
   return (
     <section
       className="relative flex flex-col items-center justify-center"
-      style={hasBg ? undefined : { backgroundColor: 'var(--color-secondary)' }}
+      style={{ backgroundColor: 'var(--color-secondary)' }}
     >
       {hasBg ? (
         <>
-          {/* Full hero image at its natural aspect, capped at 86vh so a
-              tall image / wide screen can't push the hero past the fold;
-              when the cap engages the bottom stays anchored (object-bottom)
-              so baked-in bottom items are never the part that gets cut. */}
+          {/* Whole hero image, never cropped: full width at its natural
+              aspect until it would pass 86vh, then object-contain scales it
+              down to fit (brand-colored gutters on very wide screens) so no
+              baked-in branding — top or bottom — is ever cut off. */}
           {hasMobileBg ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={mobileBackgroundImage}
               alt=""
-              className="block h-auto max-h-[86vh] w-full object-cover object-bottom sm:hidden"
+              className="block h-auto max-h-[86vh] w-full object-contain sm:hidden"
             />
           ) : null}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={backgroundImage}
             alt=""
-            className={`block h-auto max-h-[86vh] w-full object-cover object-bottom ${hasMobileBg ? 'hidden sm:block' : ''}`}
+            className={`block h-auto max-h-[86vh] w-full object-contain ${hasMobileBg ? 'hidden sm:block' : ''}`}
           />
           {hasCopy ? <div className="absolute inset-0 bg-black/15" /> : null}
         </>
