@@ -15,6 +15,7 @@ import { paths } from '@/lib/paths';
 import { cn, rentalDays } from '@/lib/utils';
 import { activeTier } from '@/lib/discount-tiers';
 import { ContentFaq } from '@/components/sections/content/content-faq';
+import { NapBlock } from '@/components/sections/shared/nap-block';
 
 const SORTS = ['Recommended', 'Price: low to high', 'Price: high to low'] as const;
 const PAGE_SIZE = 12;
@@ -332,6 +333,12 @@ export default function FleetClient() {
         {!isFiltered && tenant.sections.fleet_page?.faqs?.length ? (
           <div className="mt-12 border-t border-hairline pt-10">
             <ContentFaq title="Fleet Questions" items={tenant.sections.fleet_page.faqs} />
+          </div>
+        ) : null}
+
+        {!isFiltered && tenant.sections.fleet_page ? (
+          <div className="mt-10">
+            <NapBlock tenant={tenant} />
           </div>
         ) : null}
       </section>

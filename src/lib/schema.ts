@@ -32,6 +32,9 @@ export function organizationNode(tenant: Tenant): Node {
     url: origin || undefined,
     sameAs: seo?.same_as,
     areaServed: seo?.geo_placename,
+    founder: seo?.founders?.length
+      ? seo.founders.map((name) => ({ '@type': 'Person', name }))
+      : undefined,
   });
 }
 
@@ -101,6 +104,21 @@ export function contentPageSchema(tenant: Tenant, page: ContentPage, path: strin
         url,
       }),
     );
+  }
+  const vehicles = page.schema?.vehicles;
+  if (vehicles?.length) {
+    if (types.has('ItemList')) {
+      graph.push({
+        '@type': 'ItemList',
+        itemListElement: vehicles.map((v, i) => ({
+          '@type': 'ListItem',
+          position: i + 1,
+          item: vehicleNode(tenant, v),
+        })),
+      });
+    } else if (types.has('Vehicle')) {
+      for (const v of vehicles) graph.push(vehicleNode(tenant, v));
+    }
   }
   if (types.has('HowTo')) graph.push(howToNode(page, name));
   if (types.has('AboutPage')) {

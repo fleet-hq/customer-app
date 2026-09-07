@@ -233,6 +233,7 @@ export interface ContentPageSchema {
   types?: SchemaType[];
   service_type?: string;
   price_range?: string;
+  vehicles?: FleetVehicle[];
 }
 
 export interface ContentPageCta {
@@ -266,6 +267,7 @@ export interface SiteSeoConfig {
   price_range?: string;
   serving?: string;
   delivery_note?: string;
+  founders?: string[];
 }
 
 export interface ContentSections {

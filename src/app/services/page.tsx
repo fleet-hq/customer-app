@@ -9,6 +9,7 @@ import { serviceOverviewSchema } from '@/lib/schema';
 import { JsonLd } from '@/components/seo/json-ld';
 import { notFound } from 'next/navigation';
 import { BrandCta } from '@/components/sections/shared/brand-cta';
+import { NapBlock } from '@/components/sections/shared/nap-block';
 import { ArrowRight } from '@/components/ui/icons';
 
 const SERVICES_TRAIL = [
@@ -158,6 +159,7 @@ export default async function ServicesPage() {
               </div>
             );
           })}
+          <NapBlock tenant={tenant} />
         </div>
 
         {cta && (cta.title || cta.description || cta.cta_label) ? (
