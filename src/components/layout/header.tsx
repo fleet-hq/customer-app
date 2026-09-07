@@ -8,7 +8,7 @@ import { useTenant } from '@/lib/tenant-context';
 import { cn } from '@/lib/utils';
 import { DEMO_USER } from '@/lib/mock-data';
 import { paths } from '@/lib/paths';
-import { BookmarkList, ChevronDown, Logout, User } from '@/components/ui/icons';
+import { BookmarkList, ChevronDown, Logout, User, Close } from '@/components/ui/icons';
 
 interface HeaderProps {
   /** Optional override; when omitted the active link is derived from
@@ -46,7 +46,12 @@ export function Header({
   const tenant = useTenant();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [pathname]);
   // The browser owns the URL hash — Next's router doesn't expose it.
   // We mirror it into state and resubscribe on hash + history changes
   // so the active-nav highlight reflects what the user actually sees.
@@ -120,6 +125,24 @@ export function Header({
             Manage Bookings
           </Link>
 
+          <button
+            type="button"
+            aria-label={mobileNavOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={mobileNavOpen}
+            onClick={() => setMobileNavOpen((o) => !o)}
+            className="flex h-[38px] w-[38px] flex-shrink-0 items-center justify-center rounded-[8px] border border-line text-ink min-[840px]:hidden"
+          >
+            {mobileNavOpen ? (
+              <Close size={18} />
+            ) : (
+              <span className="flex flex-col items-center justify-center gap-[4px]">
+                <span className="block h-[2px] w-[18px] rounded-full bg-ink" />
+                <span className="block h-[2px] w-[18px] rounded-full bg-ink" />
+                <span className="block h-[2px] w-[18px] rounded-full bg-ink" />
+              </span>
+            )}
+          </button>
+
           {signedIn && (
             <div className="relative" ref={menuRef}>
               <button
@@ -167,6 +190,33 @@ export function Header({
           )}
         </div>
       </div>
+
+      {mobileNavOpen && (
+        <div className="border-t border-hairline bg-white min-[840px]:hidden">
+          <nav className="mx-auto flex max-w-[1200px] flex-col gap-1 px-6 py-3">
+            {tenant.brand.navLinks.map((link) => {
+              const isActive = active
+                ? link.label === active
+                : isLinkActive(link.href, pathname ?? '/', hash);
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setMobileNavOpen(false)}
+                  className={cn(
+                    'rounded-lg px-3 py-[11px] text-sm transition-colors',
+                    isActive
+                      ? 'bg-primary-soft font-semibold text-primary'
+                      : 'font-medium text-ink hover:bg-hover',
+                  )}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+      )}
     </header>
   );
 }
