@@ -79,8 +79,9 @@ export default function HomeClient() {
         tenant={tenant}
         page={homePage}
         path="/"
+        heroImage={images.hero}
         headerSlot={
-          <div className="max-w-[720px]">
+          <div className="w-full max-w-[860px]">
             <SearchBar variant="hero" />
           </div>
         }

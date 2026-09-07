@@ -219,6 +219,8 @@ export interface ContentBlock {
   paragraphs?: string[];
   bullets?: string[];
   steps?: string[];
+  faqs?: FaqItem[];
+  vehicles?: FleetVehicle[];
   link?: ContentLink;
   is_step?: boolean;
 }

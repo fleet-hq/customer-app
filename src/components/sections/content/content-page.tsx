@@ -17,14 +17,16 @@ interface ContentPageProps {
   page: ContentPageData;
   path: string;
   headerSlot?: React.ReactNode;
+  heroImage?: string | null;
 }
 
-export function ContentPage({ tenant, page, path, headerSlot }: ContentPageProps) {
+export function ContentPage({ tenant, page, path, headerSlot, heroImage }: ContentPageProps) {
   const co = (t: string) => withCompany(t, tenant.name);
   const blocks = page.blocks ?? [];
   const cta = page.cta;
   const wa = tenantWhatsapp(tenant);
   const eyebrow = page.eyebrow || tenant.name;
+  const onImage = !!heroImage;
 
   let stepNo = 0;
 
@@ -32,18 +34,44 @@ export function ContentPage({ tenant, page, path, headerSlot }: ContentPageProps
     <div className="bg-white text-ink">
       <JsonLd data={contentPageSchema(tenant, page, path)} />
 
-      <section className="relative overflow-hidden border-b border-hairline bg-subtle">
+      <section
+        className={
+          'relative overflow-hidden border-b border-hairline ' + (onImage ? 'bg-secondary' : 'bg-subtle')
+        }
+      >
+        {onImage ? (
+          <>
+            <div
+              className="absolute inset-0 bg-cover bg-center"
+              aria-hidden="true"
+              style={{ backgroundImage: `url('${heroImage}')` }}
+            />
+            <div className="absolute inset-0 bg-black/55" aria-hidden="true" />
+          </>
+        ) : (
+          <div
+            className="pointer-events-none absolute inset-0 opacity-60"
+            aria-hidden="true"
+            style={{
+              background:
+                'radial-gradient(85% 120% at 88% -10%, color-mix(in srgb, var(--color-primary) 12%, transparent) 0%, transparent 58%)',
+            }}
+          />
+        )}
         <div
-          className="pointer-events-none absolute inset-0 opacity-60"
-          aria-hidden="true"
-          style={{
-            background:
-              'radial-gradient(85% 120% at 88% -10%, color-mix(in srgb, var(--color-primary) 12%, transparent) 0%, transparent 58%)',
-          }}
-        />
-        <div className="relative mx-auto w-full max-w-[860px] px-4 pt-[52px] pb-[44px] sm:px-6 sm:pt-[68px] sm:pb-[52px]">
+          className={
+            'relative mx-auto w-full max-w-[860px] px-4 pt-[52px] pb-[44px] sm:px-6 sm:pt-[68px] sm:pb-[52px] ' +
+            (onImage ? 'flex min-h-[440px] flex-col justify-center sm:min-h-[500px]' : '')
+          }
+        >
           {page.breadcrumb?.length ? (
-            <nav aria-label="Breadcrumb" className="mb-[18px] flex flex-wrap items-center gap-[7px] text-[12.5px] text-muted">
+            <nav
+              aria-label="Breadcrumb"
+              className={
+                'mb-[18px] flex flex-wrap items-center gap-[7px] text-[12.5px] ' +
+                (onImage ? 'text-white/70' : 'text-muted')
+              }
+            >
               {page.breadcrumb.map((b, i) => (
                 <span key={i} className="inline-flex items-center gap-[7px]">
                   {b.href && i < page.breadcrumb!.length - 1 ? (
@@ -51,26 +79,43 @@ export function ContentPage({ tenant, page, path, headerSlot }: ContentPageProps
                       {co(b.label || '')}
                     </Link>
                   ) : (
-                    <span className="text-label">{co(b.label || '')}</span>
+                    <span className={onImage ? 'text-white' : 'text-label'}>{co(b.label || '')}</span>
                   )}
-                  {i < page.breadcrumb!.length - 1 ? <span className="text-card-border">/</span> : null}
+                  {i < page.breadcrumb!.length - 1 ? (
+                    <span className={onImage ? 'text-white/40' : 'text-card-border'}>/</span>
+                  ) : null}
                 </span>
               ))}
             </nav>
           ) : (
-            <span className="inline-flex items-center rounded-full border border-primary-border bg-white px-[13px] py-[6px] text-[11.5px] font-semibold uppercase tracking-[0.06em] text-primary">
+            <span
+              className={
+                'inline-flex items-center rounded-full px-[13px] py-[6px] text-[11.5px] font-semibold uppercase tracking-[0.06em] ' +
+                (onImage
+                  ? 'border border-white/25 bg-white/10 text-white backdrop-blur-sm'
+                  : 'border border-primary-border bg-white text-primary')
+              }
+            >
               {co(eyebrow)}
             </span>
           )}
           {page.h1 ? (
-            <h1 className="mt-[18px] font-manrope text-[34px] font-bold leading-[1.1] tracking-[-0.02em] text-ink text-balance sm:text-[46px]">
+            <h1
+              className={
+                'mt-[18px] font-manrope text-[34px] font-bold leading-[1.1] tracking-[-0.02em] text-balance sm:text-[46px] ' +
+                (onImage ? 'text-white' : 'text-ink')
+              }
+            >
               {co(page.h1)}
             </h1>
           ) : null}
           {page.intro?.length ? (
             <div className="mt-[16px] flex max-w-[640px] flex-col gap-[12px]">
               {page.intro.map((p, i) => (
-                <p key={i} className="text-[16.5px] leading-[1.7] text-muted">
+                <p
+                  key={i}
+                  className={'text-[16.5px] leading-[1.7] ' + (onImage ? 'text-white/85' : 'text-muted')}
+                >
                   {co(p)}
                 </p>
               ))}
@@ -87,7 +132,7 @@ export function ContentPage({ tenant, page, path, headerSlot }: ContentPageProps
             return <Block key={i} block={block} stepNo={n} co={co} />;
           })}
 
-          {page.faqs?.length ? (
+          {page.faqs?.length && !blocks.some((b) => b.faqs?.length) ? (
             <div className="rounded-[20px] border border-card-border bg-white p-[26px] sm:p-[34px]">
               <ContentFaq title="Frequently Asked Questions" items={page.faqs} />
             </div>
@@ -162,6 +207,13 @@ function Block({
   co: (t: string) => string;
 }) {
   const hasSteps = !!block.steps?.length;
+  if (block.faqs?.length) {
+    return (
+      <div className="rounded-[20px] border border-card-border bg-white p-[26px] sm:p-[34px]">
+        <ContentFaq title={block.heading ? co(block.heading) : 'Frequently Asked Questions'} items={block.faqs} />
+      </div>
+    );
+  }
   return (
     <div
       className={
@@ -190,6 +242,32 @@ function Block({
             <p key={j} className="text-[16px] leading-[1.75] text-label">
               {co(p)}
             </p>
+          ))}
+        </div>
+      ) : null}
+
+      {block.vehicles?.length ? (
+        <div className="mt-[18px] grid grid-cols-1 gap-[12px] sm:grid-cols-2">
+          {block.vehicles.map((v, j) => (
+            <div
+              key={j}
+              className="flex items-center justify-between gap-[12px] rounded-[14px] border border-card-border bg-white px-[18px] py-[15px] transition-shadow hover:shadow-[var(--shadow-card)]"
+            >
+              <div className="min-w-0">
+                <p className="truncate font-manrope text-[15px] font-semibold text-ink">
+                  {v.name || [v.year, v.make, v.model].filter(Boolean).join(' ')}
+                </p>
+                <p className="mt-[3px] text-[13px] text-muted">
+                  {[v.seats ? `${v.seats} seats` : null, v.fuel].filter(Boolean).join(' · ')}
+                </p>
+              </div>
+              {v.price ? (
+                <span className="whitespace-nowrap font-manrope text-[15px] font-bold text-primary">
+                  ${v.price}
+                  <span className="text-[12px] font-medium text-muted">/day</span>
+                </span>
+              ) : null}
+            </div>
           ))}
         </div>
       ) : null}
