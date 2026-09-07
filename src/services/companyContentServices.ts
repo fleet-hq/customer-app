@@ -220,7 +220,6 @@ export interface ContentBlock {
   bullets?: string[];
   steps?: string[];
   faqs?: FaqItem[];
-  vehicles?: FleetVehicle[];
   link?: ContentLink;
   is_step?: boolean;
 }

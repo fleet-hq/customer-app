@@ -74,6 +74,7 @@ export default function HomeClient() {
 
   const homePage = sections.pages?.home;
   if (homePage) {
+    const fleet = sections.fleet_section;
     return (
       <ContentPage
         tenant={tenant}
@@ -84,6 +85,16 @@ export default function HomeClient() {
           <div className="w-full max-w-[860px]">
             <SearchBar variant="hero" />
           </div>
+        }
+        afterHero={
+          fleet && (fleet.eyebrow || fleet.title || fleet.description) ? (
+            <FleetCarousel
+              eyebrow={co(fleet.eyebrow ?? '')}
+              title={co(fleet.title ?? '')}
+              description={co(fleet.description ?? '')}
+              ctaLabel={co(fleet.cta_label ?? 'See the full fleet')}
+            />
+          ) : null
         }
       />
     );

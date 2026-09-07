@@ -18,9 +18,10 @@ interface ContentPageProps {
   path: string;
   headerSlot?: React.ReactNode;
   heroImage?: string | null;
+  afterHero?: React.ReactNode;
 }
 
-export function ContentPage({ tenant, page, path, headerSlot, heroImage }: ContentPageProps) {
+export function ContentPage({ tenant, page, path, headerSlot, heroImage, afterHero }: ContentPageProps) {
   const co = (t: string) => withCompany(t, tenant.name);
   const blocks = page.blocks ?? [];
   const cta = page.cta;
@@ -124,6 +125,8 @@ export function ContentPage({ tenant, page, path, headerSlot, heroImage }: Conte
           {headerSlot ? <div className="mt-[28px]">{headerSlot}</div> : null}
         </div>
       </section>
+
+      {afterHero}
 
       <section className="mx-auto w-full max-w-[860px] px-4 pt-[44px] pb-[24px] sm:px-6 sm:pt-[56px]">
         <div className="flex flex-col gap-[20px]">
@@ -242,32 +245,6 @@ function Block({
             <p key={j} className="text-[16px] leading-[1.75] text-label">
               {co(p)}
             </p>
-          ))}
-        </div>
-      ) : null}
-
-      {block.vehicles?.length ? (
-        <div className="mt-[18px] grid grid-cols-1 gap-[12px] sm:grid-cols-2">
-          {block.vehicles.map((v, j) => (
-            <div
-              key={j}
-              className="flex items-center justify-between gap-[12px] rounded-[14px] border border-card-border bg-white px-[18px] py-[15px] transition-shadow hover:shadow-[var(--shadow-card)]"
-            >
-              <div className="min-w-0">
-                <p className="truncate font-manrope text-[15px] font-semibold text-ink">
-                  {v.name || [v.year, v.make, v.model].filter(Boolean).join(' ')}
-                </p>
-                <p className="mt-[3px] text-[13px] text-muted">
-                  {[v.seats ? `${v.seats} seats` : null, v.fuel].filter(Boolean).join(' · ')}
-                </p>
-              </div>
-              {v.price ? (
-                <span className="whitespace-nowrap font-manrope text-[15px] font-bold text-primary">
-                  ${v.price}
-                  <span className="text-[12px] font-medium text-muted">/day</span>
-                </span>
-              ) : null}
-            </div>
           ))}
         </div>
       ) : null}
