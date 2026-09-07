@@ -12,7 +12,9 @@ import { BrandCta } from '@/components/sections/shared/brand-cta';
 import { ContentFaq } from './content-faq';
 import { AboutLayout } from './about-layout';
 import { ContactLayout } from './contact-layout';
-import { ArrowRight, Check } from '@/components/ui/icons';
+import { ArrowRight, Check, Car, ShieldCheck, MapPin, Info } from '@/components/ui/icons';
+
+const RICH_ICONS = [Car, ShieldCheck, MapPin, Info];
 
 interface ContentPageProps {
   tenant: Tenant;
@@ -21,9 +23,10 @@ interface ContentPageProps {
   heroImage?: string | null;
   afterHero?: React.ReactNode;
   searchOverlap?: boolean;
+  richBlocks?: boolean;
 }
 
-export function ContentPage({ tenant, page, path, heroImage, afterHero, searchOverlap }: ContentPageProps) {
+export function ContentPage({ tenant, page, path, heroImage, afterHero, searchOverlap, richBlocks }: ContentPageProps) {
   if (page.layout === 'about') return <AboutLayout tenant={tenant} page={page} path={path} />;
   if (page.layout === 'contact') return <ContactLayout tenant={tenant} page={page} path={path} />;
   const co = (t: string) => withCompany(t, tenant.name);
@@ -132,21 +135,44 @@ export function ContentPage({ tenant, page, path, heroImage, afterHero, searchOv
 
       {afterHero}
 
-      <section className="mx-auto w-full max-w-[860px] px-4 pt-[44px] pb-[24px] sm:px-6 sm:pt-[56px]">
-        <div className="flex flex-col gap-[20px]">
-          {blocks.map((block, i) => {
-            const n = block.is_step ? ++stepNo : 0;
-            return <Block key={i} block={block} stepNo={n} co={co} />;
-          })}
-
-          {page.faqs?.length && !blocks.some((b) => b.faqs?.length) ? (
-            <div className="rounded-[20px] border border-card-border bg-white p-[26px] sm:p-[34px]">
-              <ContentFaq title="Frequently Asked Questions" items={page.faqs} />
+      <section
+        className={
+          'mx-auto w-full px-4 pt-[44px] pb-[24px] sm:px-6 sm:pt-[56px] ' +
+          (richBlocks ? 'max-w-[1080px]' : 'max-w-[860px]')
+        }
+      >
+        {richBlocks ? (
+          <>
+            <div className="grid gap-[18px] sm:grid-cols-2">
+              {blocks.map((block, i) => (
+                <RichBlock key={i} block={block} co={co} index={i} />
+              ))}
             </div>
-          ) : null}
+            {page.faqs?.length && !blocks.some((b) => b.faqs?.length) ? (
+              <div className="mt-[18px] rounded-[20px] border border-card-border bg-white p-[26px] sm:p-[34px]">
+                <ContentFaq title="Frequently Asked Questions" items={page.faqs} />
+              </div>
+            ) : null}
+            <div className="mt-[18px]">
+              <NapBlock tenant={tenant} />
+            </div>
+          </>
+        ) : (
+          <div className="flex flex-col gap-[20px]">
+            {blocks.map((block, i) => {
+              const n = block.is_step ? ++stepNo : 0;
+              return <Block key={i} block={block} stepNo={n} co={co} />;
+            })}
 
-          <NapBlock tenant={tenant} />
-        </div>
+            {page.faqs?.length && !blocks.some((b) => b.faqs?.length) ? (
+              <div className="rounded-[20px] border border-card-border bg-white p-[26px] sm:p-[34px]">
+                <ContentFaq title="Frequently Asked Questions" items={page.faqs} />
+              </div>
+            ) : null}
+
+            <NapBlock tenant={tenant} />
+          </div>
+        )}
 
         {cta && (cta.title || cta.description || cta.cta_label) ? (
           <div className="mt-[40px]">
@@ -300,6 +326,77 @@ function Block({
       ) : null}
 
       {linkRow}
+    </div>
+  );
+}
+
+function RichBlock({
+  block,
+  co,
+  index,
+}: {
+  block: ContentBlock;
+  co: (t: string) => string;
+  index: number;
+}) {
+  if (block.faqs?.length) {
+    return (
+      <div className="rounded-[20px] border border-card-border bg-white p-[26px] sm:p-[30px]">
+        <ContentFaq title={block.heading ? co(block.heading) : 'Frequently Asked Questions'} items={block.faqs} />
+      </div>
+    );
+  }
+  const Icon = RICH_ICONS[index % RICH_ICONS.length];
+  return (
+    <div className="flex flex-col rounded-[20px] border border-card-border bg-white p-[26px] sm:p-[30px]">
+      <span className="flex h-[44px] w-[44px] items-center justify-center rounded-full bg-primary-soft text-primary">
+        <Icon size={21} />
+      </span>
+      {block.heading ? (
+        <h2 className="mt-[16px] font-manrope text-[20px] font-bold leading-[1.25] tracking-[-0.01em] text-ink">
+          {co(block.heading)}
+        </h2>
+      ) : null}
+      {block.paragraphs?.length ? (
+        <div className="mt-[10px] flex flex-col gap-[10px]">
+          {block.paragraphs.map((p, j) => (
+            <p key={j} className="text-[15px] leading-[1.65] text-muted">
+              {co(p)}
+            </p>
+          ))}
+        </div>
+      ) : null}
+      {block.bullets?.length ? (
+        <ul className="mt-[16px] flex flex-col gap-[11px]">
+          {block.bullets.map((b, j) => {
+            const text = co(b);
+            const ci = text.indexOf(': ');
+            const hasKey = ci > 0 && ci <= 22;
+            return (
+              <li key={j} className="flex gap-[11px] text-[14.5px] leading-[1.55]">
+                <Check size={16} className="mt-[3px] flex-shrink-0 text-primary" />
+                {hasKey ? (
+                  <span>
+                    <span className="font-semibold text-ink">{text.slice(0, ci)}</span>
+                    <span className="text-muted">{text.slice(ci + 1)}</span>
+                  </span>
+                ) : (
+                  <span className="text-label">{text}</span>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
+      {block.link?.href ? (
+        <Link
+          href={block.link.href}
+          className="mt-auto inline-flex items-center gap-[7px] pt-[18px] text-[14px] font-semibold text-primary hover:gap-[10px]"
+        >
+          {co(block.link.label || 'Learn more')}
+          <ArrowRight size={15} />
+        </Link>
+      ) : null}
     </div>
   );
 }

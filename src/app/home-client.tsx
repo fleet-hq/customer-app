@@ -83,6 +83,7 @@ export default function HomeClient() {
         path="/"
         heroImage={images.hero}
         searchOverlap
+        richBlocks
         afterHero={
           <>
             <div className="relative z-10 mx-auto max-w-[1120px] px-6 -mt-16">
