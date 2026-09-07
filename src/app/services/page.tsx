@@ -1,21 +1,36 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 
 import { getCurrentTenant, TenantNotFoundError } from '@/lib/get-tenant';
 import { withCompany } from '@/lib/tenant';
 import { paths } from '@/lib/paths';
+import { pageMetadata } from '@/lib/seo';
+import { serviceOverviewSchema } from '@/lib/schema';
+import { JsonLd } from '@/components/seo/json-ld';
 import { notFound } from 'next/navigation';
 import { BrandCta } from '@/components/sections/shared/brand-cta';
+import { ArrowRight } from '@/components/ui/icons';
+
+const SERVICES_TRAIL = [
+  { label: 'Home', href: '/' },
+  { label: 'Services', href: '/services' },
+];
 
 export async function generateMetadata(): Promise<Metadata> {
   try {
     const tenant = await getCurrentTenant();
     const s = tenant.sections.services;
     if (!s) return { title: `Services — ${tenant.name}` };
-    const co = (t: string) => withCompany(t, tenant.name);
-    return {
-      title: s.meta_title ? co(s.meta_title) : `Services — ${tenant.name}`,
-      description: s.meta_description ? co(s.meta_description) : undefined,
-    };
+    const co = (t?: string) => (t ? withCompany(t, tenant.name) : undefined);
+    return pageMetadata({
+      tenant,
+      path: '/services',
+      title: co(s.meta_title) ?? `Services — ${tenant.name}`,
+      description: co(s.meta_description),
+      ogTitle: co(s.og_title),
+      ogDescription: co(s.og_description),
+      ogImage: s.og_image,
+    });
   } catch (err) {
     if (err instanceof TenantNotFoundError) return { title: 'Services' };
     throw err;
@@ -34,6 +49,7 @@ export default async function ServicesPage() {
 
   return (
     <div className="bg-white text-ink">
+      <JsonLd data={serviceOverviewSchema(tenant, blocks, SERVICES_TRAIL)} />
       <section className="relative overflow-hidden border-b border-hairline bg-subtle">
         <div
           className="pointer-events-none absolute inset-0 opacity-60"
@@ -125,6 +141,18 @@ export default async function ServicesPage() {
                         {co(b)}
                       </span>
                     ))}
+                  </div>
+                ) : null}
+
+                {block.href ? (
+                  <div className="mt-[18px] pl-[16px]">
+                    <Link
+                      href={block.href}
+                      className="inline-flex items-center gap-[7px] text-[14.5px] font-semibold text-primary hover:gap-[10px]"
+                    >
+                      {co(block.link_label || 'Learn more')}
+                      <ArrowRight size={16} />
+                    </Link>
                   </div>
                 ) : null}
               </div>

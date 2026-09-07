@@ -128,11 +128,16 @@ export interface ServicesBlock {
   paragraphs?: string[];
   steps?: string[];
   bullets?: string[];
+  href?: string;
+  link_label?: string;
 }
 
 export interface ServicesSection {
   meta_title?: string;
   meta_description?: string;
+  og_title?: string;
+  og_description?: string;
+  og_image?: string;
   h1?: string;
   intro?: string[];
   blocks?: ServicesBlock[];
@@ -154,18 +159,113 @@ export interface InquiryFormConfig {
   whatsapp_number?: string;
 }
 
+export interface FleetVehicle {
+  year?: number;
+  make?: string;
+  model?: string;
+  name?: string;
+  seats?: number;
+  fuel?: string;
+  price?: string;
+  electric?: boolean;
+}
+
 export interface FleetPageSection {
   eyebrow?: string;
   heading?: string;
   intro?: string[];
   includes_title?: string;
   includes?: string[];
+  vehicles?: FleetVehicle[];
+  faqs?: FaqItem[];
+  meta_title?: string;
+  meta_description?: string;
+  og_title?: string;
+  og_description?: string;
+  og_image?: string;
 }
 
 export interface BlogIndexSection {
   eyebrow?: string;
   heading?: string;
   intro?: string;
+}
+
+export type SchemaType =
+  | 'AutoRental'
+  | 'Organization'
+  | 'Service'
+  | 'HowTo'
+  | 'FAQPage'
+  | 'AboutPage'
+  | 'ContactPage'
+  | 'WebSite'
+  | 'Article'
+  | 'ItemList'
+  | 'Vehicle';
+
+export interface ContentLink {
+  label?: string;
+  href?: string;
+}
+
+export interface ContentBlock {
+  heading?: string;
+  paragraphs?: string[];
+  bullets?: string[];
+  steps?: string[];
+  link?: ContentLink;
+  is_step?: boolean;
+}
+
+export interface ContentPageMeta {
+  title?: string;
+  description?: string;
+  og_title?: string;
+  og_description?: string;
+  og_image?: string;
+  og_image_alt?: string;
+  canonical?: string;
+  noindex?: boolean;
+}
+
+export interface ContentPageSchema {
+  types?: SchemaType[];
+  service_type?: string;
+  price_range?: string;
+}
+
+export interface ContentPageCta {
+  eyebrow?: string;
+  title?: string;
+  description?: string;
+  cta_label?: string;
+  cta_href?: string;
+  whatsapp?: boolean;
+}
+
+export interface ContentPage {
+  eyebrow?: string;
+  h1?: string;
+  intro?: string[];
+  blocks?: ContentBlock[];
+  faqs?: FaqItem[];
+  cta?: ContentPageCta;
+  meta?: ContentPageMeta;
+  schema?: ContentPageSchema;
+  breadcrumb?: ContentLink[];
+}
+
+export interface SiteSeoConfig {
+  og_site_name?: string;
+  geo_region?: string;
+  geo_placename?: string;
+  default_og_image?: string;
+  whatsapp_number?: string;
+  same_as?: string[];
+  price_range?: string;
+  serving?: string;
+  delivery_note?: string;
 }
 
 export interface ContentSections {
@@ -183,6 +283,8 @@ export interface ContentSections {
   inquiry_form?: InquiryFormConfig | null;
   fleet_page?: FleetPageSection | null;
   blog_index?: BlogIndexSection | null;
+  seo?: SiteSeoConfig | null;
+  pages?: Record<string, ContentPage> | null;
 }
 
 export interface CompanyContent {

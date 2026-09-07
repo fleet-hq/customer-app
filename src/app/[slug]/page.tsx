@@ -1,22 +1,27 @@
 import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 
 import { getCurrentTenant, TenantNotFoundError } from '@/lib/get-tenant';
 import { withCompany } from '@/lib/tenant';
 import { pageMetadata } from '@/lib/seo';
 import { ContentPage } from '@/components/sections/content/content-page';
-import { InquiryPageBody } from '@/components/sections/inquiry/inquiry-page';
 
-export async function generateMetadata(): Promise<Metadata> {
+interface Params {
+  params: Promise<{ slug: string }>;
+}
+
+export async function generateMetadata({ params }: Params): Promise<Metadata> {
+  const { slug } = await params;
   try {
     const tenant = await getCurrentTenant();
-    const page = tenant.sections.pages?.contact;
-    if (!page) return { title: `Contact — ${tenant.name}` };
+    const page = tenant.sections.pages?.[slug];
+    if (!page) return {};
     const co = (t?: string) => (t ? withCompany(t, tenant.name) : undefined);
     const m = page.meta ?? {};
     return pageMetadata({
       tenant,
-      path: '/contact',
-      title: co(m.title) ?? `Contact — ${tenant.name}`,
+      path: `/${slug}`,
+      title: co(m.title) ?? co(page.h1) ?? tenant.name,
       description: co(m.description),
       ogTitle: co(m.og_title),
       ogDescription: co(m.og_description),
@@ -26,14 +31,15 @@ export async function generateMetadata(): Promise<Metadata> {
       noindex: m.noindex,
     });
   } catch (err) {
-    if (err instanceof TenantNotFoundError) return { title: 'Contact' };
+    if (err instanceof TenantNotFoundError) return {};
     throw err;
   }
 }
 
-export default async function ContactPage() {
+export default async function DynamicContentPage({ params }: Params) {
+  const { slug } = await params;
   const tenant = await getCurrentTenant();
-  const page = tenant.sections.pages?.contact;
-  if (page) return <ContentPage tenant={tenant} page={page} path="/contact" />;
-  return <InquiryPageBody />;
+  const page = tenant.sections.pages?.[slug];
+  if (!page) notFound();
+  return <ContentPage tenant={tenant} page={page} path={`/${slug}`} />;
 }

@@ -12,6 +12,8 @@ import { StripeProvider } from '@/components/stripe-provider';
 import { SetupInProgress } from '@/components/setup-in-progress';
 import { RenterActivityPing } from '@/components/analytics/RenterActivityPing';
 import { SiteTracking } from '@/components/tracking/site-tracking';
+import { JsonLd } from '@/components/seo/json-ld';
+import { organizationSchema } from '@/lib/schema';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -61,7 +63,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     if (err instanceof TenantNotFoundError) {
       const host = (await headers()).get('host') ?? err.host;
       return (
-        <html lang="en" className={`${inter.variable} ${manrope.variable} ${caveat.variable}`}>
+        <html lang="en-US" className={`${inter.variable} ${manrope.variable} ${caveat.variable}`}>
           <body>
             <SetupInProgress host={host} />
           </body>
@@ -80,8 +82,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   } as React.CSSProperties;
 
   return (
-    <html lang="en" data-tenant={tenant.slug} style={brandVars} className={`${inter.variable} ${manrope.variable} ${caveat.variable}`}>
+    <html lang="en-US" data-tenant={tenant.slug} style={brandVars} className={`${inter.variable} ${manrope.variable} ${caveat.variable}`}>
       <body>
+        <JsonLd data={organizationSchema(tenant)} />
         <SiteTracking tracking={tenant.tracking} />
         <Providers>
           {/* TenantProvider must wrap CompanyProvider. CompanyProvider

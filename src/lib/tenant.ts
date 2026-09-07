@@ -16,6 +16,8 @@ import type {
   InquiryFormConfig,
   FleetPageSection,
   BlogIndexSection,
+  SiteSeoConfig,
+  ContentPage,
 } from '@/services/companyContentServices';
 import { DEFAULT_NAV_LINKS, DEFAULT_THEME } from './tenant-defaults';
 
@@ -39,6 +41,8 @@ export interface TenantSections {
   inquiry_form: InquiryFormConfig | null;
   fleet_page: FleetPageSection | null;
   blog_index: BlogIndexSection | null;
+  seo: SiteSeoConfig | null;
+  pages: Record<string, ContentPage> | null;
 }
 
 export interface TenantLocation {
@@ -210,6 +214,8 @@ export function tenantFromApi(detail: ApiCompanyDetail, locations: ApiLocation[]
       inquiry_form: sections.inquiry_form ?? null,
       fleet_page: sections.fleet_page ?? null,
       blog_index: sections.blog_index ?? null,
+      seo: sections.seo ?? null,
+      pages: sections.pages ?? null,
     },
     tracking: {
       facebookPixelId: nonEmpty(tracking.facebook_pixel_id),
