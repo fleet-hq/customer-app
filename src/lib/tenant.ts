@@ -14,6 +14,8 @@ import type {
   FeatureColumnsSection,
   ServicesSection,
   InquiryFormConfig,
+  FleetPageSection,
+  BlogIndexSection,
 } from '@/services/companyContentServices';
 import { DEFAULT_NAV_LINKS, DEFAULT_THEME } from './tenant-defaults';
 
@@ -35,6 +37,8 @@ export interface TenantSections {
   cta: CopyBlockSection | null;
   services: ServicesSection | null;
   inquiry_form: InquiryFormConfig | null;
+  fleet_page: FleetPageSection | null;
+  blog_index: BlogIndexSection | null;
 }
 
 export interface TenantLocation {
@@ -204,6 +208,8 @@ export function tenantFromApi(detail: ApiCompanyDetail, locations: ApiLocation[]
       cta: sections.cta ?? null,
       services: sections.services ?? null,
       inquiry_form: sections.inquiry_form ?? null,
+      fleet_page: sections.fleet_page ?? null,
+      blog_index: sections.blog_index ?? null,
     },
     tracking: {
       facebookPixelId: nonEmpty(tracking.facebook_pixel_id),

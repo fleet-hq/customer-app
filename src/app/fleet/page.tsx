@@ -220,6 +220,48 @@ export default function FleetPage() {
       <SearchBar variant="compact" />
 
       <section className="mx-auto w-full max-w-[1200px] flex-1 px-4 pt-6 pb-12 sm:px-6 sm:pt-10 sm:pb-18">
+        {!isFiltered && tenant.sections.fleet_page &&
+        (tenant.sections.fleet_page.heading || (tenant.sections.fleet_page.intro?.length ?? 0) > 0) ? (
+          <div className="mb-8 flex flex-col gap-4 border-b border-hairline pb-8">
+            {tenant.sections.fleet_page.eyebrow ? (
+              <span className="text-[12px] font-semibold uppercase tracking-[0.05em] text-primary">
+                {tenant.sections.fleet_page.eyebrow}
+              </span>
+            ) : null}
+            {tenant.sections.fleet_page.heading ? (
+              <h1 className="font-manrope text-[26px] font-bold leading-[1.2] tracking-[-0.01em] text-ink text-balance sm:text-[32px]">
+                {tenant.sections.fleet_page.heading}
+              </h1>
+            ) : null}
+            {tenant.sections.fleet_page.intro?.length ? (
+              <div className="flex max-w-[760px] flex-col gap-2">
+                {tenant.sections.fleet_page.intro.map((p, i) => (
+                  <p key={i} className="text-[15px] leading-[1.7] text-muted">
+                    {p}
+                  </p>
+                ))}
+              </div>
+            ) : null}
+            {tenant.sections.fleet_page.includes?.length ? (
+              <div className="mt-1">
+                {tenant.sections.fleet_page.includes_title ? (
+                  <p className="mb-2 text-[13px] font-semibold text-ink">
+                    {tenant.sections.fleet_page.includes_title}
+                  </p>
+                ) : null}
+                <ul className="flex flex-col gap-[7px]">
+                  {tenant.sections.fleet_page.includes.map((b, i) => (
+                    <li key={i} className="flex gap-2 text-[14px] leading-[1.6] text-label">
+                      <span className="mt-[8px] h-[5px] w-[5px] flex-shrink-0 rounded-full bg-primary" />
+                      <span>{b}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
         <FleetToolbar
           heading={heading}
           isFiltered={isFiltered}

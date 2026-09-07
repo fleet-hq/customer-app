@@ -154,6 +154,20 @@ export interface InquiryFormConfig {
   whatsapp_number?: string;
 }
 
+export interface FleetPageSection {
+  eyebrow?: string;
+  heading?: string;
+  intro?: string[];
+  includes_title?: string;
+  includes?: string[];
+}
+
+export interface BlogIndexSection {
+  eyebrow?: string;
+  heading?: string;
+  intro?: string;
+}
+
 export interface ContentSections {
   hero?: HeroSection | null;
   promo?: PromoSection | null;
@@ -167,6 +181,8 @@ export interface ContentSections {
   cta?: CopyBlockSection | null;
   services?: ServicesSection | null;
   inquiry_form?: InquiryFormConfig | null;
+  fleet_page?: FleetPageSection | null;
+  blog_index?: BlogIndexSection | null;
 }
 
 export interface CompanyContent {

@@ -39,13 +39,14 @@ export default async function BlogIndexPage() {
         />
         <div className="relative mx-auto w-full max-w-[1120px] px-4 pt-[52px] pb-[44px] sm:px-6 sm:pt-[68px] sm:pb-[52px]">
           <span className="inline-flex items-center gap-[7px] rounded-full border border-primary-border bg-white px-[13px] py-[6px] text-[11.5px] font-semibold uppercase tracking-[0.06em] text-primary">
-            The {tenant.name} Blog
+            {tenant.sections.blog_index?.eyebrow || `The ${tenant.name} Blog`}
           </span>
           <h1 className="mt-[18px] max-w-[720px] font-manrope text-[34px] font-bold leading-[1.1] tracking-[-0.02em] text-ink text-balance sm:text-[46px]">
-            Guides, tips &amp; local know-how
+            {tenant.sections.blog_index?.heading || 'Guides, tips & local know-how'}
           </h1>
           <p className="mt-[14px] max-w-[560px] text-[16px] leading-[1.65] text-muted">
-            Practical reads from the {tenant.name} team — what to know before you book and before you drive.
+            {tenant.sections.blog_index?.intro ||
+              `Practical reads from the ${tenant.name} team — what to know before you book and before you drive.`}
           </p>
           {categories.length > 0 ? (
             <div className="mt-[24px] flex flex-wrap gap-[8px]">
