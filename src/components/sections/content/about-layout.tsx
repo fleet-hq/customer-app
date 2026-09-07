@@ -21,14 +21,14 @@ export function AboutLayout({ tenant, page, path }: { tenant: Tenant; page: Cont
           <span className="text-[12px] font-semibold uppercase tracking-[0.1em] text-primary">
             {co(page.eyebrow || 'About')}
           </span>
-          <div className="mt-[18px] grid gap-[22px] lg:grid-cols-[1.35fr_1fr] lg:items-end lg:gap-[48px]">
+          <div className="mt-[18px] grid gap-[22px] lg:grid-cols-[1.35fr_1fr] lg:items-start lg:gap-[48px]">
             {page.h1 ? (
               <h1 className="m-0 font-manrope text-[36px] font-bold leading-[1.08] tracking-[-0.025em] text-ink text-balance sm:text-[50px]">
                 {co(page.h1)}
               </h1>
             ) : null}
             {page.intro?.length ? (
-              <div className="flex flex-col gap-[12px] lg:pb-[6px]">
+              <div className="flex flex-col gap-[12px] lg:pt-[8px]">
                 {page.intro.map((p, i) => (
                   <p key={i} className="text-[16px] leading-[1.7] text-muted">
                     {co(p)}
