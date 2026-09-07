@@ -18,12 +18,12 @@ interface ContentPageProps {
   tenant: Tenant;
   page: ContentPageData;
   path: string;
-  headerSlot?: React.ReactNode;
   heroImage?: string | null;
   afterHero?: React.ReactNode;
+  searchOverlap?: boolean;
 }
 
-export function ContentPage({ tenant, page, path, headerSlot, heroImage, afterHero }: ContentPageProps) {
+export function ContentPage({ tenant, page, path, heroImage, afterHero, searchOverlap }: ContentPageProps) {
   if (page.layout === 'about') return <AboutLayout tenant={tenant} page={page} path={path} />;
   if (page.layout === 'contact') return <ContactLayout tenant={tenant} page={page} path={path} />;
   const co = (t: string) => withCompany(t, tenant.name);
@@ -65,7 +65,8 @@ export function ContentPage({ tenant, page, path, headerSlot, heroImage, afterHe
         )}
         <div
           className={
-            'relative mx-auto w-full max-w-[860px] px-4 pt-[52px] pb-[44px] sm:px-6 sm:pt-[68px] sm:pb-[52px] ' +
+            'relative mx-auto w-full max-w-[860px] px-4 pt-[52px] sm:px-6 sm:pt-[68px] ' +
+            (searchOverlap ? 'pb-[92px] sm:pb-[108px] ' : 'pb-[44px] sm:pb-[52px] ') +
             (onImage ? 'flex min-h-[440px] flex-col justify-center sm:min-h-[500px]' : '')
           }
         >
@@ -126,7 +127,6 @@ export function ContentPage({ tenant, page, path, headerSlot, heroImage, afterHe
               ))}
             </div>
           ) : null}
-          {headerSlot ? <div className="mt-[28px]">{headerSlot}</div> : null}
         </div>
       </section>
 

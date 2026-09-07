@@ -75,26 +75,28 @@ export default function HomeClient() {
   const homePage = sections.pages?.home;
   if (homePage) {
     const fleet = sections.fleet_section;
+    const fleetVisible = !!(fleet && (fleet.eyebrow || fleet.title || fleet.description));
     return (
       <ContentPage
         tenant={tenant}
         page={homePage}
         path="/"
         heroImage={images.hero}
-        headerSlot={
-          <div className="w-full max-w-[860px]">
-            <SearchBar variant="hero" />
-          </div>
-        }
+        searchOverlap
         afterHero={
-          fleet && (fleet.eyebrow || fleet.title || fleet.description) ? (
-            <FleetCarousel
-              eyebrow={co(fleet.eyebrow ?? '')}
-              title={co(fleet.title ?? '')}
-              description={co(fleet.description ?? '')}
-              ctaLabel={co(fleet.cta_label ?? 'See the full fleet')}
-            />
-          ) : null
+          <>
+            <div className="relative z-10 mx-auto max-w-[1120px] px-6 -mt-16">
+              <SearchBar variant="hero" />
+            </div>
+            {fleetVisible ? (
+              <FleetCarousel
+                eyebrow={co(fleet!.eyebrow ?? '')}
+                title={co(fleet!.title ?? '')}
+                description={co(fleet!.description ?? '')}
+                ctaLabel={co(fleet!.cta_label ?? 'See the full fleet')}
+              />
+            ) : null}
+          </>
         }
       />
     );
