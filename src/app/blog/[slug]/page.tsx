@@ -5,6 +5,9 @@ import { getCurrentTenant } from '@/lib/get-tenant';
 import { getTenantBlogPost, getTenantBlogs } from '@/lib/get-blogs';
 import { formatBlogDate } from '@/lib/blog';
 import { paths } from '@/lib/paths';
+import { absoluteUrl } from '@/lib/seo';
+import { articleSchema } from '@/lib/schema';
+import { JsonLd } from '@/components/seo/json-ld';
 import { BackLink } from '@/components/ui/back-link';
 import { Clock } from '@/components/ui/icons';
 import { BlogBody } from '@/components/sections/blog/blog-body';
@@ -17,18 +20,22 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const post = await getTenantBlogPost(slug);
+  const [tenant, post] = await Promise.all([getCurrentTenant(), getTenantBlogPost(slug)]);
   if (!post) return { title: 'Post not found' };
   const title = post.metaTitle || post.title;
   const description = post.metaDescription || post.excerpt;
+  const canonical = absoluteUrl(tenant, `/blog/${slug}`);
   return {
     title,
     description,
+    alternates: canonical ? { canonical } : undefined,
+    robots: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1, 'max-video-preview': -1 },
     openGraph: {
       title,
       description,
       type: 'article',
-      ...(post.coverImage ? { images: [{ url: post.coverImage }] } : {}),
+      ...(canonical ? { url: canonical } : {}),
+      ...(post.coverImage ? { images: [{ url: absoluteUrl(tenant, post.coverImage) }] } : {}),
       ...(post.publishedAt ? { publishedTime: post.publishedAt } : {}),
     },
   };
@@ -48,6 +55,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
   return (
     <div className="bg-white text-ink">
+      <JsonLd data={articleSchema(tenant, post, `/blog/${slug}`)} />
       <section className="relative overflow-hidden border-b border-hairline bg-subtle">
         <div
           className="pointer-events-none absolute inset-0 opacity-60"

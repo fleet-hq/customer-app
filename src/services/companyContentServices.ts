@@ -189,6 +189,11 @@ export interface BlogIndexSection {
   eyebrow?: string;
   heading?: string;
   intro?: string;
+  meta_title?: string;
+  meta_description?: string;
+  og_title?: string;
+  og_description?: string;
+  og_image?: string;
 }
 
 export type SchemaType =

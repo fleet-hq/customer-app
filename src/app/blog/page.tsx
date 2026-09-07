@@ -2,18 +2,32 @@ import type { Metadata } from 'next';
 
 import { getCurrentTenant, TenantNotFoundError } from '@/lib/get-tenant';
 import { getTenantBlogs } from '@/lib/get-blogs';
+import { pageMetadata } from '@/lib/seo';
+import { blogIndexSchema } from '@/lib/schema';
+import { JsonLd } from '@/components/seo/json-ld';
 import { BlogCard } from '@/components/sections/blog/blog-card';
 import { BlogFeatured } from '@/components/sections/blog/blog-featured';
 import { BrandCta } from '@/components/sections/shared/brand-cta';
 import { paths } from '@/lib/paths';
 
+const BLOG_TRAIL = [
+  { label: 'Home', href: '/' },
+  { label: 'Blog', href: '/blog' },
+];
+
 export async function generateMetadata(): Promise<Metadata> {
   try {
     const tenant = await getCurrentTenant();
-    return {
-      title: `Blog — ${tenant.name}`,
-      description: `News, guides and travel tips from ${tenant.name}.`,
-    };
+    const bi = tenant.sections.blog_index;
+    return pageMetadata({
+      tenant,
+      path: '/blog',
+      title: bi?.meta_title || `Blog — ${tenant.name}`,
+      description: bi?.meta_description || `News, guides and travel tips from ${tenant.name}.`,
+      ogTitle: bi?.og_title,
+      ogDescription: bi?.og_description,
+      ogImage: bi?.og_image,
+    });
   } catch (err) {
     if (err instanceof TenantNotFoundError) return { title: 'Blog' };
     throw err;
@@ -28,6 +42,7 @@ export default async function BlogIndexPage() {
 
   return (
     <div className="bg-white text-ink">
+      {posts.length > 0 ? <JsonLd data={blogIndexSchema(tenant, posts, BLOG_TRAIL)} /> : null}
       <section className="relative overflow-hidden border-b border-hairline bg-subtle">
         <div
           className="pointer-events-none absolute inset-0 opacity-60"

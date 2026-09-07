@@ -208,6 +208,57 @@ function vehicleNode(tenant: Tenant, v: FleetVehicle): Node {
   });
 }
 
+interface BlogPostLike {
+  slug: string;
+  title: string;
+  excerpt?: string;
+  metaDescription?: string;
+  coverImage?: string | null;
+  publishedAt?: string | null;
+}
+
+export function blogIndexSchema(tenant: Tenant, posts: BlogPostLike[], trail: ContentLink[]): Node {
+  const seo = tenant.sections.seo;
+  return {
+    '@context': CONTEXT,
+    '@graph': [
+      trailNode(tenant, trail),
+      prune({
+        '@type': 'Blog',
+        name: seo?.og_site_name || tenant.name,
+        url: absoluteUrl(tenant, '/blog'),
+        blogPost: posts.map((p) =>
+          prune({
+            '@type': 'BlogPosting',
+            headline: p.title,
+            description: p.metaDescription || p.excerpt,
+            url: absoluteUrl(tenant, `/blog/${p.slug}`),
+            image: p.coverImage ? absoluteUrl(tenant, p.coverImage) : undefined,
+            datePublished: p.publishedAt || undefined,
+          }),
+        ),
+      }),
+    ],
+  };
+}
+
+export function articleSchema(tenant: Tenant, post: BlogPostLike, path: string): Node {
+  return {
+    '@context': CONTEXT,
+    ...prune({
+      '@type': 'Article',
+      headline: post.title,
+      description: post.metaDescription || post.excerpt,
+      image: post.coverImage ? absoluteUrl(tenant, post.coverImage) : undefined,
+      datePublished: post.publishedAt || undefined,
+      dateModified: post.publishedAt || undefined,
+      author: organizationNode(tenant),
+      publisher: organizationNode(tenant),
+      mainEntityOfPage: absoluteUrl(tenant, path),
+    }),
+  };
+}
+
 export function fleetSchema(
   tenant: Tenant,
   vehicles: FleetVehicle[],
