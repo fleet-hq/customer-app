@@ -12,7 +12,7 @@ import { BrandCta } from '@/components/sections/shared/brand-cta';
 import { ContentFaq } from './content-faq';
 import { AboutLayout } from './about-layout';
 import { ContactLayout } from './contact-layout';
-import { ArrowRight } from '@/components/ui/icons';
+import { ArrowRight, Check } from '@/components/ui/icons';
 
 interface ContentPageProps {
   tenant: Tenant;
@@ -221,43 +221,60 @@ function Block({
       </div>
     );
   }
-  return (
-    <div
-      className={
-        'rounded-[20px] border border-card-border p-[26px] sm:p-[34px] ' +
-        (hasSteps ? 'bg-subtle' : 'bg-white')
-      }
+  const paragraphs = block.paragraphs?.length ? (
+    <div className="mt-[16px] flex max-w-[720px] flex-col gap-[13px]">
+      {block.paragraphs.map((p, j) => (
+        <p key={j} className="text-[16.5px] leading-[1.75] text-label">
+          {co(p)}
+        </p>
+      ))}
+    </div>
+  ) : null;
+
+  const linkRow = block.link?.href ? (
+    <Link
+      href={block.link.href}
+      className="mt-[18px] inline-flex items-center gap-[7px] text-[14.5px] font-semibold text-primary hover:gap-[10px]"
     >
-      {block.heading ? (
-        <div className="mb-[18px] flex items-center gap-[12px]">
-          {stepNo ? (
-            <span className="flex h-[28px] w-[28px] flex-shrink-0 items-center justify-center rounded-full bg-primary font-manrope text-[13px] font-bold text-white">
-              {stepNo}
-            </span>
-          ) : (
-            <span className="h-[22px] w-[4px] flex-shrink-0 rounded-full bg-primary" />
-          )}
-          <h2 className="font-manrope text-[22px] font-bold leading-[1.25] tracking-[-0.01em] text-ink sm:text-[24px]">
+      {co(block.link.label || 'Learn more')}
+      <ArrowRight size={16} />
+    </Link>
+  ) : null;
+
+  if (block.is_step) {
+    return (
+      <div className="relative overflow-hidden rounded-[20px] border border-card-border bg-subtle p-[28px] sm:p-[34px]">
+        {stepNo ? (
+          <span className="block font-manrope text-[40px] font-extrabold leading-none tracking-[-0.03em] text-primary/25">
+            {String(stepNo).padStart(2, '0')}
+          </span>
+        ) : null}
+        {block.heading ? (
+          <h2 className="mt-[12px] font-manrope text-[22px] font-bold leading-[1.25] tracking-[-0.01em] text-ink sm:text-[25px]">
             {co(block.heading)}
           </h2>
-        </div>
+        ) : null}
+        {paragraphs}
+        {linkRow}
+      </div>
+    );
+  }
+
+  return (
+    <div className="border-t border-hairline pt-[30px] sm:pt-[36px]">
+      {block.heading ? (
+        <h2 className="font-manrope text-[23px] font-bold leading-[1.2] tracking-[-0.015em] text-ink sm:text-[27px]">
+          {co(block.heading)}
+        </h2>
       ) : null}
 
-      {block.paragraphs?.length ? (
-        <div className="flex flex-col gap-[12px] pl-[16px]">
-          {block.paragraphs.map((p, j) => (
-            <p key={j} className="text-[16px] leading-[1.75] text-label">
-              {co(p)}
-            </p>
-          ))}
-        </div>
-      ) : null}
+      {paragraphs}
 
       {block.bullets?.length ? (
-        <ul className="mt-[16px] flex flex-col gap-[10px] pl-[16px]">
+        <ul className="mt-[20px] grid gap-x-[28px] gap-y-[13px] sm:grid-cols-2">
           {block.bullets.map((b, j) => (
-            <li key={j} className="flex gap-[12px] text-[16px] leading-[1.6] text-label">
-              <span className="mt-[9px] h-[6px] w-[6px] flex-shrink-0 rounded-full bg-primary" />
+            <li key={j} className="flex gap-[11px] text-[15.5px] leading-[1.55] text-label">
+              <Check size={17} className="mt-[3px] flex-shrink-0 text-primary" />
               <span>{co(b)}</span>
             </li>
           ))}
@@ -265,7 +282,7 @@ function Block({
       ) : null}
 
       {hasSteps ? (
-        <ol className="mt-[4px] flex flex-col gap-[4px] pl-[16px]">
+        <ol className="mt-[8px] flex flex-col gap-[4px]">
           {block.steps!.map((step, j) => (
             <li key={j} className="flex gap-[16px]">
               <div className="flex flex-col items-center">
@@ -282,17 +299,7 @@ function Block({
         </ol>
       ) : null}
 
-      {block.link?.href ? (
-        <div className="mt-[18px] pl-[16px]">
-          <Link
-            href={block.link.href}
-            className="inline-flex items-center gap-[7px] text-[14.5px] font-semibold text-primary hover:gap-[10px]"
-          >
-            {co(block.link.label || 'Learn more')}
-            <ArrowRight size={16} />
-          </Link>
-        </div>
-      ) : null}
+      {linkRow}
     </div>
   );
 }

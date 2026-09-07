@@ -44,10 +44,8 @@ export function ContactLayout({ tenant, page, path }: { tenant: Tenant; page: Co
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-[1080px] px-4 pt-[40px] pb-[24px] sm:px-6 sm:pt-[52px]">
-        <div className="-mt-[68px] sm:-mt-[80px]">
-          <ContactActions tenant={tenant} />
-        </div>
+      <section className="mx-auto w-full max-w-[1080px] px-4 pt-[36px] pb-[24px] sm:px-6 sm:pt-[44px]">
+        <ContactActions tenant={tenant} />
 
         {blocks.map((block, i) => (
           <div
