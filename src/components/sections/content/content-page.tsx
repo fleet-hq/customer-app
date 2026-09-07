@@ -10,6 +10,8 @@ import { JsonLd } from '@/components/seo/json-ld';
 import { NapBlock } from '@/components/sections/shared/nap-block';
 import { BrandCta } from '@/components/sections/shared/brand-cta';
 import { ContentFaq } from './content-faq';
+import { AboutLayout } from './about-layout';
+import { ContactLayout } from './contact-layout';
 import { ArrowRight } from '@/components/ui/icons';
 
 interface ContentPageProps {
@@ -22,6 +24,8 @@ interface ContentPageProps {
 }
 
 export function ContentPage({ tenant, page, path, headerSlot, heroImage, afterHero }: ContentPageProps) {
+  if (page.layout === 'about') return <AboutLayout tenant={tenant} page={page} path={path} />;
+  if (page.layout === 'contact') return <ContactLayout tenant={tenant} page={page} path={path} />;
   const co = (t: string) => withCompany(t, tenant.name);
   const blocks = page.blocks ?? [];
   const cta = page.cta;

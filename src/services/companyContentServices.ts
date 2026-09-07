@@ -252,6 +252,7 @@ export interface ContentPageCta {
 }
 
 export interface ContentPage {
+  layout?: 'default' | 'about' | 'contact';
   eyebrow?: string;
   h1?: string;
   intro?: string[];

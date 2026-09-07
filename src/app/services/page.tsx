@@ -47,6 +47,7 @@ export default async function ServicesPage() {
   const co = (t: string) => withCompany(t, tenant.name);
   const cta = s!.cta;
   const blocks = s!.blocks ?? [];
+  const isDirectory = blocks.filter((b) => b.href).length >= 2;
 
   return (
     <div className="bg-white text-ink">
@@ -81,8 +82,42 @@ export default async function ServicesPage() {
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-[860px] px-4 pt-[44px] pb-[24px] sm:px-6 sm:pt-[56px]">
-        <div className="flex flex-col gap-[20px]">
+      <section className="mx-auto w-full max-w-[960px] px-4 pt-[44px] pb-[24px] sm:px-6 sm:pt-[56px]">
+        {isDirectory ? (
+          <>
+            <div className="grid gap-[16px] sm:grid-cols-2">
+              {blocks.map((block, i) => (
+                <Link
+                  key={i}
+                  href={block.href || paths.fleet}
+                  className="group flex flex-col rounded-[18px] border border-card-border bg-white p-[24px] transition-all hover:-translate-y-[2px] hover:border-primary-border hover:shadow-[var(--shadow-card)] sm:p-[26px]"
+                >
+                  <span className="font-manrope text-[13px] font-bold tracking-[0.04em] text-primary/55">
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                  <h2 className="mt-[10px] font-manrope text-[18.5px] font-bold leading-[1.25] tracking-[-0.01em] text-ink transition-colors group-hover:text-primary">
+                    {co(block.heading || '')}
+                  </h2>
+                  {block.paragraphs?.[0] ? (
+                    <p className="mt-[9px] flex-1 text-[14.5px] leading-[1.6] text-muted">
+                      {co(block.paragraphs[0])}
+                    </p>
+                  ) : (
+                    <span className="flex-1" />
+                  )}
+                  <span className="mt-[18px] inline-flex items-center gap-[6px] text-[13.5px] font-semibold text-primary">
+                    {co(block.link_label || 'Explore')}
+                    <ArrowRight size={15} className="transition-transform group-hover:translate-x-[3px]" />
+                  </span>
+                </Link>
+              ))}
+            </div>
+            <div className="mt-[24px]">
+              <NapBlock tenant={tenant} />
+            </div>
+          </>
+        ) : (
+          <div className="flex flex-col gap-[20px]">
           {blocks.map((block, i) => {
             const hasSteps = !!block.steps?.length;
             return (
@@ -159,8 +194,9 @@ export default async function ServicesPage() {
               </div>
             );
           })}
-          <NapBlock tenant={tenant} />
-        </div>
+            <NapBlock tenant={tenant} />
+          </div>
+        )}
 
         {cta && (cta.title || cta.description || cta.cta_label) ? (
           <div className="mt-[40px]">
