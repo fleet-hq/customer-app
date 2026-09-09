@@ -76,14 +76,21 @@ export default function HomeClient() {
   if (homePage) {
     const fleet = sections.fleet_section;
     const fleetVisible = !!(fleet && (fleet.eyebrow || fleet.title || fleet.description));
+    const heroHeadingLines = (hero?.heading_lines ?? []).filter((l) => l.trim().length > 0);
+    const heroPage = {
+      ...homePage,
+      eyebrow: hero?.pill?.trim() ? hero.pill : homePage.eyebrow,
+      h1: heroHeadingLines.length ? heroHeadingLines.join('\n') : homePage.h1,
+    };
     return (
       <ContentPage
         tenant={tenant}
-        page={homePage}
+        page={heroPage}
         path="/"
         heroImage={images.hero}
         searchOverlap
         richBlocks
+        showNap={false}
         afterHero={
           <>
             <div className="relative z-10 mx-auto max-w-[1120px] px-6 -mt-16">

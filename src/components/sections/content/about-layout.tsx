@@ -47,8 +47,7 @@ export function AboutLayout({ tenant, page, path }: { tenant: Tenant; page: Cont
             return (
               <div key={i} className="grid gap-[18px] lg:grid-cols-[260px_1fr] lg:gap-[52px]">
                 <div>
-                  <span className="inline-block h-[3px] w-[38px] rounded-full bg-primary" />
-                  <h2 className="mt-[14px] font-manrope text-[24px] font-bold leading-[1.2] tracking-[-0.01em] text-ink">
+                  <h2 className="font-manrope text-[24px] font-bold leading-[1.2] tracking-[-0.01em] text-ink">
                     {block.heading ? co(block.heading) : ''}
                   </h2>
                 </div>

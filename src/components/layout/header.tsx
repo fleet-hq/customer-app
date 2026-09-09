@@ -44,6 +44,10 @@ export function Header({
   userEmail = DEMO_USER.email,
 }: HeaderProps) {
   const tenant = useTenant();
+  const serviceLinks = (tenant.sections.services?.blocks ?? [])
+    .filter((b) => b.href)
+    .map((b) => ({ href: b.href as string, label: b.link_label || b.heading || '' }))
+    .filter((s) => s.label);
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -101,6 +105,36 @@ export function Header({
               const isActive = active
                 ? link.label === active
                 : isLinkActive(link.href, pathname ?? '/', hash);
+              const isServices = link.href === '/services' && serviceLinks.length > 0;
+              if (isServices) {
+                return (
+                  <div key={link.href} className="group relative">
+                    <Link
+                      href={link.href}
+                      className={cn(
+                        'flex items-center gap-1 text-xs transition-colors',
+                        isActive ? 'font-semibold text-primary' : 'font-medium text-ink hover:text-primary',
+                      )}
+                    >
+                      {link.label}
+                      <ChevronDown size={13} className="text-faint transition-transform duration-200 group-hover:rotate-180" />
+                    </Link>
+                    <div className="invisible absolute left-1/2 top-full z-[60] w-[260px] -translate-x-1/2 pt-[12px] opacity-0 transition-all duration-150 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
+                      <div className="rounded-xl border border-card-border bg-white p-1.5 shadow-[var(--shadow-menu)]">
+                        {serviceLinks.map((s) => (
+                          <Link
+                            key={s.href}
+                            href={s.href}
+                            className="block rounded-lg px-3 py-[9px] text-[13px] font-medium text-ink transition-colors hover:bg-hover hover:text-primary"
+                          >
+                            {s.label}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
               return (
                 <Link
                   key={link.href}
@@ -198,20 +232,36 @@ export function Header({
               const isActive = active
                 ? link.label === active
                 : isLinkActive(link.href, pathname ?? '/', hash);
+              const isServices = link.href === '/services' && serviceLinks.length > 0;
               return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setMobileNavOpen(false)}
-                  className={cn(
-                    'rounded-lg px-3 py-[11px] text-sm transition-colors',
-                    isActive
-                      ? 'bg-primary-soft font-semibold text-primary'
-                      : 'font-medium text-ink hover:bg-hover',
-                  )}
-                >
-                  {link.label}
-                </Link>
+                <div key={link.href}>
+                  <Link
+                    href={link.href}
+                    onClick={() => setMobileNavOpen(false)}
+                    className={cn(
+                      'block rounded-lg px-3 py-[11px] text-sm transition-colors',
+                      isActive
+                        ? 'bg-primary-soft font-semibold text-primary'
+                        : 'font-medium text-ink hover:bg-hover',
+                    )}
+                  >
+                    {link.label}
+                  </Link>
+                  {isServices ? (
+                    <div className="mt-0.5 mb-1 ml-3 flex flex-col gap-0.5 border-l border-hairline pl-3">
+                      {serviceLinks.map((s) => (
+                        <Link
+                          key={s.href}
+                          href={s.href}
+                          onClick={() => setMobileNavOpen(false)}
+                          className="rounded-lg px-3 py-[9px] text-[13px] font-medium text-muted transition-colors hover:bg-hover hover:text-primary"
+                        >
+                          {s.label}
+                        </Link>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
               );
             })}
           </nav>

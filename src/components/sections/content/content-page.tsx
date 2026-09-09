@@ -24,9 +24,10 @@ interface ContentPageProps {
   afterHero?: React.ReactNode;
   searchOverlap?: boolean;
   richBlocks?: boolean;
+  showNap?: boolean;
 }
 
-export function ContentPage({ tenant, page, path, heroImage, afterHero, searchOverlap, richBlocks }: ContentPageProps) {
+export function ContentPage({ tenant, page, path, heroImage, afterHero, searchOverlap, richBlocks, showNap = true }: ContentPageProps) {
   if (page.layout === 'about') return <AboutLayout tenant={tenant} page={page} path={path} />;
   if (page.layout === 'contact') return <ContactLayout tenant={tenant} page={page} path={path} />;
   const co = (t: string) => withCompany(t, tenant.name);
@@ -111,7 +112,7 @@ export function ContentPage({ tenant, page, path, heroImage, afterHero, searchOv
           {page.h1 ? (
             <h1
               className={
-                'mt-[18px] font-manrope text-[34px] font-bold leading-[1.1] tracking-[-0.02em] text-balance sm:text-[46px] ' +
+                'mt-[18px] whitespace-pre-line font-manrope text-[34px] font-bold leading-[1.1] tracking-[-0.02em] text-balance sm:text-[46px] ' +
                 (onImage ? 'text-white' : 'text-ink')
               }
             >
@@ -153,9 +154,11 @@ export function ContentPage({ tenant, page, path, heroImage, afterHero, searchOv
                 <ContentFaq title="Frequently Asked Questions" items={page.faqs} />
               </div>
             ) : null}
-            <div className="mt-[18px]">
-              <NapBlock tenant={tenant} />
-            </div>
+            {showNap ? (
+              <div className="mt-[18px]">
+                <NapBlock tenant={tenant} />
+              </div>
+            ) : null}
           </>
         ) : (
           <div className="flex flex-col gap-[20px]">
@@ -170,7 +173,7 @@ export function ContentPage({ tenant, page, path, heroImage, afterHero, searchOv
               </div>
             ) : null}
 
-            <NapBlock tenant={tenant} />
+            {showNap ? <NapBlock tenant={tenant} /> : null}
           </div>
         )}
 
