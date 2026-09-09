@@ -38,6 +38,7 @@ export interface HeroFeature {
 interface HomeHeroFeaturedProps {
   headingLines: string[];
   subheading: string;
+  intro?: string[];
   highlightColor?: string;
   highlightWords?: string[];
   backgroundImage?: string;
@@ -48,6 +49,7 @@ interface HomeHeroFeaturedProps {
 export function HomeHeroFeatured({
   headingLines,
   subheading,
+  intro,
   highlightColor,
   highlightWords,
   backgroundImage,
@@ -116,6 +118,15 @@ export function HomeHeroFeatured({
               <p className="mt-5 max-w-[440px] text-[15px] leading-[1.55] text-white/85 md:text-[17px]">
                 {subheading}
               </p>
+            ) : null}
+            {intro && intro.length > 0 ? (
+              <div className="mt-4 flex max-w-[600px] flex-col gap-3">
+                {intro.map((p, i) => (
+                  <p key={i} className="text-[15px] leading-[1.65] text-white/85 md:text-[16px]">
+                    {p}
+                  </p>
+                ))}
+              </div>
             ) : null}
           </div>
         </div>

@@ -86,6 +86,7 @@ export default function HomeClient() {
       <HomeHeroFeatured
         headingLines={heroHeadingLines.map(co)}
         subheading={co(hero?.subheading ?? '')}
+        intro={(homePage.intro ?? []).map(co)}
         highlightColor={hero?.highlight_color}
         highlightWords={hero?.highlight_words}
         backgroundImage={images.hero ?? undefined}
