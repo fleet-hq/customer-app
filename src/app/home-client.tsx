@@ -82,18 +82,34 @@ export default function HomeClient() {
       eyebrow: hero?.pill?.trim() ? hero.pill : '',
       h1: heroHeadingLines.length ? heroHeadingLines.join('\n') : homePage.h1,
     };
+    const featuredHero = isFeaturedHero ? (
+      <HomeHeroFeatured
+        headingLines={heroHeadingLines.map(co)}
+        subheading={co(hero?.subheading ?? '')}
+        highlightColor={hero?.highlight_color}
+        highlightWords={hero?.highlight_words}
+        backgroundImage={images.hero ?? undefined}
+        mobileBackgroundImage={images.hero_mobile ?? undefined}
+        features={(hero?.features ?? []).map((f) => ({
+          icon: f.icon,
+          title: f.title ? co(f.title) : f.title,
+          description: f.description ? co(f.description) : f.description,
+        }))}
+      />
+    ) : undefined;
     return (
       <ContentPage
         tenant={tenant}
         page={heroPage}
         path="/"
         heroImage={images.hero}
-        searchOverlap
+        heroOverride={featuredHero}
+        searchOverlap={!isFeaturedHero}
         richBlocks
         showNap={false}
         afterHero={
           <>
-            <div className="relative z-10 mx-auto max-w-[1120px] px-6 -mt-16">
+            <div className={`relative z-10 mx-auto max-w-[1120px] px-6 ${isFeaturedHero ? 'mt-8' : '-mt-16'}`}>
               <SearchBar variant="hero" />
             </div>
             {fleetVisible ? (

@@ -22,12 +22,13 @@ interface ContentPageProps {
   path: string;
   heroImage?: string | null;
   afterHero?: React.ReactNode;
+  heroOverride?: React.ReactNode;
   searchOverlap?: boolean;
   richBlocks?: boolean;
   showNap?: boolean;
 }
 
-export function ContentPage({ tenant, page, path, heroImage, afterHero, searchOverlap, richBlocks, showNap = true }: ContentPageProps) {
+export function ContentPage({ tenant, page, path, heroImage, afterHero, heroOverride, searchOverlap, richBlocks, showNap = true }: ContentPageProps) {
   if (page.layout === 'about') return <AboutLayout tenant={tenant} page={page} path={path} />;
   if (page.layout === 'contact') return <ContactLayout tenant={tenant} page={page} path={path} />;
   const co = (t: string) => withCompany(t, tenant.name);
@@ -43,6 +44,7 @@ export function ContentPage({ tenant, page, path, heroImage, afterHero, searchOv
     <div className="bg-white text-ink">
       <JsonLd data={contentPageSchema(tenant, page, path)} />
 
+      {heroOverride ? heroOverride : (
       <section
         className={
           'relative overflow-hidden border-b border-hairline ' + (onImage ? 'bg-secondary' : 'bg-subtle')
@@ -134,6 +136,7 @@ export function ContentPage({ tenant, page, path, heroImage, afterHero, searchOv
           ) : null}
         </div>
       </section>
+      )}
 
       {afterHero}
 
