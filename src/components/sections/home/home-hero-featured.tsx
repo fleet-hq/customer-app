@@ -102,9 +102,9 @@ export function HomeHeroFeatured({
 
       <div className="relative z-10 flex min-h-[540px] flex-col justify-between pb-8 sm:min-h-[600px] md:pb-10">
         <div className="flex flex-1 flex-col justify-center px-6 pt-[110px] pb-10 md:px-14 md:pt-[130px]">
-          <div className="max-w-[620px]">
+          <div className="max-w-[900px]">
             {headingLines.length > 0 ? (
-              <h1 className="m-0 text-[40px] leading-[0.98] font-extrabold tracking-[-0.02em] text-white uppercase sm:text-[52px] md:text-[68px]">
+              <h1 className="m-0 font-manrope text-[34px] leading-[1.1] font-bold tracking-[-0.02em] text-balance text-white sm:text-[46px]">
                 {headingLines.map((line, i) => (
                   <span key={i} className="block">
                     {renderLine(line)}
