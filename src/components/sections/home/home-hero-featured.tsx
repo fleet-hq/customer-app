@@ -12,7 +12,6 @@ import {
   Check,
   Sparkles,
 } from '@/components/ui/icons';
-import { HeroImage } from '@/components/sections/home/hero-image';
 
 type IconCmp = (p: SVGProps<SVGSVGElement> & { size?: number }) => ReactNode;
 
@@ -84,19 +83,24 @@ export function HomeHeroFeatured({
       {hasBg ? (
         <>
           {hasMobileBg ? (
-            <HeroImage src={mobileBackgroundImage!} className="sm:hidden" />
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={mobileBackgroundImage!}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover sm:hidden"
+            />
           ) : null}
-          <HeroImage
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
             src={backgroundImage!}
-            className={hasMobileBg ? 'hidden sm:block' : ''}
+            alt=""
+            className={`absolute inset-0 h-full w-full object-cover ${hasMobileBg ? 'hidden sm:block' : ''}`}
           />
           <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/45 to-black/10" />
         </>
-      ) : (
-        <div className="min-h-[560px] w-full md:min-h-[640px]" />
-      )}
+      ) : null}
 
-      <div className="absolute inset-0 z-10 flex flex-col justify-between pb-8 md:pb-10">
+      <div className="relative z-10 flex min-h-[540px] flex-col justify-between pb-8 sm:min-h-[600px] md:pb-10">
         <div className="flex flex-1 flex-col justify-center px-6 pt-[110px] pb-10 md:px-14 md:pt-[130px]">
           <div className="max-w-[620px]">
             {headingLines.length > 0 ? (
