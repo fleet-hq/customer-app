@@ -34,7 +34,7 @@ export function ContentPage({ tenant, page, path, heroImage, afterHero, searchOv
   const blocks = page.blocks ?? [];
   const cta = page.cta;
   const wa = tenantWhatsapp(tenant);
-  const eyebrow = page.eyebrow || tenant.name;
+  const eyebrow = page.eyebrow === undefined ? tenant.name : page.eyebrow;
   const onImage = !!heroImage;
 
   let stepNo = 0;
@@ -97,7 +97,7 @@ export function ContentPage({ tenant, page, path, heroImage, afterHero, searchOv
                 </span>
               ))}
             </nav>
-          ) : (
+          ) : eyebrow ? (
             <span
               className={
                 'inline-flex items-center rounded-full px-[13px] py-[6px] text-[11.5px] font-semibold uppercase tracking-[0.06em] ' +
@@ -108,7 +108,7 @@ export function ContentPage({ tenant, page, path, heroImage, afterHero, searchOv
             >
               {co(eyebrow)}
             </span>
-          )}
+          ) : null}
           {page.h1 ? (
             <h1
               className={

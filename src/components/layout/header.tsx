@@ -46,7 +46,7 @@ export function Header({
   const tenant = useTenant();
   const serviceLinks = (tenant.sections.services?.blocks ?? [])
     .filter((b) => b.href)
-    .map((b) => ({ href: b.href as string, label: b.link_label || b.heading || '' }))
+    .map((b) => ({ href: b.href as string, label: b.heading || b.link_label || '' }))
     .filter((s) => s.label);
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);

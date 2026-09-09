@@ -79,7 +79,7 @@ export default function HomeClient() {
     const heroHeadingLines = (hero?.heading_lines ?? []).filter((l) => l.trim().length > 0);
     const heroPage = {
       ...homePage,
-      eyebrow: hero?.pill?.trim() ? hero.pill : homePage.eyebrow,
+      eyebrow: hero?.pill?.trim() ? hero.pill : '',
       h1: heroHeadingLines.length ? heroHeadingLines.join('\n') : homePage.h1,
     };
     return (
