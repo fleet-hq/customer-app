@@ -110,7 +110,7 @@ export function Footer() {
 }
 
 function SocialGlyph({ label }: { label: string }) {
-  const key = label.toLowerCase().trim();
+  const key = (label ?? '').toLowerCase().trim();
 
   if (key === 'x' || key === 'twitter') {
     return (

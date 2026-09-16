@@ -181,7 +181,10 @@ export function tenantFromApi(detail: ApiCompanyDetail, locations: ApiLocation[]
     },
     footer: {
       description: nonEmpty(footer.description),
-      socials: footer.socials ?? [],
+      // Drop placeholder rows the operator never actually filled in —
+      // a social-link entry with no platform crashes SocialGlyph, and
+      // one with no url is just a blank icon that goes nowhere.
+      socials: (footer.socials ?? []).filter((s) => s?.platform && s?.url),
       contact: {
         phone: nonEmpty(footer.contact?.phone) || nonEmpty(detail.phone_no),
         email: nonEmpty(footer.contact?.email) || nonEmpty(detail.email),
