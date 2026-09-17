@@ -8,29 +8,40 @@ import { Car, Key, ShieldCheck, Headset } from '@/components/ui/icons';
 
 const VALUE_ICONS = [Car, Key, ShieldCheck, Headset];
 
-export function AboutLayout({ tenant, page, path }: { tenant: Tenant; page: ContentPage; path: string }) {
+export function AboutLayout({ tenant, page, path, heroImage }: { tenant: Tenant; page: ContentPage; path: string; heroImage?: string | null }) {
   const co = (t: string) => withCompany(t, tenant.name);
   const blocks = page.blocks ?? [];
+  const onImage = !!heroImage;
 
   return (
     <div className="bg-white text-ink">
       <JsonLd data={contentPageSchema(tenant, page, path)} />
 
-      <section className="border-b border-hairline bg-subtle">
-        <div className="mx-auto w-full max-w-[1080px] px-4 pt-[56px] pb-[52px] sm:px-6 sm:pt-[76px] sm:pb-[64px]">
-          <span className="text-[12px] font-semibold uppercase tracking-[0.1em] text-primary">
+      <section className={'relative overflow-hidden border-b border-hairline ' + (onImage ? 'bg-secondary' : 'bg-subtle')}>
+        {onImage ? (
+          <>
+            <div
+              className="absolute inset-0 bg-cover bg-center"
+              aria-hidden="true"
+              style={{ backgroundImage: `url('${heroImage}')` }}
+            />
+            <div className="absolute inset-0 bg-black/55" aria-hidden="true" />
+          </>
+        ) : null}
+        <div className="relative mx-auto w-full max-w-[1080px] px-4 pt-[56px] pb-[52px] sm:px-6 sm:pt-[76px] sm:pb-[64px]">
+          <span className={'text-[12px] font-semibold uppercase tracking-[0.1em] ' + (onImage ? 'text-white/80' : 'text-primary')}>
             {co(page.eyebrow || 'About')}
           </span>
           <div className="mt-[18px] grid gap-[22px] lg:grid-cols-[1.35fr_1fr] lg:items-start lg:gap-[48px]">
             {page.h1 ? (
-              <h1 className="m-0 font-manrope text-[36px] font-bold leading-[1.08] tracking-[-0.025em] text-ink text-balance sm:text-[50px]">
+              <h1 className={'m-0 font-manrope text-[36px] font-bold leading-[1.08] tracking-[-0.025em] text-balance sm:text-[50px] ' + (onImage ? 'text-white' : 'text-ink')}>
                 {co(page.h1)}
               </h1>
             ) : null}
             {page.intro?.length ? (
               <div className="flex flex-col gap-[12px] lg:pt-[8px]">
                 {page.intro.map((p, i) => (
-                  <p key={i} className="text-[16px] leading-[1.7] text-muted">
+                  <p key={i} className={'text-[16px] leading-[1.7] ' + (onImage ? 'text-white/85' : 'text-muted')}>
                     {co(p)}
                   </p>
                 ))}

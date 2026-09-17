@@ -29,8 +29,8 @@ interface ContentPageProps {
 }
 
 export function ContentPage({ tenant, page, path, heroImage, afterHero, heroOverride, searchOverlap, richBlocks, showNap = true }: ContentPageProps) {
-  if (page.layout === 'about') return <AboutLayout tenant={tenant} page={page} path={path} />;
-  if (page.layout === 'contact') return <ContactLayout tenant={tenant} page={page} path={path} />;
+  if (page.layout === 'about') return <AboutLayout tenant={tenant} page={page} path={path} heroImage={heroImage} />;
+  if (page.layout === 'contact') return <ContactLayout tenant={tenant} page={page} path={path} heroImage={heroImage} />;
   const co = (t: string) => withCompany(t, tenant.name);
   const blocks = page.blocks ?? [];
   const cta = page.cta;

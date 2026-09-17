@@ -6,7 +6,7 @@ import { JsonLd } from '@/components/seo/json-ld';
 import { ContactActions } from './contact-actions';
 import { MapPin } from '@/components/ui/icons';
 
-export function ContactLayout({ tenant, page, path }: { tenant: Tenant; page: ContentPage; path: string }) {
+export function ContactLayout({ tenant, page, path, heroImage }: { tenant: Tenant; page: ContentPage; path: string; heroImage?: string | null }) {
   const co = (t: string) => withCompany(t, tenant.name);
   const blocks = page.blocks ?? [];
 
@@ -15,6 +15,16 @@ export function ContactLayout({ tenant, page, path }: { tenant: Tenant; page: Co
       <JsonLd data={contentPageSchema(tenant, page, path)} />
 
       <section className="relative overflow-hidden border-b border-hairline bg-secondary">
+        {heroImage ? (
+          <>
+            <div
+              className="absolute inset-0 bg-cover bg-center"
+              aria-hidden="true"
+              style={{ backgroundImage: `url('${heroImage}')` }}
+            />
+            <div className="absolute inset-0 bg-black/55" aria-hidden="true" />
+          </>
+        ) : null}
         <div
           className="pointer-events-none absolute inset-0 opacity-80"
           aria-hidden="true"
