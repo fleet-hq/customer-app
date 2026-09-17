@@ -28,7 +28,7 @@ export function AboutLayout({ tenant, page, path, heroImage }: { tenant: Tenant;
             <div className="absolute inset-0 bg-black/55" aria-hidden="true" />
           </>
         ) : null}
-        <div className="relative mx-auto w-full max-w-[1080px] px-4 pt-[56px] pb-[52px] sm:px-6 sm:pt-[76px] sm:pb-[64px]">
+        <div className={'relative mx-auto w-full max-w-[1080px] px-4 pt-[56px] pb-[52px] sm:px-6 sm:pt-[76px] sm:pb-[64px] ' + (onImage ? 'flex min-h-[520px] flex-col justify-center sm:min-h-[580px]' : '')}>
           <span className={'text-[12px] font-semibold uppercase tracking-[0.1em] ' + (onImage ? 'text-white/80' : 'text-primary')}>
             {co(page.eyebrow || 'About')}
           </span>

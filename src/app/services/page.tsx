@@ -76,7 +76,7 @@ export default async function ServicesPage() {
         <div
           className={
             'relative mx-auto w-full max-w-[860px] px-4 pt-[52px] pb-[44px] sm:px-6 sm:pt-[68px] sm:pb-[52px] ' +
-            (onImage ? 'flex min-h-[380px] flex-col justify-center sm:min-h-[420px]' : '')
+            (onImage ? 'flex min-h-[500px] flex-col justify-center sm:min-h-[560px]' : '')
           }
         >
           <span

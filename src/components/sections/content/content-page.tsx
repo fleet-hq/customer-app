@@ -75,7 +75,7 @@ export function ContentPage({ tenant, page, path, heroImage, afterHero, heroOver
             'relative mx-auto w-full px-4 pt-[52px] sm:px-6 sm:pt-[68px] ' +
             (richBlocks ? 'max-w-[1080px] ' : 'max-w-[860px] ') +
             (searchOverlap ? 'pb-[92px] sm:pb-[108px] ' : 'pb-[44px] sm:pb-[52px] ') +
-            (onImage ? 'flex min-h-[440px] flex-col justify-center sm:min-h-[500px]' : '')
+            (onImage ? 'flex min-h-[540px] flex-col justify-center sm:min-h-[620px]' : '')
           }
         >
           {page.breadcrumb?.length ? (
