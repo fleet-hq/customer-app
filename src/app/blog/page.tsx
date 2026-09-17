@@ -39,27 +39,52 @@ export default async function BlogIndexPage() {
 
   const categories = Array.from(new Set(posts.map((p) => p.category).filter(Boolean)));
   const [featured, ...rest] = posts;
+  const heroImage = tenant.sections.blog_index?.hero_image;
+  const onImage = !!heroImage;
 
   return (
     <div className="bg-white text-ink">
       {posts.length > 0 ? <JsonLd data={blogIndexSchema(tenant, posts, BLOG_TRAIL)} /> : null}
-      <section className="relative overflow-hidden border-b border-hairline bg-subtle">
+      <section className={'relative overflow-hidden border-b border-hairline ' + (onImage ? 'bg-secondary' : 'bg-subtle')}>
+        {onImage ? (
+          <>
+            <div
+              className="absolute inset-0 bg-cover bg-center"
+              aria-hidden="true"
+              style={{ backgroundImage: `url('${heroImage}')` }}
+            />
+            <div className="absolute inset-0 bg-black/55" aria-hidden="true" />
+          </>
+        ) : (
+          <div
+            className="pointer-events-none absolute inset-0 opacity-60"
+            aria-hidden="true"
+            style={{
+              background:
+                'radial-gradient(90% 120% at 90% -10%, color-mix(in srgb, var(--color-primary) 12%, transparent) 0%, transparent 60%)',
+            }}
+          />
+        )}
         <div
-          className="pointer-events-none absolute inset-0 opacity-60"
-          aria-hidden="true"
-          style={{
-            background:
-              'radial-gradient(90% 120% at 90% -10%, color-mix(in srgb, var(--color-primary) 12%, transparent) 0%, transparent 60%)',
-          }}
-        />
-        <div className="relative mx-auto w-full max-w-[1120px] px-4 pt-[52px] pb-[44px] sm:px-6 sm:pt-[68px] sm:pb-[52px]">
-          <span className="inline-flex items-center gap-[7px] rounded-full border border-primary-border bg-white px-[13px] py-[6px] text-[11.5px] font-semibold uppercase tracking-[0.06em] text-primary">
+          className={
+            'relative mx-auto w-full max-w-[1120px] px-4 pt-[52px] pb-[44px] sm:px-6 sm:pt-[68px] sm:pb-[52px] ' +
+            (onImage ? 'flex min-h-[420px] flex-col justify-center sm:min-h-[480px]' : '')
+          }
+        >
+          <span
+            className={
+              'inline-flex items-center gap-[7px] rounded-full px-[13px] py-[6px] text-[11.5px] font-semibold uppercase tracking-[0.06em] ' +
+              (onImage
+                ? 'border border-white/25 bg-white/10 text-white backdrop-blur-sm'
+                : 'border border-primary-border bg-white text-primary')
+            }
+          >
             {tenant.sections.blog_index?.eyebrow || `The ${tenant.name} Blog`}
           </span>
-          <h1 className="mt-[18px] max-w-[720px] font-manrope text-[34px] font-bold leading-[1.1] tracking-[-0.02em] text-ink text-balance sm:text-[46px]">
+          <h1 className={'mt-[18px] max-w-[720px] font-manrope text-[34px] font-bold leading-[1.1] tracking-[-0.02em] text-balance sm:text-[46px] ' + (onImage ? 'text-white' : 'text-ink')}>
             {tenant.sections.blog_index?.heading || 'Guides, tips & local know-how'}
           </h1>
-          <p className="mt-[14px] max-w-[560px] text-[16px] leading-[1.65] text-muted">
+          <p className={'mt-[14px] max-w-[560px] text-[16px] leading-[1.65] ' + (onImage ? 'text-white/85' : 'text-muted')}>
             {tenant.sections.blog_index?.intro ||
               `Practical reads from the ${tenant.name} team — what to know before you book and before you drive.`}
           </p>
@@ -68,7 +93,10 @@ export default async function BlogIndexPage() {
               {categories.map((cat) => (
                 <span
                   key={cat}
-                  className="rounded-full border border-card-border bg-white px-[14px] py-[7px] text-[12.5px] font-medium text-label"
+                  className={
+                    'rounded-full px-[14px] py-[7px] text-[12.5px] font-medium ' +
+                    (onImage ? 'border border-white/25 bg-white/10 text-white' : 'border border-card-border bg-white text-label')
+                  }
                 >
                   {cat}
                 </span>

@@ -191,6 +191,7 @@ export interface BlogIndexSection {
   eyebrow?: string;
   heading?: string;
   intro?: string;
+  hero_image?: string;
   meta_title?: string;
   meta_description?: string;
   og_title?: string;
