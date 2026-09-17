@@ -41,6 +41,8 @@ export default async function BlogIndexPage() {
   const [featured, ...rest] = posts;
   const heroImage = tenant.sections.blog_index?.hero_image;
   const onImage = !!heroImage;
+  const eyebrow = tenant.sections.blog_index?.eyebrow;
+  const showEyebrow = eyebrow === undefined ? true : eyebrow.trim() !== '';
 
   return (
     <div className="bg-white text-ink">
@@ -71,16 +73,18 @@ export default async function BlogIndexPage() {
             (onImage ? 'flex min-h-[420px] flex-col justify-center sm:min-h-[480px]' : '')
           }
         >
-          <span
-            className={
-              'inline-flex items-center gap-[7px] rounded-full px-[13px] py-[6px] text-[11.5px] font-semibold uppercase tracking-[0.06em] ' +
-              (onImage
-                ? 'border border-white/25 bg-white/10 text-white backdrop-blur-sm'
-                : 'border border-primary-border bg-white text-primary')
-            }
-          >
-            {tenant.sections.blog_index?.eyebrow || `The ${tenant.name} Blog`}
-          </span>
+          {showEyebrow ? (
+            <span
+              className={
+                'inline-flex items-center gap-[7px] rounded-full px-[13px] py-[6px] text-[11.5px] font-semibold uppercase tracking-[0.06em] ' +
+                (onImage
+                  ? 'border border-white/25 bg-white/10 text-white backdrop-blur-sm'
+                  : 'border border-primary-border bg-white text-primary')
+              }
+            >
+              {eyebrow || `The ${tenant.name} Blog`}
+            </span>
+          ) : null}
           <h1 className={'mt-[18px] max-w-[720px] font-manrope text-[34px] font-bold leading-[1.1] tracking-[-0.02em] text-balance sm:text-[46px] ' + (onImage ? 'text-white' : 'text-ink')}>
             {tenant.sections.blog_index?.heading || 'Guides, tips & local know-how'}
           </h1>
