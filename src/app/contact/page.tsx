@@ -34,6 +34,6 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function ContactPage() {
   const tenant = await getCurrentTenant();
   const page = tenant.sections.pages?.contact;
-  if (page) return <ContentPage tenant={tenant} page={page} path="/contact" />;
+  if (page) return <ContentPage tenant={tenant} page={page} path="/contact" heroImage={page.hero_image} />;
   return <InquiryPageBody />;
 }
