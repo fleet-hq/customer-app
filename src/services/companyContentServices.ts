@@ -222,6 +222,7 @@ export interface ContentBlock {
   faqs?: FaqItem[];
   link?: ContentLink;
   is_step?: boolean;
+  image?: string;
 }
 
 export interface ContentPageMeta {
@@ -255,6 +256,7 @@ export interface ContentPage {
   layout?: 'default' | 'about' | 'contact';
   eyebrow?: string;
   h1?: string;
+  hero_image?: string;
   intro?: string[];
   blocks?: ContentBlock[];
   faqs?: FaqItem[];
