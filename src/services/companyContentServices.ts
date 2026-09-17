@@ -139,6 +139,8 @@ export interface ServicesSection {
   og_description?: string;
   og_image?: string;
   h1?: string;
+  hero_image?: string;
+  image?: string;
   intro?: string[];
   blocks?: ServicesBlock[];
   cta?: { title?: string; description?: string; cta_label?: string; cta_href?: string };
@@ -223,6 +225,7 @@ export interface ContentBlock {
   link?: ContentLink;
   is_step?: boolean;
   image?: string;
+  pills?: string[];
 }
 
 export interface ContentPageMeta {

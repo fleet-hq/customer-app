@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 import type { Tenant } from '@/lib/tenant';
 import { withCompany } from '@/lib/tenant';
-import type { ContentPage as ContentPageData, ContentBlock } from '@/services/companyContentServices';
+import type { ContentPage as ContentPageData, ContentBlock, FleetVehicle } from '@/services/companyContentServices';
 import { paths } from '@/lib/paths';
 import { tenantWhatsapp } from '@/lib/seo';
 import { contentPageSchema } from '@/lib/schema';
@@ -12,7 +12,7 @@ import { BrandCta } from '@/components/sections/shared/brand-cta';
 import { ContentFaq } from './content-faq';
 import { AboutLayout } from './about-layout';
 import { ContactLayout } from './contact-layout';
-import { ArrowRight, Check, Car, ShieldCheck, MapPin, Info } from '@/components/ui/icons';
+import { ArrowRight, Check, Car, ShieldCheck, MapPin, Info, User } from '@/components/ui/icons';
 
 const RICH_ICONS = [Car, ShieldCheck, MapPin, Info];
 
@@ -33,6 +33,7 @@ export function ContentPage({ tenant, page, path, heroImage, afterHero, heroOver
   if (page.layout === 'contact') return <ContactLayout tenant={tenant} page={page} path={path} heroImage={heroImage} />;
   const co = (t: string) => withCompany(t, tenant.name);
   const blocks = page.blocks ?? [];
+  const vehicles = page.schema?.vehicles ?? [];
   const cta = page.cta;
   const wa = tenantWhatsapp(tenant);
   const eyebrow = page.eyebrow === undefined ? tenant.name : page.eyebrow;
@@ -146,6 +147,8 @@ export function ContentPage({ tenant, page, path, heroImage, afterHero, heroOver
           (richBlocks ? 'max-w-[1080px]' : 'max-w-[860px]')
         }
       >
+        {vehicles.length ? <FleetCards vehicles={vehicles} co={co} /> : null}
+
         {richBlocks ? (
           <>
             <div className="grid gap-[18px] sm:grid-cols-2">
@@ -303,6 +306,14 @@ function Block({
 
       {paragraphs}
 
+      {block.image ? (
+        <img
+          src={block.image}
+          alt={block.heading ? co(block.heading) : ''}
+          className="mt-[22px] h-auto w-full rounded-[18px] border border-card-border object-cover"
+        />
+      ) : null}
+
       {block.bullets?.length ? (
         <ul className="mt-[20px] grid gap-x-[28px] gap-y-[13px] sm:grid-cols-2">
           {block.bullets.map((b, j) => (
@@ -312,6 +323,19 @@ function Block({
             </li>
           ))}
         </ul>
+      ) : null}
+
+      {block.pills?.length ? (
+        <div className="mt-[20px] flex flex-wrap gap-[10px]">
+          {block.pills.map((p, j) => (
+            <span
+              key={j}
+              className="rounded-full border border-primary-border bg-primary-soft px-[16px] py-[8px] text-[14px] font-semibold text-primary"
+            >
+              {co(p)}
+            </span>
+          ))}
+        </div>
       ) : null}
 
       {hasSteps ? (
@@ -355,10 +379,21 @@ function RichBlock({
   }
   const Icon = RICH_ICONS[index % RICH_ICONS.length];
   return (
-    <div className="flex flex-col rounded-[20px] border border-card-border bg-white p-[26px] sm:p-[30px]">
-      <span className="flex h-[44px] w-[44px] items-center justify-center rounded-full bg-primary-soft text-primary">
-        <Icon size={21} />
-      </span>
+    <div className="flex flex-col overflow-hidden rounded-[20px] border border-card-border bg-white">
+      {block.image ? (
+        <div
+          className="h-[196px] w-full bg-cover bg-center"
+          role="img"
+          aria-label={block.heading || ''}
+          style={{ backgroundImage: `url('${block.image}')` }}
+        />
+      ) : null}
+      <div className="flex flex-1 flex-col p-[26px] sm:p-[30px]">
+      {block.image ? null : (
+        <span className="flex h-[44px] w-[44px] items-center justify-center rounded-full bg-primary-soft text-primary">
+          <Icon size={21} />
+        </span>
+      )}
       {block.heading ? (
         <h2 className="mt-[16px] font-manrope text-[20px] font-bold leading-[1.25] tracking-[-0.01em] text-ink">
           {co(block.heading)}
@@ -395,6 +430,18 @@ function RichBlock({
           })}
         </ul>
       ) : null}
+      {block.pills?.length ? (
+        <div className="mt-[16px] flex flex-wrap gap-[8px]">
+          {block.pills.map((p, j) => (
+            <span
+              key={j}
+              className="rounded-full border border-primary-border bg-primary-soft px-[13px] py-[6px] text-[13px] font-semibold text-primary"
+            >
+              {co(p)}
+            </span>
+          ))}
+        </div>
+      ) : null}
       {block.link?.href ? (
         <Link
           href={block.link.href}
@@ -404,6 +451,60 @@ function RichBlock({
           <ArrowRight size={15} />
         </Link>
       ) : null}
+      </div>
+    </div>
+  );
+}
+
+function FleetCards({
+  vehicles,
+  co,
+}: {
+  vehicles: FleetVehicle[];
+  co: (t: string) => string;
+}) {
+  return (
+    <div className="mb-[8px] grid gap-[16px] sm:grid-cols-2">
+      {vehicles.map((v, i) => {
+        const title = v.name || [v.year, v.make, v.model].filter(Boolean).join(' ');
+        return (
+          <div
+            key={i}
+            className="flex flex-col rounded-[18px] border border-card-border bg-white p-[22px] sm:p-[24px]"
+          >
+            <div className="flex items-start justify-between gap-[12px]">
+              <span className="flex h-[40px] w-[40px] flex-shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary">
+                <Car size={20} />
+              </span>
+              {v.price ? (
+                <span className="font-manrope text-[15px] font-bold text-ink">
+                  ${v.price}
+                  <span className="text-[12.5px] font-medium text-muted">/day</span>
+                </span>
+              ) : null}
+            </div>
+            {title ? (
+              <h3 className="mt-[14px] font-manrope text-[17.5px] font-bold leading-[1.25] tracking-[-0.01em] text-ink">
+                {co(title)}
+              </h3>
+            ) : null}
+            <div className="mt-[12px] flex flex-wrap items-center gap-x-[16px] gap-y-[7px] text-[13.5px] text-muted">
+              {v.seats ? (
+                <span className="inline-flex items-center gap-[6px]">
+                  <User size={15} className="text-primary" />
+                  {v.seats} seats
+                </span>
+              ) : null}
+              {v.fuel ? (
+                <span className="inline-flex items-center gap-[6px]">
+                  <span className="h-[6px] w-[6px] rounded-full bg-primary" />
+                  {v.electric ? 'Electric' : co(v.fuel)}
+                </span>
+              ) : null}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
