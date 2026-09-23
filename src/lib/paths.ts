@@ -1,3 +1,5 @@
+import { slugify } from './utils';
+
 export const paths = {
   home: '/',
   fleet: '/fleet',
@@ -11,7 +13,8 @@ export const paths = {
   faq: '/faq',
   inquiry: '/inquiry',
   contact: '/contact',
-  checkout: (carId: string) => `/checkout/${carId}`,
+  checkout: (carId: string, slugSource?: string) =>
+    slugSource ? `/checkout/${carId}-${slugify(slugSource)}` : `/checkout/${carId}`,
   verifyId: '/booking/verify/id',
   verifyInsurance: '/booking/verify/insurance',
   booking: (id: string) => `/booking/${id}`,

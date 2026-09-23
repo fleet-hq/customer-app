@@ -4,6 +4,7 @@ import { money } from '@/lib/utils';
 import type { Vehicle } from '@/types/vehicle';
 
 export function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
+  const href = paths.checkout(vehicle.id, `${vehicle.name} ${vehicle.year}`);
   const specs = [
     vehicle.seats ? `${vehicle.seats} seats` : null,
     vehicle.transmission,
@@ -14,7 +15,7 @@ export function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
 
   return (
     <div className="group flex flex-col overflow-hidden rounded-2xl border border-card-border bg-white transition-shadow hover:shadow-[var(--shadow-card)]">
-      <Link href={paths.checkout(vehicle.id)} className="relative block aspect-[16/11] overflow-hidden rounded-[14px]">
+      <Link href={href} className="relative block aspect-[16/11] overflow-hidden rounded-[14px]">
         <div
           className="h-full w-full bg-cover bg-center transition-transform duration-300 group-hover:scale-[1.03]"
           style={{ backgroundImage: `url('${vehicle.image}')` }}
@@ -27,7 +28,7 @@ export function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
       </Link>
 
       <div className="flex flex-1 flex-col p-[18px]">
-        <Link href={paths.checkout(vehicle.id)} className="text-[16px] font-semibold text-ink">
+        <Link href={href} className="text-[16px] font-semibold text-ink">
           {vehicle.name}
         </Link>
 
@@ -39,7 +40,7 @@ export function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
             <span className="text-xs text-faint">/day</span>
           </div>
           <Link
-            href={paths.checkout(vehicle.id)}
+            href={href}
             className="rounded-[9px] bg-primary px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-primary-hover"
           >
             Book now
