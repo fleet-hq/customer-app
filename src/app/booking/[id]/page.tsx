@@ -349,7 +349,7 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
     <>
     <VerifyFirstConfirm
       booking={booking}
-      backHref={mode === 'pending_verification' ? `/checkout/${booking.fleetId}` : paths.home}
+      backHref={mode === 'pending_verification' ? paths.checkout(String(booking.fleetId)) : paths.home}
       mode={mode}
       outstanding={outstanding}
       charges={balance?.charges ?? []}

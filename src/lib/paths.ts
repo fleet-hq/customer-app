@@ -14,7 +14,7 @@ export const paths = {
   inquiry: '/inquiry',
   contact: '/contact',
   checkout: (carId: string, slugSource?: string) =>
-    slugSource ? `/checkout/${carId}-${slugify(slugSource)}` : `/checkout/${carId}`,
+    slugSource ? `/fleet/${carId}-${slugify(slugSource)}` : `/fleet/${carId}`,
   verifyId: '/booking/verify/id',
   verifyInsurance: '/booking/verify/insurance',
   booking: (id: string) => `/booking/${id}`,

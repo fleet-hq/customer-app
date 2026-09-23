@@ -764,7 +764,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
       const data = await startCheckout.mutateAsync({
         ...commonPayload,
         success_url: `${origin}/booking/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${origin}/checkout/${carId}`,
+        cancel_url: `${origin}/fleet/${carId}`,
       });
       registerHold(data.pending_id);
       try { window.sessionStorage.removeItem(persistKey); } catch { /* ignore */ }

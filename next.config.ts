@@ -7,7 +7,10 @@ import type { NextConfig } from 'next';
 // FHQ-side path mapped onto its customer-central equivalent.
 const LEGACY_FHQ_REDIRECTS: NextConfig['redirects'] = async () => [
   { source: '/manage-booking', destination: '/manage', permanent: true },
-  { source: '/fleet/:id/book', destination: '/checkout/:id', permanent: true },
+  { source: '/fleet/:id/book', destination: '/fleet/:id', permanent: true },
+  // The checkout/booking page briefly lived at /checkout/:id before moving
+  // to /fleet/:id — keep any already-shared links working.
+  { source: '/checkout/:id', destination: '/fleet/:id', permanent: false },
   {
     source: '/booking/:id/edit',
     destination: '/booking/:id/modify',

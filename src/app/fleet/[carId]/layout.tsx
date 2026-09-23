@@ -26,7 +26,7 @@ export async function generateMetadata({
 
     return pageMetadata({
       tenant,
-      path: `/checkout/${carId}`,
+      path: `/fleet/${carId}`,
       title,
       description,
       ogImage: vehicle.image && vehicle.image !== PLACEHOLDER_IMAGE ? vehicle.image : undefined,
