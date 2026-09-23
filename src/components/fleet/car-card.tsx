@@ -23,7 +23,7 @@ interface CarCardProps {
 const HOURLY_MAX_HOURS = 23;
 
 export function CarCard({ vehicle, badge, oldPrice, bookingQuery, hours, discountPct }: CarCardProps) {
-  const checkoutPath = paths.checkout(vehicle.id, `${vehicle.name} ${vehicle.year}`);
+  const checkoutPath = paths.checkout(vehicle.slug);
   const href = bookingQuery ? `${checkoutPath}?${bookingQuery}` : checkoutPath;
 
   const perDay = Number(vehicle.pricePerDay) || 0;

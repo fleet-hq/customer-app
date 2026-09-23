@@ -1,5 +1,3 @@
-import { slugify } from './utils';
-
 export const paths = {
   home: '/',
   fleet: '/fleet',
@@ -13,8 +11,11 @@ export const paths = {
   faq: '/faq',
   inquiry: '/inquiry',
   contact: '/contact',
-  checkout: (carId: string, slugSource?: string) =>
-    slugSource ? `/fleet/${carId}-${slugify(slugSource)}` : `/fleet/${carId}`,
+  // Accepts a vehicle's real slug (preferred — always available on a
+  // fetched Vehicle) or, as a fallback where only the numeric id is on
+  // hand (e.g. a booking record), the id itself — the backend resolves
+  // either at the same lookup path.
+  checkout: (slugOrId: string) => `/fleet/${slugOrId}`,
   verifyId: '/booking/verify/id',
   verifyInsurance: '/booking/verify/insurance',
   booking: (id: string) => `/booking/${id}`,

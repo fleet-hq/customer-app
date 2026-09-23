@@ -26,7 +26,7 @@ import { checkFleetAvailability, validatePromoCode } from '@/services/bookingSer
 import type { InsuranceOption } from '@/services/bookingServices';
 import { toUtcIso } from '@/utils/datetime';
 import { todayISO } from '@/lib/time-slots';
-import { cn, money, rentalDays, idFromSlugParam } from '@/lib/utils';
+import { cn, money, rentalDays } from '@/lib/utils';
 import { buildUnavailabilityIndex, slotsBlockedOn, firstBlockInSpan } from '@/lib/unavailable-slots';
 import { formatInTimeZone } from 'date-fns-tz';
 import { paths } from '@/lib/paths';
@@ -104,9 +104,9 @@ type Fields = { firstName: string; lastName: string; email: string; phone: strin
 
 export default function Page({ params }: { params: Promise<{ carId: string }> }) {
   const { carId } = use(params);
-  // carId is the raw route param, e.g. "42" or "42-toyota-camry-2023" — the
-  // slug is cosmetic/SEO-only, the numeric prefix is the real lookup key.
-  const id = idFromSlugParam(carId);
+  // carId is the route param — either the vehicle's slug (normal case) or,
+  // for older/manually-built links, its numeric id. The backend accepts
+  // either at the same lookup path, so it's used as-is everywhere below.
   const router = useRouter();
   const searchParams = useSearchParams();
   const embed = useEmbedBridge();
@@ -119,7 +119,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   const defaultLoc = useDefaultLocation();
   const startCheckout = useStartBookingCheckout();
   const startEmbedPayment = useStartEmbedBookingPayment();
-  const { registerHold, suppressRelease, releaseNow } = useCheckoutHoldRelease(id);
+  const { registerHold, suppressRelease, releaseNow } = useCheckoutHoldRelease(carId);
   // Single-provider policy: the tenant admin enables exactly one
   // gateway at a time on the Integrations page — customer-central
   // just uses whatever's on. No picker, no per-request override.
@@ -147,7 +147,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   }, [embedIntent]);
   const { data: verificationPolicy } = useBookingVerificationPolicy();
   const startVerification = useStartVerificationFirstBooking();
-  const { data: unavailableRanges = [] } = useFleetUnavailableRanges(id);
+  const { data: unavailableRanges = [] } = useFleetUnavailableRanges(carId);
   const { data: defaultTaxProfile } = useDefaultTaxProfile();
   const protectionRef = useRef<HTMLHeadingElement>(null);
   const errorBannerRef = useRef<HTMLDivElement>(null);
@@ -274,7 +274,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
     };
   }, [fleetTz, pickupDate, pickupTime, returnDate, returnTime]);
 
-  const { data: vehicle, isLoading } = useFleet(id, true, fleetDateArgs);
+  const { data: vehicle, isLoading } = useFleet(carId, true, fleetDateArgs);
   const { data: insuranceOptions, isLoading: insuranceOptionsLoading } =
     useInsuranceOptions(fleetDateArgs);
 

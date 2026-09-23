@@ -3,7 +3,6 @@ import type { Metadata } from 'next';
 import { getCurrentTenant, TenantNotFoundError } from '@/lib/get-tenant';
 import { pageMetadata } from '@/lib/seo';
 import { getFleetById } from '@/services/fleetServices';
-import { idFromSlugParam } from '@/lib/utils';
 
 const PLACEHOLDER_IMAGE = '/images/vehicles/car_placeholder.svg';
 
@@ -12,12 +11,13 @@ export async function generateMetadata({
 }: {
   params: Promise<{ carId: string }>;
 }): Promise<Metadata> {
+  // carId is the vehicle's slug (or, for older links, its numeric id) —
+  // the backend resolves either at the same lookup path.
   const { carId } = await params;
-  const id = idFromSlugParam(carId);
 
   try {
     const tenant = await getCurrentTenant();
-    const vehicle = await getFleetById(id, undefined, tenant.domain).catch(() => null);
+    const vehicle = await getFleetById(carId, undefined, tenant.domain).catch(() => null);
     if (!vehicle) return { title: `Book a car — ${tenant.name}` };
 
     const title = `${vehicle.name} ${vehicle.year} — Book now | ${tenant.name}`;

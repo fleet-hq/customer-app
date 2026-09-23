@@ -14,17 +14,6 @@ export function slugify(text: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
-/**
- * Reads the numeric id back out of an `{id}` or `{id}-{slug}` route param
- * (e.g. "42" or "42-toyota-camry-2023" both resolve to "42"). The slug is
- * cosmetic/SEO-only — the id prefix is always the real lookup key, so this
- * keeps bare-id links working forever even after a car's name changes.
- */
-export function idFromSlugParam(param: string): string {
-  const match = param.match(/^\d+/);
-  return match ? match[0] : param;
-}
-
 export function money(n: number): string {
   return '$' + n.toFixed(2);
 }

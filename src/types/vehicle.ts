@@ -1,3 +1,5 @@
+import { slugify } from '@/lib/utils';
+
 // API response types (from backend)
 export interface ApiVehicleImage {
   id: number;
@@ -16,12 +18,8 @@ export interface ApiBookingPrice {
     discount_percentage: number;
     is_active: boolean;
   }[];
-  /** True when any day in the requested booking window has a dynamic-pricing
-   *  override applied (could be a peak-day premium OR a promotional rate). */
   is_dynamic?: boolean;
-  /** True when the override RAISES the average per-day rate above base. */
   is_peak?: boolean;
-  /** True when the override LOWERS the average per-day rate below base. */
   is_promo?: boolean;
   daily_rates?: ApiDailyRate[] | null;
 }
@@ -91,6 +89,7 @@ export interface ApiFleetClass {
 
 export interface ApiVehicle {
   id: number;
+  slug?: string;
   name: string;
   year?: number;
   make?: string;
@@ -142,6 +141,7 @@ export interface TaxProfile {
 
 export interface Vehicle {
   id: string;
+  slug: string;
   name: string;
   year: number;
   image: string;
@@ -156,16 +156,9 @@ export interface Vehicle {
   color: string;
   pricePerDay: number;
   pricePerHour: number;
-  /** When both rates are configured and this is true, hourly under-24h
-   *  bookings whose subtotal would meet or exceed the daily rate get
-   *  capped at one day at the daily rate. Defaults to true. */
   autoCapEnabled: boolean;
-  /** Surfaced from the public fleet endpoint when called with booking
-   *  dates — true if any day in the window has a dynamic-pricing entry. */
   isDynamicPricing?: boolean;
-  /** Override actually raises the rate vs base — show "peak pricing" hint. */
   isPeakPricing?: boolean;
-  /** Override actually lowers the rate vs base — show "promo pricing" hint. */
   isPromoPricing?: boolean;
   dailyRates?: DailyRate[] | null;
   maxDiscount?: number;
@@ -275,6 +268,9 @@ export function transformApiVehicle(apiVehicle: ApiVehicle): Vehicle {
 
   return {
     id: String(apiVehicle.id),
+    // Fallback only covers a stale/partial API response — the real,
+    // collision-safe slug always comes from the backend.
+    slug: apiVehicle.slug || slugify(`${apiVehicle.name || 'vehicle'}-${apiVehicle.year || ''}`) || String(apiVehicle.id),
     name: apiVehicle.name || 'Unknown Vehicle',
     year: apiVehicle.year || new Date().getFullYear(),
     image: mainImage,

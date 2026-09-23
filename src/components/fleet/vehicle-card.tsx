@@ -4,7 +4,7 @@ import { money } from '@/lib/utils';
 import type { Vehicle } from '@/types/vehicle';
 
 export function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
-  const href = paths.checkout(vehicle.id, `${vehicle.name} ${vehicle.year}`);
+  const href = paths.checkout(vehicle.slug);
   const specs = [
     vehicle.seats ? `${vehicle.seats} seats` : null,
     vehicle.transmission,
