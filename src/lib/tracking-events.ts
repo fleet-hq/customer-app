@@ -15,10 +15,20 @@ export function trackPurchase(params: {
   if (typeof window === 'undefined') return;
 
   const currency = params.currency || 'USD';
-  const value =
-    typeof params.value === 'number' && Number.isFinite(params.value)
-      ? params.value
-      : undefined;
+  // Meta rejects a Purchase whose value isn't a positive number
+  // ("must be greater than 0"), and a zero-value conversion is
+  // meaningless for ROAS anyway — so send the amount only when it's
+  // genuinely positive. Note a "0.00" string is truthy, which is how
+  // a zero used to slip through as a value.
+  const parsed = Number(params.value);
+  const value = Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+
+  // Stable per booking, so the event fired below and the same
+  // conversion arriving from a tenant's own GTM-installed Pixel tag
+  // collapse into one in Meta instead of double-counting. It's also
+  // the id a server-side Conversions API call would need to dedupe
+  // against this browser event.
+  const eventId = `purchase-${params.transactionId}`;
 
   const w = window as unknown as {
     dataLayer?: Record<string, unknown>[];
@@ -29,10 +39,19 @@ export function trackPurchase(params: {
   w.dataLayer.push({
     event: 'purchase',
     transaction_id: String(params.transactionId),
-    ...(value !== undefined ? { value, currency } : {}),
+    event_id: eventId,
+    // Always present, so a GTM tag mapping currency isn't left empty
+    // on the bookings we can't price.
+    currency,
+    ...(value !== undefined ? { value } : {}),
   });
 
   if (typeof w.fbq === 'function') {
-    w.fbq('track', 'Purchase', value !== undefined ? { value, currency } : {});
+    w.fbq(
+      'track',
+      'Purchase',
+      { currency, ...(value !== undefined ? { value } : {}) },
+      { eventID: eventId },
+    );
   }
 }

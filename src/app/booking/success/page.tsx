@@ -45,7 +45,7 @@ function SuccessContent() {
           // Meta Pixel conversions can't double-count on later booking views.
           trackPurchase({
             transactionId: booking.booking_id,
-            value: booking.total_price ? Number(booking.total_price) : undefined,
+            value: Number(booking.total_price),
           });
           if (embed.embedded) embed.reportBookingComplete(booking.booking_id);
           router.replace(`${paths.booking(String(booking.booking_id))}?token=${encodeURIComponent(booking.access_token)}`);
