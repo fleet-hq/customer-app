@@ -147,7 +147,6 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   }, [embedIntent]);
   const { data: verificationPolicy } = useBookingVerificationPolicy();
   const startVerification = useStartVerificationFirstBooking();
-  const { data: unavailableRanges = [] } = useFleetUnavailableRanges(carId);
   const { data: defaultTaxProfile } = useDefaultTaxProfile();
   const protectionRef = useRef<HTMLHeadingElement>(null);
   const errorBannerRef = useRef<HTMLDivElement>(null);
@@ -260,12 +259,6 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
     return fromLoc ?? defaultLoc?.timezone ?? null;
   }, [companyLocations, pickupLocId, defaultLoc]);
 
-  const unavailabilityIndex = useMemo(
-    () => buildUnavailabilityIndex(unavailableRanges, fleetTz),
-    [unavailableRanges, fleetTz],
-  );
-  const unavailableDates = unavailabilityIndex.fullyBlockedDates;
-
   const fleetDateArgs = useMemo(() => {
     if (!fleetTz) return undefined;
     return {
@@ -275,6 +268,16 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   }, [fleetTz, pickupDate, pickupTime, returnDate, returnTime]);
 
   const { data: vehicle, isLoading } = useFleet(carId, true, fleetDateArgs);
+
+  // Keyed off the resolved fleet's numeric id, not the URL param —
+  // that param is the vehicle's slug, and the unavailable-ranges
+  // endpoint filters on the integer pk.
+  const { data: unavailableRanges = [] } = useFleetUnavailableRanges(vehicle?.id);
+  const unavailabilityIndex = useMemo(
+    () => buildUnavailabilityIndex(unavailableRanges, fleetTz),
+    [unavailableRanges, fleetTz],
+  );
+  const unavailableDates = unavailabilityIndex.fullyBlockedDates;
   const { data: insuranceOptions, isLoading: insuranceOptionsLoading } =
     useInsuranceOptions(fleetDateArgs);
 
