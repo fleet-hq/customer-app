@@ -32,6 +32,7 @@ import { formatInTimeZone } from 'date-fns-tz';
 import { paths } from '@/lib/paths';
 import { useEmbedBridge } from '@/hooks';
 import { useTenant } from '@/lib/tenant-context';
+import { trackVehicleView, trackBeginCheckout } from '@/lib/tracking-events';
 import { useDefaultAgreementTemplate } from '@/hooks/useAgreements';
 import { RentalAgreementSignModal } from '@/components/booking/rental-agreement-sign-modal';
 import { useAbiQuote } from '@/hooks/useAbi';
@@ -268,6 +269,21 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   }, [fleetTz, pickupDate, pickupTime, returnDate, returnTime]);
 
   const { data: vehicle, isLoading } = useFleet(carId, true, fleetDateArgs);
+
+  // Fire once per vehicle, not per render — price and availability
+  // refetch as the trip dates change, which would otherwise re-fire
+  // ViewContent repeatedly for the same car.
+  useEffect(() => {
+    if (!vehicle) return;
+    trackVehicleView({
+      id: vehicle.id,
+      name: vehicle.name,
+      pricePerDay: vehicle.pricePerDay,
+      vehicleType: vehicle.vehicleType,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vehicle?.id]);
+
 
   // Keyed off the resolved fleet's numeric id, not the URL param —
   // that param is the vehicle's slug, and the unavailable-ranges
@@ -583,6 +599,20 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
       setCheckoutError('That time was just taken for this vehicle. Please pick a different time or date.');
       return;
     }
+
+    // Past validation, conflicts and the live availability re-check, so
+    // this reflects a booking actually proceeding rather than a failed
+    // submit attempt.
+    trackBeginCheckout({
+      vehicle: {
+        id: vehicle.id,
+        name: vehicle.name,
+        pricePerDay: vehicle.pricePerDay,
+        vehicleType: vehicle.vehicleType,
+      },
+      value: total,
+      days,
+    });
 
     const pickupLocationId = Number(pickupLocId ?? defaultLoc?.id ?? 0);
     const dropoffLocationId = Number(dropoffLocId ?? pickupLocId ?? defaultLoc?.id ?? 0);

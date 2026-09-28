@@ -16,6 +16,7 @@ import { cn, rentalDays } from '@/lib/utils';
 import { activeTier } from '@/lib/discount-tiers';
 import { ContentFaq } from '@/components/sections/content/content-faq';
 import { NapBlock } from '@/components/sections/shared/nap-block';
+import { trackFleetList } from '@/lib/tracking-events';
 
 const SORTS = ['Recommended', 'Price: low to high', 'Price: high to low'] as const;
 const PAGE_SIZE = 12;
@@ -191,6 +192,17 @@ export default function FleetClient() {
     }
     return list;
   }, [enrichedResults, sort, isFiltered, type, filters, days]);
+
+  // Fire the list-view signal once per distinct result set rather than
+  // on every render — filtering and sorting reshuffle `vehicles` on the
+  // client without a new page view behind it.
+  const listSignature = vehicles.map((v) => v.id).join(',');
+  useEffect(() => {
+    if (isLoading || vehicles.length === 0) return;
+    trackFleetList(vehicles);
+    // `listSignature` is the stable identity of the rendered list.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listSignature, isLoading]);
 
   const fleetIds = useMemo(() => enrichedResults.map((v) => v.id), [enrichedResults]);
   const { data: availability, isLoading: isAvailabilityLoading } = useFleetAvailability(
