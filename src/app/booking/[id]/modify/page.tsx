@@ -16,6 +16,7 @@ import { useDefaultLocation } from '@/contexts';
 import { setBookingToken, getBookingTokenHeaders } from '@/utils/booking-token';
 import { toUtcIso, utcIsoToFormValues } from '@/utils/datetime';
 import { buildUnavailabilityIndex, slotsBlockedOn } from '@/lib/unavailable-slots';
+import { describePriceChange } from '@/lib/price-change-notice';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -230,6 +231,7 @@ export default function ModifyTripPage({ params }: { params: Promise<{ id: strin
   const insuranceRefund = num(preview?.insurance_refund);
   const insuranceExcluded = num(preview?.insurance_excluded);
   const originalTotal = preview?.original_total != null ? num(preview.original_total) : currentTotal;
+  const priceNotice = changed ? describePriceChange(preview) : null;
 
   return (
     <div className="flex min-h-screen flex-col bg-white text-ink">
@@ -283,6 +285,27 @@ export default function ModifyTripPage({ params }: { params: Promise<{ id: strin
             </span>
           </div>
         </div>
+
+        {priceNotice && (
+          <div
+            className={`mt-[14px] flex items-start gap-[10px] rounded-[10px] border px-[14px] py-[10px] ${
+              priceNotice.tone === 'negative'
+                ? 'border-danger-border bg-danger-bg'
+                : 'border-green-border-2 bg-green-bg'
+            }`}
+          >
+            <Info
+              size={15}
+              strokeWidth={2}
+              className={`mt-px flex-shrink-0 ${priceNotice.tone === 'negative' ? 'text-danger-text' : 'text-success'}`}
+            />
+            <span
+              className={`text-[11.5px] leading-[1.5] ${priceNotice.tone === 'negative' ? 'text-danger-text' : 'text-success'}`}
+            >
+              {priceNotice.message}
+            </span>
+          </div>
+        )}
 
         {(fleet?.isPeakPricing || fleet?.isPromoPricing) && changed && (
           <div className="mt-[14px] space-y-2">
