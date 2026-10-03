@@ -130,6 +130,7 @@ export function useFleetDetail(carId: string) {
   const [promoApplied, setPromoApplied] = useState(false);
   const [promoCode, setPromoCode] = useState('');
   const [promoDiscount, setPromoDiscount] = useState(0);
+  const [promoAppliesTo, setPromoAppliesTo] = useState<string[]>([]);
   const [promoInput, setPromoInput] = useState('');
   const [promoError, setPromoError] = useState('');
   const [fields, setFields] = useState<Fields>({ firstName: '', lastName: '', email: '', phone: '', license: '' });
@@ -328,7 +329,7 @@ export function useFleetDetail(carId: string) {
     return list.filter((p) => selectedManualIds.has(p.id));
   }, [manualInsurancePackages, selectedManualIds]);
 
-  const { pricing, extraInvoiceItems, insuranceLabel } = useBookingInvoice({
+  const { pricing, extraInvoiceItems, extrasById, insuranceLabel } = useBookingInvoice({
     vehicleData,
     rentalDays: days,
     rentalHours,
@@ -360,16 +361,19 @@ export function useFleetDetail(carId: string) {
           code: promoCode,
           base_price: pricing.subtotal - pricing.insuranceCost - pricing.extrasCost,
           extras_price: pricing.insuranceCost + pricing.extrasCost,
+          extras_by_id: extrasById,
           fees: pricing.bookingFee,
           location_charges: pricing.locationCharges,
         });
         if (cancelled) return;
         if (result.valid && result.discount_amount) {
           setPromoDiscount(parseFloat(result.discount_amount));
+          setPromoAppliesTo(result.applies_to ?? []);
         } else {
           setPromoApplied(false);
           setPromoCode('');
           setPromoDiscount(0);
+          setPromoAppliesTo([]);
           setPromoError(result.error || 'Promo no longer valid');
         }
       } catch {
@@ -377,6 +381,7 @@ export function useFleetDetail(carId: string) {
         setPromoApplied(false);
         setPromoCode('');
         setPromoDiscount(0);
+        setPromoAppliesTo([]);
       }
     })();
     return () => {
@@ -390,6 +395,7 @@ export function useFleetDetail(carId: string) {
     pricing.extrasCost,
     pricing.bookingFee,
     pricing.locationCharges,
+    extrasById,
   ]);
 
   const common = {
@@ -433,6 +439,7 @@ export function useFleetDetail(carId: string) {
     setPromoCode,
     promoDiscount,
     setPromoDiscount,
+    promoAppliesTo,
     promoInput,
     setPromoInput,
     promoError,
@@ -872,6 +879,7 @@ export function useFleetDetail(carId: string) {
         code: c,
         base_price: pricing.subtotal - pricing.insuranceCost - pricing.extrasCost,
         extras_price: pricing.insuranceCost + pricing.extrasCost,
+        extras_by_id: extrasById,
         fees: pricing.bookingFee,
         location_charges: pricing.locationCharges,
       });
@@ -879,6 +887,7 @@ export function useFleetDetail(carId: string) {
         setPromoApplied(true);
         setPromoCode(c);
         setPromoDiscount(parseFloat(result.discount_amount));
+        setPromoAppliesTo(result.applies_to ?? []);
         setPromoInput('');
         setPromoError('');
       } else {

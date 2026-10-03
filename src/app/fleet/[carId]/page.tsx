@@ -90,6 +90,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
     abiOptedIn,
     extras,
     promoApplied,
+    promoAppliesTo,
     setPromoApplied,
     promoCode,
     promoDiscount,
@@ -582,10 +583,11 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
             )}
             {promoApplied && (
               <div className={cn(
-                'flex items-center justify-between text-[13px]',
+                'flex items-start justify-between gap-3 text-[13px]',
                 pricing.fleetDiscount > 0 ? 'mt-2' : '',
               )}>
-                <div className="flex items-center gap-[7px]">
+                <div className="min-w-0">
+                 <div className="flex items-center gap-[7px]">
                   <span className="font-medium text-primary"><Dyn>Promo</Dyn></span>
                   <span className="inline-flex items-center gap-[5px] rounded-[5px] bg-primary-soft py-[2px] pl-[7px] pr-[5px] text-[10px] font-semibold text-primary">
                     {promoCode}
@@ -598,8 +600,14 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                       ✕
                     </button>
                   </span>
+                 </div>
+                 {promoAppliesTo.length > 0 && (
+                   <p className="mt-[3px] text-[11px] text-muted">
+                     <Dyn>Applied to</Dyn>: {promoAppliesTo.join(', ')}
+                   </p>
+                 )}
                 </div>
-                <span className="font-semibold text-primary">−{money(promoDiscount)}</span>
+                <span className="whitespace-nowrap font-semibold text-primary">−{money(promoDiscount)}</span>
               </div>
             )}
             <div

@@ -423,16 +423,25 @@ export function Invoice({
         <>
           {divider}
           <Group title="Discounts" />
-          <div className="flex items-center justify-between text-[13px]">
-            <div className="flex items-center gap-[7px]">
-              <span className="font-medium text-primary"><Dyn>Discount</Dyn></span>
-              {inv.discountCode && (
-                <span className="rounded-[5px] bg-primary-soft px-[7px] py-[2px] text-[10px] font-semibold text-primary">
-                  {inv.discountCode}
-                </span>
+          <div className="flex items-start justify-between gap-3 text-[13px]">
+            <div className="min-w-0">
+              <div className="flex items-center gap-[7px]">
+                <span className="font-medium text-primary"><Dyn>Discount</Dyn></span>
+                {inv.discountCode && (
+                  <span className="rounded-[5px] bg-primary-soft px-[7px] py-[2px] text-[10px] font-semibold text-primary">
+                    {inv.discountCode}
+                  </span>
+                )}
+              </div>
+              {inv.discountAppliesTo?.length > 0 && (
+                <p className="mt-[3px] text-[11px] text-muted">
+                  <Dyn>Applied to</Dyn>: {inv.discountAppliesTo.join(', ')}
+                </p>
               )}
             </div>
-            <span className="font-semibold text-primary">−{money(inv.discount)}</span>
+            <span className="whitespace-nowrap font-semibold text-primary">
+              −{money(inv.discount)}
+            </span>
           </div>
         </>
       )}

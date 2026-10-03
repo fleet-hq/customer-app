@@ -96,6 +96,7 @@ export interface BookingInvoiceResult {
   pricing: BookingPricing;
   invoiceItems: InvoiceItem[];
   extraInvoiceItems: ExtraInvoiceItem[];
+  extrasById: Record<string, number>;
   insuranceLabel: string;
 }
 
@@ -275,6 +276,21 @@ export function useBookingInvoice({
     return items;
   }, [selectedExtras, extras, rentalDays]);
 
+  const extrasById = useMemo<Record<string, number>>(() => {
+    const map: Record<string, number> = {};
+    Object.entries(selectedExtras).forEach(([id, state]) => {
+      if (!state.enabled) return;
+      const extra = extras.find((e) => e.id === id);
+      if (!extra) return;
+      const quantity = state.quantity || 1;
+      map[id] =
+        extra.priceUnit === '/day'
+          ? extra.price * quantity * rentalDays
+          : extra.price * quantity;
+    });
+    return map;
+  }, [selectedExtras, extras, rentalDays]);
+
   const insuranceLabel = useMemo(() => {
     if (selectedInsurance.size > 0 && !selectedInsurance.has('own')) {
       return [...selectedInsurance].map((id) => id.toUpperCase()).join(', ');
@@ -282,5 +298,5 @@ export function useBookingInvoice({
     return '';
   }, [selectedInsurance]);
 
-  return { pricing, invoiceItems, extraInvoiceItems, insuranceLabel };
+  return { pricing, invoiceItems, extraInvoiceItems, extrasById, insuranceLabel };
 }

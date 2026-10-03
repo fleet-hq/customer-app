@@ -281,6 +281,7 @@ export interface ApiBooking {
   total_price: string;
   total_discount: string;
   promo_code?: string | null;
+  promo_applies_to?: string[] | null;
   tax: string;
   security_deposit: string;
   location_charges: string;
@@ -482,6 +483,7 @@ export interface BookingDetails {
     subtotal: number;
     discount: number;
     discountCode: string;
+    discountAppliesTo: string[];
     tax: number;
     locationCharges: number;
     total: number;
@@ -757,6 +759,7 @@ function transformBooking(api: ApiBooking): BookingDetails {
       subtotal,
       discount,
       discountCode: (api.promo_code ?? '').toString().trim(),
+      discountAppliesTo: Array.isArray(api.promo_applies_to) ? api.promo_applies_to : [],
       tax,
       locationCharges,
       total,
@@ -852,6 +855,7 @@ export async function validatePromoCode(params: {
   extras_price?: number;
   fees?: number;
   location_charges?: number;
+  extras_by_id?: Record<string, number>;
 }): Promise<{
   valid: boolean;
   error?: string;
@@ -859,6 +863,7 @@ export async function validatePromoCode(params: {
   discount_type?: string;
   discount_value?: string;
   discount_amount?: string;
+  applies_to?: string[];
 }> {
   const domainParams = getDomainParams();
   const res = await axios.post(

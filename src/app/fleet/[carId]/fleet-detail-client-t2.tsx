@@ -71,6 +71,7 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
     abiOptedIn,
     extras,
     promoApplied,
+    promoAppliesTo,
     setPromoApplied,
     promoCode,
     promoDiscount,
@@ -468,13 +469,20 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
               </div>
             ) : null}
             {promoApplied ? (
-              <div className={styles.priceLine} style={{ marginTop: pricing.fleetDiscount > 0 ? '0.55rem' : 0 }}>
-                <span className={styles.promoChip}>
-                  {promoCode}
-                  <button type="button" aria-label={t('Remove promo code')} onClick={() => setPromoApplied(false)}>✕</button>
-                </span>
-                <b>−{money(promoDiscount)}</b>
-              </div>
+              <>
+                <div className={styles.priceLine} style={{ marginTop: pricing.fleetDiscount > 0 ? '0.55rem' : 0 }}>
+                  <span className={styles.promoChip}>
+                    {promoCode}
+                    <button type="button" aria-label={t('Remove promo code')} onClick={() => setPromoApplied(false)}>✕</button>
+                  </span>
+                  <b>−{money(promoDiscount)}</b>
+                </div>
+                {promoAppliesTo.length > 0 ? (
+                  <p style={{ marginTop: '0.2rem', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                    <Dyn>Applied to</Dyn>: {promoAppliesTo.join(', ')}
+                  </p>
+                ) : null}
+              </>
             ) : null}
             {!(pricing.fleetDiscount > 0 && pricing.fleetDiscountTier) && !promoApplied ? (
               <div className={styles.priceEmpty}>

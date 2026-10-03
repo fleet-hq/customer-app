@@ -467,21 +467,33 @@ export function VerifyFirstConfirm(props: Props) {
                       isT2 ? 'text-[var(--success)]' : 'text-success',
                     )}
                   >
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold">
-                        <Dyn>{inv.discountCode ? 'Discount' : 'Discount applied'}</Dyn>
-                      </span>
-                      {inv.discountCode && (
-                        <span
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold">
+                          <Dyn>{inv.discountCode ? 'Discount' : 'Discount applied'}</Dyn>
+                        </span>
+                        {inv.discountCode && (
+                          <span
+                            className={cn(
+                              'rounded-md border px-1.5 py-[1px] text-[10.5px] font-bold uppercase tracking-[0.04em]',
+                              isT2
+                                ? 'border-[color-mix(in_srgb,var(--success)_45%,var(--line))] bg-[color-mix(in_srgb,var(--success)_14%,var(--card))] text-[var(--success)]'
+                                : 'border-green-border-2 bg-green-bg text-success',
+                            )}
+                          >
+                            {inv.discountCode}
+                          </span>
+                        )}
+                      </div>
+                      {inv.discountAppliesTo?.length > 0 && (
+                        <p
                           className={cn(
-                            'rounded-md border px-1.5 py-[1px] text-[10.5px] font-bold uppercase tracking-[0.04em]',
-                            isT2
-                              ? 'border-[color-mix(in_srgb,var(--success)_45%,var(--line))] bg-[color-mix(in_srgb,var(--success)_14%,var(--card))] text-[var(--success)]'
-                              : 'border-green-border-2 bg-green-bg text-success',
+                            'mt-[3px] text-[11px] font-normal',
+                            isT2 ? 'text-[var(--text-muted)]' : 'text-faint',
                           )}
                         >
-                          {inv.discountCode}
-                        </span>
+                          <Dyn>Applied to</Dyn>: {inv.discountAppliesTo.join(', ')}
+                        </p>
                       )}
                     </div>
                     <span className="whitespace-nowrap text-[14px] font-bold">
