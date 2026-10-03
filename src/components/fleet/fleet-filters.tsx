@@ -2,6 +2,8 @@
 
 import { useCallback } from 'react';
 import { cn } from '@/lib/utils';
+import { Dyn } from '@/components/i18n/Dyn';
+import { useDynamicTranslation } from '@/hooks/useDynamicTranslation';
 
 export interface FilterState {
   vehicleType: string[];
@@ -66,7 +68,7 @@ export function FleetFilters({ filters, options, onChange }: FleetFiltersProps) 
     <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between">
         <span className="text-[12px] font-semibold tracking-[0.05em] text-faint uppercase">
-          Filters
+          <Dyn>Filters</Dyn>
         </span>
         {count > 0 && (
           <button
@@ -74,7 +76,7 @@ export function FleetFilters({ filters, options, onChange }: FleetFiltersProps) 
             onClick={() => onChange(INITIAL_FILTERS)}
             className="text-[12.5px] font-medium text-primary hover:underline"
           >
-            Clear all
+            <Dyn>Clear all</Dyn>
           </button>
         )}
       </div>
@@ -116,7 +118,7 @@ export function FleetFilters({ filters, options, onChange }: FleetFiltersProps) 
       )}
 
       <div className="flex flex-col gap-2">
-        <span className="text-[11px] font-medium text-faint">Price per day</span>
+        <span className="text-[11px] font-medium text-faint"><Dyn>Price per day</Dyn></span>
         <div className="flex items-center gap-2">
           <PriceInput
             placeholder="Min"
@@ -145,7 +147,7 @@ interface ChipGroupProps<T extends string | number> {
 function ChipGroup<T extends string | number>({ label, values, selected, onToggle }: ChipGroupProps<T>) {
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-[11px] font-medium text-faint">{label}</span>
+      <span className="text-[11px] font-medium text-faint"><Dyn>{label}</Dyn></span>
       <div className="flex flex-wrap gap-1.5">
         {values.map((v) => {
           const active = (selected as Array<string | number>).includes(v);
@@ -177,13 +179,14 @@ interface PriceInputProps {
 }
 
 function PriceInput({ placeholder, value, onChange }: PriceInputProps) {
+  const { t } = useDynamicTranslation([placeholder]);
   return (
     <div className="flex items-center gap-1 rounded-[9px] border border-line bg-white px-3 py-[9px]">
       <span className="text-xs text-faint">$</span>
       <input
         type="number"
         min={0}
-        placeholder={placeholder}
+        placeholder={t(placeholder)}
         value={value ?? ''}
         onChange={(e) => onChange(e.target.value ? Number(e.target.value) : null)}
         className="w-16 border-none bg-transparent text-sm text-ink outline-none placeholder:text-faint"

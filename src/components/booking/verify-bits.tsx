@@ -1,6 +1,7 @@
 'use client';
 
 import { Lock, Upload } from '@/components/ui/icons';
+import { Dyn } from '@/components/i18n/Dyn';
 import { cn } from '@/lib/utils';
 
 export function Dropzone({
@@ -23,8 +24,8 @@ export function Dropzone({
       )}
     >
       <Upload size={20} className="text-primary" />
-      <div className="mt-2 text-[12.5px] font-semibold text-secondary">{added ? (label ?? 'Photo added') : 'Add photo'}</div>
-      <div className="mt-0.5 text-[11px] text-faint">{caption}</div>
+      <div className="mt-2 text-[12.5px] font-semibold text-secondary"><Dyn>{added ? (label ?? 'Photo added') : 'Add photo'}</Dyn></div>
+      <div className="mt-0.5 text-[11px] text-faint"><Dyn>{caption}</Dyn></div>
     </div>
   );
 }
@@ -33,7 +34,7 @@ export function ReassuranceStrip({ text }: { text: string }) {
   return (
     <div className="mt-5 flex items-center gap-2 rounded-[10px] border border-primary-border bg-primary-soft px-[14px] py-[11px]">
       <Lock size={15} strokeWidth={1.9} className="flex-shrink-0 text-primary" />
-      <span className="text-[11.5px] leading-[1.45] text-secondary">{text}</span>
+      <span className="text-[11.5px] leading-[1.45] text-secondary"><Dyn>{text}</Dyn></span>
     </div>
   );
 }

@@ -1,91 +1,41 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { use } from 'react';
 import Link from 'next/link';
-import axios from 'axios';
 import { BackLink } from '@/components/ui/back-link';
 import { PageLoading } from '@/components/ui/page-loading';
 import { ArrowRight, Check, Close, Info } from '@/components/ui/icons';
-import { getBookingById, type BookingDetails } from '@/services/bookingServices';
-import { setBookingToken, getBookingTokenHeaders } from '@/utils/booking-token';
-import { paths } from '@/lib/paths';
 import { cn, money } from '@/lib/utils';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
-
-const REASONS = ['Plans changed', 'Found a better option', 'Booked by mistake', 'Other'];
+import { Dyn } from '@/components/i18n/Dyn';
+import { useBookingCancel, REASONS } from './use-booking-cancel';
+import CancelBookingClientT2 from './cancel-client-t2';
 
 export default function CancelBookingPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const searchParams = useSearchParams();
-  const urlToken = searchParams.get('token');
+  const bc = useBookingCancel(id);
 
-  const [booking, setBooking] = useState<BookingDetails | null>(null);
-  const [preview, setPreview] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [cancelling, setCancelling] = useState(false);
-  const [error, setError] = useState('');
-  const [reason, setReason] = useState<string | null>(null);
-  const [notes, setNotes] = useState('');
-  const [cancelled, setCancelled] = useState(false);
+  if (bc.tenant.websiteTemplate === 'template_2') {
+    return <CancelBookingClientT2 id={id} />;
+  }
 
-  useEffect(() => {
-    if (urlToken) setBookingToken(urlToken);
-  }, [urlToken]);
-
-  useEffect(() => {
-    async function load() {
-      try {
-        const data = await getBookingById(id);
-        setBooking(data);
-
-        const res = await axios.get(`${API_URL}/api/bookings/public/modify/`, {
-          headers: getBookingTokenHeaders(),
-          params: { type: 'cancel' },
-        });
-        setPreview(res.data);
-      } catch {
-        setError('Could not load booking details.');
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, [id]);
-
-  const bookingLink = `${paths.booking(id)}?token=${urlToken || ''}`;
-
-  const refundAmount = preview?.refund_amount ? parseFloat(preview.refund_amount) : 0;
-  const cancellationFee = preview?.modification_fee ? parseFloat(preview.modification_fee) : 0;
-  const insuranceExcluded = preview?.insurance_excluded ? parseFloat(preview.insurance_excluded) : 0;
-  const depositRefund = preview?.deposit_refund ? parseFloat(preview.deposit_refund) : 0;
-  const totalRefund = refundAmount + depositRefund;
-
-  const handleCancel = async () => {
-    if (!reason) {
-      setError('Please select a reason for cancellation.');
-      return;
-    }
-    setCancelling(true);
-    setError('');
-
-    try {
-      await axios.post(
-        `${API_URL}/api/bookings/public/modify/`,
-        {
-          type: 'cancel',
-          cancellation_reason: `${reason}${notes ? ': ' + notes : ''}`,
-        },
-        { headers: getBookingTokenHeaders() }
-      );
-      setCancelled(true);
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || err?.response?.data?.reason || 'Failed to cancel booking.');
-    } finally {
-      setCancelling(false);
-    }
-  };
+  const {
+    booking,
+    loading,
+    cancelling,
+    error,
+    reason,
+    setReason,
+    notes,
+    setNotes,
+    cancelled,
+    t,
+    bookingLink,
+    insuranceExcluded,
+    cancellationFee,
+    depositRefund,
+    totalRefund,
+    handleCancel,
+  } = bc;
 
   if (loading) {
     return (
@@ -99,8 +49,8 @@ export default function CancelBookingPage({ params }: { params: Promise<{ id: st
     return (
       <div className="flex min-h-screen flex-col bg-white text-ink">
         <section className="mx-auto w-full max-w-[640px] flex-1 px-6 pt-[22px] pb-16">
-          <BackLink href={bookingLink}>Back to booking</BackLink>
-          <p className="mt-6 text-[13.5px] text-danger">{error || 'Booking not found.'}</p>
+          <BackLink href={bookingLink}><Dyn>Back to booking</Dyn></BackLink>
+          <p className="mt-6 text-[13.5px] text-danger">{t(error || 'Booking not found.')}</p>
         </section>
       </div>
     );
@@ -109,7 +59,7 @@ export default function CancelBookingPage({ params }: { params: Promise<{ id: st
   return (
     <div className="flex min-h-screen flex-col bg-white text-ink">
       <section className="mx-auto w-full max-w-[640px] flex-1 px-6 pt-[22px] pb-16">
-        <BackLink href={bookingLink}>Back to booking</BackLink>
+        <BackLink href={bookingLink}><Dyn>Back to booking</Dyn></BackLink>
 
         {!cancelled ? (
           <div className="mt-[18px] rounded-2xl border border-card-border bg-white p-6">
@@ -118,39 +68,39 @@ export default function CancelBookingPage({ params }: { params: Promise<{ id: st
                 <Close size={22} strokeWidth={2.2} className="text-danger" />
               </span>
               <div>
-                <h1 className="text-[22px] font-semibold tracking-[-0.01em] text-ink">Cancel this booking?</h1>
+                <h1 className="text-[22px] font-semibold tracking-[-0.01em] text-ink"><Dyn>Cancel this booking?</Dyn></h1>
                 <p className="mt-1 text-[13px] leading-[1.55] text-muted">
-                  Review the refund breakdown below before confirming. This can&apos;t be undone.
+                  <Dyn>Review the refund breakdown below before confirming. This can&apos;t be undone.</Dyn>
                 </p>
               </div>
             </div>
 
             <div className="mt-[22px] rounded-[12px] bg-subtle p-5">
-              <div className="text-[10px] font-semibold tracking-[0.06em] text-faint uppercase">You&apos;re cancelling</div>
+              <div className="text-[10px] font-semibold tracking-[0.06em] text-faint uppercase"><Dyn>You&apos;re cancelling</Dyn></div>
               <div className="mt-[6px] text-[16px] font-semibold text-secondary">{booking.vehicle.name}</div>
               <div className="mt-[3px] text-[12.5px] text-muted">
                 {booking.pickUp.date} → {booking.dropOff.date}
               </div>
               <div className="my-[14px] h-px bg-card-border" />
               <div className="flex items-center justify-between">
-                <span className="text-[13px] text-muted">Booking total</span>
+                <span className="text-[13px] text-muted"><Dyn>Booking total</Dyn></span>
                 <span className="text-[15px] font-bold text-secondary">{money(booking.invoice.total)}</span>
               </div>
               {insuranceExcluded > 0 && (
                 <div className="mt-2 flex items-center justify-between">
-                  <span className="text-[13px] text-muted">Insurance (non-refundable)</span>
+                  <span className="text-[13px] text-muted"><Dyn>Insurance (non-refundable)</Dyn></span>
                   <span className="text-[14px] font-semibold text-danger">-{money(insuranceExcluded)}</span>
                 </div>
               )}
               {cancellationFee > 0 && (
                 <div className="mt-2 flex items-center justify-between">
-                  <span className="text-[13px] text-muted">Cancellation fee</span>
+                  <span className="text-[13px] text-muted"><Dyn>Cancellation fee</Dyn></span>
                   <span className="text-[14px] font-semibold text-danger">-{money(cancellationFee)}</span>
                 </div>
               )}
               {depositRefund > 0 && (
                 <div className="mt-2 flex items-center justify-between">
-                  <span className="text-[13px] text-muted">Security deposit</span>
+                  <span className="text-[13px] text-muted"><Dyn>Security deposit</Dyn></span>
                   <span className="text-[14px] font-semibold text-success">+{money(depositRefund)}</span>
                 </div>
               )}
@@ -159,12 +109,12 @@ export default function CancelBookingPage({ params }: { params: Promise<{ id: st
             <div className="mt-4 flex items-start gap-[10px] rounded-[10px] border border-primary-border bg-primary-soft px-[14px] py-[12px]">
               <Info size={15} strokeWidth={2} className="mt-px flex-shrink-0 text-primary" />
               <span className="text-[11.5px] leading-[1.5] text-secondary">
-                You&apos;ll receive a refund of {money(totalRefund)} to your original payment method.
+                <Dyn>You&apos;ll receive a refund of</Dyn> {money(totalRefund)} <Dyn>to your original payment method.</Dyn>
               </span>
             </div>
 
             <div className="mt-6">
-              <div className="mb-[10px] text-[13px] font-semibold text-ink">Why are you cancelling?</div>
+              <div className="mb-[10px] text-[13px] font-semibold text-ink"><Dyn>Why are you cancelling?</Dyn></div>
               <div className="flex flex-col gap-[10px]">
                 {REASONS.map((r) => {
                   const active = reason === r;
@@ -185,7 +135,7 @@ export default function CancelBookingPage({ params }: { params: Promise<{ id: st
                       >
                         {active && <span className="h-[7px] w-[7px] rounded-full bg-white" />}
                       </span>
-                      {r}
+                      {t(r)}
                     </button>
                   );
                 })}
@@ -193,24 +143,24 @@ export default function CancelBookingPage({ params }: { params: Promise<{ id: st
             </div>
 
             <div className="mt-5">
-              <label className="mb-[8px] block text-[13px] font-semibold text-ink">Additional notes</label>
+              <label className="mb-[8px] block text-[13px] font-semibold text-ink"><Dyn>Additional notes</Dyn></label>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Add more details (optional)"
+                placeholder={t('Add more details (optional)')}
                 rows={3}
                 className="w-full resize-none rounded-[10px] border border-line bg-white px-4 py-[11px] text-[13.5px] text-ink outline-none placeholder:text-faint focus:border-primary"
               />
             </div>
 
-            {error && <p className="mt-4 text-[13px] text-danger">{error}</p>}
+            {error && <p className="mt-4 text-[13px] text-danger">{t(error)}</p>}
 
             <div className="mt-6 flex items-center gap-3">
               <Link
                 href={bookingLink}
                 className="flex-1 rounded-[10px] border border-line bg-white py-[13px] text-center text-sm font-semibold text-ink"
               >
-                Keep booking
+                <Dyn>Keep booking</Dyn>
               </Link>
               <button
                 disabled={!reason || cancelling}
@@ -220,7 +170,7 @@ export default function CancelBookingPage({ params }: { params: Promise<{ id: st
                   reason && !cancelling ? 'bg-danger' : 'cursor-not-allowed bg-locked',
                 )}
               >
-                {cancelling ? 'Cancelling...' : 'Cancel booking'}
+                {cancelling ? t('Cancelling...') : t('Cancel booking')}
               </button>
             </div>
           </div>
@@ -229,22 +179,22 @@ export default function CancelBookingPage({ params }: { params: Promise<{ id: st
             <span className="mx-auto flex h-[58px] w-[58px] items-center justify-center rounded-full bg-green-bg">
               <Check size={28} strokeWidth={3} className="text-primary" />
             </span>
-            <h1 className="mt-5 text-[22px] font-semibold tracking-[-0.01em] text-ink">Booking cancelled</h1>
+            <h1 className="mt-5 text-[22px] font-semibold tracking-[-0.01em] text-ink"><Dyn>Booking cancelled</Dyn></h1>
             <p className="mt-2 text-[13.5px] leading-[1.55] text-muted">
-              Your reservation for {booking.vehicle.name} has been cancelled.
+              <Dyn>Your reservation for</Dyn> {booking.vehicle.name} <Dyn>has been cancelled.</Dyn>
             </p>
             <div className="mx-auto mt-6 max-w-[360px] rounded-[12px] border border-green-border-2 bg-green-bg px-5 py-4">
               <div className="flex items-center justify-between">
-                <span className="text-[13px] font-semibold text-success">Refund issued</span>
+                <span className="text-[13px] font-semibold text-success"><Dyn>Refund issued</Dyn></span>
                 <span className="text-[16px] font-bold text-success">{money(totalRefund)}</span>
               </div>
-              <div className="mt-1 text-left text-[11.5px] text-success">Expect it on your original payment method within 5-10 business days.</div>
+              <div className="mt-1 text-left text-[11.5px] text-success"><Dyn>Expect it on your original payment method within 5-10 business days.</Dyn></div>
             </div>
             <Link
               href={bookingLink}
               className="mt-7 inline-flex items-center gap-2 rounded-[10px] bg-primary px-[26px] py-[13px] text-sm font-bold text-white hover:bg-primary-hover"
             >
-              View booking <ArrowRight size={16} />
+              <Dyn>View booking</Dyn> <ArrowRight size={16} />
             </Link>
           </div>
         )}

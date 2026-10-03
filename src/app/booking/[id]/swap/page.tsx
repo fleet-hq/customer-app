@@ -1,172 +1,70 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import axios from 'axios';
+import { use } from 'react';
 import { BackLink } from '@/components/ui/back-link';
 import { ArrowRight, Check, Swap } from '@/components/ui/icons';
-import { getBookingById, type BookingDetails } from '@/services/bookingServices';
-import { listFleets } from '@/services/fleetServices';
-import { useFleet } from '@/hooks';
 import { FleetPagination } from '@/components/fleet/fleet-pagination';
-import { setBookingToken, getBookingTokenHeaders } from '@/utils/booking-token';
-import type { Vehicle } from '@/types/vehicle';
 import { paths } from '@/lib/paths';
 import { cn, money } from '@/lib/utils';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
-const PAGE_SIZE = 9;
+import { Dyn } from '@/components/i18n/Dyn';
+import { useVehicleSwap } from './use-vehicle-swap';
+import SwapVehicleClientT2 from './swap-client-t2';
 
 export default function SwapVehiclePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const urlToken = searchParams.get('token');
+  const vs = useVehicleSwap(id);
 
-  const [booking, setBooking] = useState<BookingDetails | null>(null);
-  const [bookingError, setBookingError] = useState(false);
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<string | null>(null);
-  const [preview, setPreview] = useState<any>(null);
-  const [previewLoading, setPreviewLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [confirming, setConfirming] = useState(false);
+  if (vs.tenant.websiteTemplate === 'template_2') {
+    return <SwapVehicleClientT2 id={id} />;
+  }
 
-  useEffect(() => {
-    if (urlToken) setBookingToken(urlToken);
-  }, [urlToken]);
-
-  useEffect(() => {
-    async function loadBooking() {
-      try {
-        const data = await getBookingById(id);
-        setBooking(data);
-      } catch {
-        setBookingError(true);
-      }
-    }
-    loadBooking();
-  }, [id]);
-
-  useEffect(() => {
-    if (!booking) return;
-    async function loadFleets() {
-      setLoading(true);
-      setError('');
-      try {
-        const res = await listFleets({
-          page,
-          page_size: PAGE_SIZE,
-          pickup_datetime: booking!.pickUp.rawDatetime,
-          dropoff_datetime: booking!.dropOff.rawDatetime,
-          exclude_booking: id,
-        });
-        const filtered = res.results.filter(
-          (v) => String(v.id) !== String(booking!.fleetId),
-        );
-        setVehicles(filtered);
-        setTotalCount(res.count - (res.results.length - filtered.length));
-      } catch {
-        setError('Could not load vehicles.');
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadFleets();
-  }, [booking, id, page]);
-
-  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-
-  useEffect(() => {
-    if (!selected || !booking) {
-      setPreview(null);
-      return;
-    }
-    const timer = setTimeout(async () => {
-      setPreviewLoading(true);
-      try {
-        const res = await axios.get(`${API_URL}/api/bookings/public/modify/`, {
-          headers: getBookingTokenHeaders(),
-          params: { type: 'swap', new_fleet_id: selected },
-        });
-        setPreview(res.data);
-      } catch {
-        setPreview(null);
-      } finally {
-        setPreviewLoading(false);
-      }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [selected, booking]);
-
-  const selectedVehicle = vehicles.find((v) => String(v.id) === selected) ?? null;
-  const { data: newFleet } = useFleet(selected ?? undefined, !!selected);
-
-  const num = (v: any) => (v != null ? parseFloat(v) || 0 : 0);
-  const swapFee = num(preview?.modification_fee);
-  const refundAmount = num(preview?.refund_amount);
-  const additionalCharge = num(preview?.additional_charge);
-  const newTotal = preview?.new_total != null ? num(preview.new_total) : null;
-  const allowed = preview ? preview.allowed !== false : true;
-
-  const nb = preview?.new_breakdown ?? null;
-  const nbBase = nb ? num(nb.base_price) : 0;
-  const nbFees = nb ? num(nb.fees) : 0;
-  const nbLocation = nb ? num(nb.location_charges) : 0;
-  const nbTax = nb ? num(nb.tax) : 0;
-  const nbInsurance = nb ? num(nb.insurance) : 0;
-  const insuranceRefund = num(preview?.insurance_refund);
-  const currentTotal = preview?.original_breakdown?.total != null
-    ? num(preview.original_breakdown.total)
-    : (booking ? (parseFloat(booking.totalPrice || '0') || booking.invoice.total) : 0);
-  const unitLabel = booking?.invoice.items[0]?.unit || 'day';
-  const newVehiclePrice = newFleet?.pricePerDay || newFleet?.pricePerHour || selectedVehicle?.pricePerDay || selectedVehicle?.pricePerHour || 0;
-  const newVehicleName = newFleet?.name || selectedVehicle?.name || 'New vehicle';
-  const newVehicleImage = newFleet?.image || selectedVehicle?.image || '/images/vehicles/car_placeholder.svg';
-
-  const handleConfirm = async () => {
-    if (!selected || !booking) return;
-    setConfirming(true);
-    setError('');
-    try {
-      const successUrl = `${window.location.origin}/booking/${id}?token=${urlToken || ''}`;
-      const cancelUrl = `${window.location.origin}/booking/${id}/swap?token=${urlToken || ''}`;
-      const res = await axios.post(
-        `${API_URL}/api/bookings/public/modify/`,
-        {
-          type: 'swap',
-          new_fleet_id: selected,
-          success_url: successUrl,
-          cancel_url: cancelUrl,
-        },
-        { headers: getBookingTokenHeaders() },
-      );
-      if (res.data.status === 'checkout_required' && res.data.checkout_url) {
-        window.location.href = res.data.checkout_url;
-      } else {
-        router.push(`/booking/${id}?token=${urlToken || ''}`);
-      }
-    } catch (err: any) {
-      setError(
-        err?.response?.data?.detail ||
-          err?.response?.data?.reason ||
-          'Failed to swap vehicle.',
-      );
-      setConfirming(false);
-    }
-  };
-
-  const cancelHref = `/booking/${id}?token=${urlToken || ''}`;
+  const {
+    booking,
+    bookingError,
+    vehicles,
+    page,
+    setPage,
+    loading,
+    selected,
+    setSelected,
+    preview,
+    previewLoading,
+    error,
+    confirming,
+    t,
+    totalPages,
+    selectedVehicle,
+    newFleet,
+    swapFee,
+    refundAmount,
+    additionalCharge,
+    depositTopup,
+    totalDueNow,
+    newTotal,
+    allowed,
+    nb,
+    nbBase,
+    nbFees,
+    nbLocation,
+    nbTax,
+    nbInsurance,
+    insuranceRefund,
+    currentTotal,
+    unitLabel,
+    newVehiclePrice,
+    newVehicleName,
+    newVehicleImage,
+    handleConfirm,
+    cancelHref,
+    router,
+  } = vs;
 
   if (bookingError) {
     return (
       <div className="flex min-h-screen flex-col bg-white text-ink">
         <section className="mx-auto w-full max-w-[1000px] flex-1 px-6 pt-[80px] pb-[120px] text-center">
-          <p className="text-[15px] font-semibold text-ink">Booking not found.</p>
-          <BackLink href={paths.booking(id)}>Back to booking</BackLink>
+          <p className="text-[15px] font-semibold text-ink"><Dyn>Booking not found.</Dyn></p>
+          <BackLink href={paths.booking(id)}><Dyn>Back to booking</Dyn></BackLink>
         </section>
       </div>
     );
@@ -175,11 +73,11 @@ export default function SwapVehiclePage({ params }: { params: Promise<{ id: stri
   return (
     <div className="flex min-h-screen flex-col bg-white text-ink">
       <section className="mx-auto w-full max-w-[1000px] flex-1 px-6 pt-[22px] pb-[120px]">
-        <BackLink href={cancelHref}>Back to booking</BackLink>
+        <BackLink href={cancelHref}><Dyn>Back to booking</Dyn></BackLink>
 
-        <h1 className="mt-[14px] text-2xl font-semibold tracking-[-0.01em] text-ink">Change your vehicle</h1>
+        <h1 className="mt-[14px] text-2xl font-semibold tracking-[-0.01em] text-ink"><Dyn>Change your vehicle</Dyn></h1>
         <p className="mt-[7px] text-[13.5px] leading-[1.55] text-muted">
-          Pick a different vehicle for the same dates. Any price difference is shown before you confirm.
+          <Dyn>Pick a different vehicle for the same dates. Any price difference is shown before you confirm.</Dyn>
         </p>
 
         {booking && (
@@ -189,7 +87,7 @@ export default function SwapVehiclePage({ params }: { params: Promise<{ id: stri
               style={{ backgroundImage: `url('${booking.vehicle.image}')` }}
             />
             <div className="flex-1">
-              <div className="text-[10px] font-semibold tracking-[0.06em] text-primary uppercase">Current vehicle</div>
+              <div className="text-[10px] font-semibold tracking-[0.06em] text-primary uppercase"><Dyn>Current vehicle</Dyn></div>
               <div className="my-[3px] text-[17px] font-semibold text-secondary">{booking.vehicle.name}</div>
               <div className="text-[12.5px] text-muted">
                 {booking.vehicle.licensePlate}
@@ -204,14 +102,14 @@ export default function SwapVehiclePage({ params }: { params: Promise<{ id: stri
           </div>
         )}
 
-        <div className="mt-[26px] mb-[14px] text-[15px] font-semibold text-ink">Available vehicles</div>
+        <div className="mt-[26px] mb-[14px] text-[15px] font-semibold text-ink"><Dyn>Available vehicles</Dyn></div>
         {loading ? (
-          <p className="py-12 text-center text-[13px] text-muted">Loading vehicles...</p>
+          <p className="py-12 text-center text-[13px] text-muted"><Dyn>Loading vehicles...</Dyn></p>
         ) : vehicles.length === 0 ? (
           <div className="rounded-2xl border border-card-border bg-chip-2 px-6 py-10 text-center">
-            <p className="text-[14px] font-semibold text-ink">No other vehicles available for swap right now.</p>
+            <p className="text-[14px] font-semibold text-ink"><Dyn>No other vehicles available for swap right now.</Dyn></p>
             <p className="mt-1 text-[12.5px] text-muted">
-              Please check back later or contact support if you need a specific change.
+              <Dyn>Please check back later or contact support if you need a specific change.</Dyn>
             </p>
           </div>
         ) : (
@@ -246,7 +144,7 @@ export default function SwapVehiclePage({ params }: { params: Promise<{ id: stri
                     <div className="text-[15px] font-semibold text-secondary">{v.name}</div>
                     <div className="mt-[3px] text-[11.5px] text-faint">
                       {v.year ? `${v.year}` : ''}
-                      {v.seats ? `${v.year ? ' · ' : ''}${v.seats} seats` : ''}
+                      {v.seats ? `${v.year ? ' · ' : ''}${v.seats} ${t('seats')}` : ''}
                     </div>
                     <div className="mt-auto pt-4">
                       <div className="flex items-baseline justify-between">
@@ -278,7 +176,7 @@ export default function SwapVehiclePage({ params }: { params: Promise<{ id: stri
 
         {selectedVehicle && (
           <div className="mt-8 rounded-2xl border border-card-border bg-subtle p-6">
-            <div className="mb-[14px] text-sm font-semibold text-ink">Review your change</div>
+            <div className="mb-[14px] text-sm font-semibold text-ink"><Dyn>Review your change</Dyn></div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
               <div className="flex items-center gap-3">
@@ -287,7 +185,7 @@ export default function SwapVehiclePage({ params }: { params: Promise<{ id: stri
                   style={{ backgroundImage: `url('${booking?.vehicle.image}')` }}
                 />
                 <div>
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.06em] text-faint">Current</div>
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.06em] text-faint"><Dyn>Current</Dyn></div>
                   <div className="text-[14px] font-semibold text-secondary">{booking?.vehicle.name}</div>
                   <div className="text-[12px] text-muted">{money(currentTotal)}</div>
                 </div>
@@ -303,7 +201,7 @@ export default function SwapVehiclePage({ params }: { params: Promise<{ id: stri
                   style={{ backgroundImage: `url('${newVehicleImage}')` }}
                 />
                 <div>
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.06em] text-primary">New</div>
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.06em] text-primary"><Dyn>New</Dyn></div>
                   <div className="text-[14px] font-semibold text-secondary">{newVehicleName}</div>
                   <div className="text-[12px] text-muted">
                     {newVehiclePrice ? `${money(newVehiclePrice)}/${newFleet?.pricePerDay || selectedVehicle?.pricePerDay ? 'day' : 'hour'}` : ''}
@@ -313,45 +211,45 @@ export default function SwapVehiclePage({ params }: { params: Promise<{ id: stri
             </div>
 
             {previewLoading ? (
-              <p className="mt-5 text-[12.5px] text-faint">Calculating new price...</p>
+              <p className="mt-5 text-[12.5px] text-faint"><Dyn>Calculating new price...</Dyn></p>
             ) : preview && !allowed ? (
-              <p className="mt-5 text-[12.5px] font-medium text-red-600">{preview.reason || 'This swap is not allowed.'}</p>
+              <p className="mt-5 text-[12.5px] font-medium text-red-600">{t(preview.reason || 'This swap is not allowed.')}</p>
             ) : preview && allowed ? (
               <div className="mt-5 space-y-[10px]">
                 {nb && (
                   <>
-                    <div className="text-[11px] font-medium uppercase tracking-[0.04em] text-faint">New vehicle breakdown</div>
+                    <div className="text-[11px] font-medium uppercase tracking-[0.04em] text-faint"><Dyn>New vehicle breakdown</Dyn></div>
                     <div className="flex items-center justify-between text-[13px]">
-                      <span className="text-secondary">Base price</span>
+                      <span className="text-secondary"><Dyn>Base price</Dyn></span>
                       <span className="font-medium text-ink">{money(nbBase)}</span>
                     </div>
                     {nbLocation > 0 && (
                       <div className="flex items-center justify-between text-[13px]">
-                        <span className="text-secondary">Location charges</span>
+                        <span className="text-secondary"><Dyn>Location charges</Dyn></span>
                         <span className="font-medium text-ink">{money(nbLocation)}</span>
                       </div>
                     )}
                     {nbFees > 0 && (
                       <div className="flex items-center justify-between text-[13px]">
-                        <span className="text-secondary">Fees</span>
+                        <span className="text-secondary"><Dyn>Fees</Dyn></span>
                         <span className="font-medium text-ink">{money(nbFees)}</span>
                       </div>
                     )}
                     {nbInsurance > 0 && insuranceRefund > 0 && (
                       <div className="flex items-center justify-between text-[13px]">
-                        <span className="text-secondary">Insurance (refundable)</span>
+                        <span className="text-secondary"><Dyn>Insurance (refundable)</Dyn></span>
                         <span className="font-medium text-ink">{money(insuranceRefund)}</span>
                       </div>
                     )}
                     {nbTax > 0 && (
                       <div className="flex items-center justify-between text-[13px]">
-                        <span className="text-secondary">Tax</span>
+                        <span className="text-secondary"><Dyn>Tax</Dyn></span>
                         <span className="font-medium text-ink">{money(nbTax)}</span>
                       </div>
                     )}
                     {swapFee > 0 && (
                       <div className="flex items-center justify-between text-[13px]">
-                        <span className="text-secondary">Swap fee</span>
+                        <span className="text-secondary"><Dyn>Swap fee</Dyn></span>
                         <span className="font-medium text-ink">+{money(swapFee)}</span>
                       </div>
                     )}
@@ -359,7 +257,7 @@ export default function SwapVehiclePage({ params }: { params: Promise<{ id: stri
                       <>
                         <div className="my-1 h-px bg-card-border" />
                         <div className="flex items-center justify-between">
-                          <span className="text-sm font-semibold text-ink">New total ({unitLabel}s)</span>
+                          <span className="text-sm font-semibold text-ink"><Dyn>New total</Dyn> ({unitLabel}s)</span>
                           <span className="text-[17px] font-bold text-ink">{money(newTotal)}</span>
                         </div>
                       </>
@@ -367,23 +265,32 @@ export default function SwapVehiclePage({ params }: { params: Promise<{ id: stri
                   </>
                 )}
 
+                {depositTopup > 0 && (
+                  <div className="flex items-center justify-between text-[13px]">
+                    <span className="text-muted">
+                      <Dyn>Extra security deposit (refundable)</Dyn>
+                    </span>
+                    <span className="font-medium text-ink">{money(depositTopup)}</span>
+                  </div>
+                )}
+
                 <div className="my-1 h-px bg-card-border" />
-                {additionalCharge > 0 ? (
+                {totalDueNow > 0 ? (
                   <div className="flex items-center justify-between rounded-[10px] border border-amber-border bg-amber-bg px-4 py-[13px]">
-                    <span className="text-[13px] font-semibold text-amber-text">Additional charge{swapFee > 0 ? ` (incl. ${money(swapFee)} fee)` : ''}</span>
-                    <span className="text-[15px] font-bold text-amber-text-2">{money(additionalCharge)}</span>
+                    <span className="text-[13px] font-semibold text-amber-text"><Dyn>Due now</Dyn>{swapFee > 0 ? ` (incl. ${money(swapFee)} fee)` : ''}</span>
+                    <span className="text-[15px] font-bold text-amber-text-2">{money(totalDueNow)}</span>
                   </div>
                 ) : refundAmount > 0 ? (
                   <div className="flex items-center justify-between rounded-[10px] border border-green-border-2 bg-green-bg px-4 py-[13px]">
-                    <span className="text-[13px] font-semibold text-success">Refund due{swapFee > 0 ? ` (incl. ${money(swapFee)} fee)` : ''}</span>
+                    <span className="text-[13px] font-semibold text-success"><Dyn>Refund due</Dyn>{swapFee > 0 ? ` (incl. ${money(swapFee)} fee)` : ''}</span>
                     <span className="text-[15px] font-bold text-success">{money(refundAmount)}</span>
                   </div>
                 ) : (
-                  <div className="text-[12.5px] text-faint">No additional charge for this swap.</div>
+                  <div className="text-[12.5px] text-faint"><Dyn>No additional charge for this swap.</Dyn></div>
                 )}
               </div>
             ) : (
-              <p className="mt-5 text-[12.5px] text-faint">Calculating new price...</p>
+              <p className="mt-5 text-[12.5px] text-faint"><Dyn>Calculating new price...</Dyn></p>
             )}
           </div>
         )}
@@ -393,11 +300,11 @@ export default function SwapVehiclePage({ params }: { params: Promise<{ id: stri
         <div className="mx-auto flex max-w-[1000px] flex-wrap items-center justify-between gap-4 px-6 py-[14px]">
           <div className="min-w-[180px] flex-1">
             {error ? (
-              <div className="text-[12.5px] font-medium text-red-500">{error}</div>
+              <div className="text-[12.5px] font-medium text-red-500">{t(error)}</div>
             ) : previewLoading ? (
-              <div className="text-[12.5px] text-faint">Calculating...</div>
+              <div className="text-[12.5px] text-faint"><Dyn>Calculating...</Dyn></div>
             ) : selectedVehicle && preview && !allowed ? (
-              <div className="text-[12.5px] font-medium text-red-500">{preview.reason || 'This swap is not allowed.'}</div>
+              <div className="text-[12.5px] font-medium text-red-500">{t(preview.reason || 'This swap is not allowed.')}</div>
             ) : selectedVehicle && preview ? (
               <div className="flex items-center gap-2 text-[13px]">
                 <span className="font-semibold text-ink">{selectedVehicle.name}</span>
@@ -414,13 +321,13 @@ export default function SwapVehiclePage({ params }: { params: Promise<{ id: stri
                   {additionalCharge > 0
                     ? `+${money(additionalCharge)}`
                     : refundAmount > 0
-                      ? `−${money(refundAmount)} refund`
-                      : 'No change'}
+                      ? `−${money(refundAmount)} ${t('refund')}`
+                      : t('No change')}
                   {swapFee > 0 ? ` (incl. ${money(swapFee)} fee)` : ''}
                 </span>
               </div>
             ) : (
-              <div className="text-[12.5px] text-faint">Select a vehicle to continue.</div>
+              <div className="text-[12.5px] text-faint"><Dyn>Select a vehicle to continue.</Dyn></div>
             )}
           </div>
           <div className="flex items-center gap-3">
@@ -428,7 +335,7 @@ export default function SwapVehiclePage({ params }: { params: Promise<{ id: stri
               onClick={() => router.push(cancelHref)}
               className="rounded-[10px] border border-line bg-white px-[22px] py-[12px] text-sm font-semibold text-ink"
             >
-              Cancel
+              <Dyn>Cancel</Dyn>
             </button>
             <button
               disabled={!selectedVehicle || previewLoading || !allowed || confirming}
@@ -440,7 +347,7 @@ export default function SwapVehiclePage({ params }: { params: Promise<{ id: stri
                   : 'cursor-not-allowed bg-locked',
               )}
             >
-              {confirming ? 'Processing...' : 'Confirm change'} <ArrowRight size={16} />
+              {confirming ? t('Processing...') : t('Confirm change')} <ArrowRight size={16} />
             </button>
           </div>
         </div>

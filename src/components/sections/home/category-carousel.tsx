@@ -3,6 +3,7 @@
 import { useRef } from 'react';
 import Link from 'next/link';
 import { Carousel, CarouselArrows, type CarouselHandle } from '@/components/ui/carousel';
+import { Dyn } from '@/components/i18n/Dyn';
 
 interface CategoryItem {
   name: string;
@@ -49,11 +50,11 @@ export function CategoryCarousel({ eyebrow, title, description, items }: Categor
               }}
             >
               <span className="absolute top-[22px] right-[22px] left-[22px] text-[20px] font-semibold tracking-[-0.01em] text-white">
-                {cat.name}
+                <Dyn>{cat.name}</Dyn>
               </span>
               <div className="absolute right-[22px] bottom-[22px] left-[22px] flex items-end justify-between">
                 <div>
-                  <div className="mb-[4px] text-[12px] text-white/70">Starting From</div>
+                  <div className="mb-[4px] text-[12px] text-white/70"><Dyn>Starting From</Dyn></div>
                   <div className="text-[22px] font-bold text-white">
                     {cat.price}
                     <span className="text-[12px] font-normal text-white/70">/day</span>

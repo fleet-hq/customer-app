@@ -1,5 +1,8 @@
 'use client';
 
+import { Dyn } from '@/components/i18n/Dyn';
+import { useTenant } from '@/lib/tenant-context';
+
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 
 /**
@@ -61,6 +64,7 @@ export const SquareCardEntry = forwardRef<SquareCardEntryHandle, Props>(function
   { applicationId, locationId, environment, requiresDeposit = false, depositConsentCopy, onError },
   ref,
 ) {
+  const isT2 = useTenant().websiteTemplate === 'template_2';
   const containerRef = useRef<HTMLDivElement | null>(null);
   const cardRef = useRef<any>(null);
   const [ready, setReady] = useState(false);
@@ -182,7 +186,13 @@ export const SquareCardEntry = forwardRef<SquareCardEntryHandle, Props>(function
     <div className="w-full max-w-full sm:rounded-2xl sm:border sm:border-card-border sm:bg-white sm:p-5 sm:shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
       <div className="mb-2 flex items-center justify-between gap-3 sm:mb-4">
         <div className="flex min-w-0 items-center gap-2">
-          <span className="hidden h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary sm:inline-flex">
+          <span
+            className={`hidden h-8 w-8 flex-shrink-0 items-center justify-center rounded-full sm:inline-flex ${
+              isT2
+                ? 'bg-[color-mix(in_srgb,var(--brass)_14%,var(--card))] text-[var(--brass)]'
+                : 'bg-primary-soft text-primary'
+            }`}
+          >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
               <rect x="2" y="6" width="20" height="13" rx="2.5" />
               <path d="M2 10.5h20" />
@@ -190,8 +200,8 @@ export const SquareCardEntry = forwardRef<SquareCardEntryHandle, Props>(function
             </svg>
           </span>
           <div className="min-w-0">
-            <div className="text-[13px] font-medium leading-tight text-ink sm:text-[15px] sm:font-semibold">Card details</div>
-            <div className="hidden text-[11px] leading-tight text-muted sm:block">Charged when you complete your booking</div>
+            <div className="text-[13px] font-medium leading-tight text-ink sm:text-[15px] sm:font-semibold"><Dyn>Card details</Dyn></div>
+            <div className="hidden text-[11px] leading-tight text-muted sm:block"><Dyn>Charged when you complete your booking</Dyn></div>
           </div>
         </div>
         <span className="flex flex-shrink-0 items-center gap-1 text-[10.5px] text-muted sm:gap-1.5 sm:rounded-full sm:bg-subtle sm:px-2.5 sm:py-1 sm:font-medium">
@@ -199,7 +209,7 @@ export const SquareCardEntry = forwardRef<SquareCardEntryHandle, Props>(function
             <rect x="4" y="10" width="16" height="11" rx="2" />
             <path d="M8 10V7a4 4 0 0 1 8 0v3" />
           </svg>
-          <span className="whitespace-nowrap">Secured by Square</span>
+          <span className="whitespace-nowrap"><Dyn>Secured by Square</Dyn></span>
         </span>
       </div>
 
@@ -218,7 +228,7 @@ export const SquareCardEntry = forwardRef<SquareCardEntryHandle, Props>(function
       </div>
 
       {initError ? (
-        <p className="mt-2 break-words text-[12.5px] text-red-600">{initError}</p>
+        <p className="mt-2 break-words text-[12.5px] text-red-600"><Dyn>{initError}</Dyn></p>
       ) : null}
 
       <div className="mt-3 hidden items-start gap-1.5 text-[10.5px] leading-snug text-muted sm:flex">
@@ -226,7 +236,7 @@ export const SquareCardEntry = forwardRef<SquareCardEntryHandle, Props>(function
           <rect x="4" y="10" width="16" height="11" rx="2" />
           <path d="M8 10V7a4 4 0 0 1 8 0v3" />
         </svg>
-        <span>Your card details never touch our servers — tokenized directly with Square.</span>
+        <span><Dyn>Your card details never touch our servers — tokenized directly with Square.</Dyn></span>
       </div>
 
       {requiresDeposit && depositConsentCopy ? (
@@ -235,13 +245,23 @@ export const SquareCardEntry = forwardRef<SquareCardEntryHandle, Props>(function
           onClick={() => setConsentChecked((v) => !v)}
           className={`mt-3 flex w-full items-start gap-2.5 rounded-xl border p-3 text-left transition-colors sm:mt-4 sm:gap-3 ${
             consentChecked
-              ? 'border-primary-border bg-primary-soft'
-              : 'border-card-border bg-subtle hover:bg-subtle/60'
+              ? isT2
+                ? 'border-[var(--brass)] bg-[color-mix(in_srgb,var(--brass)_8%,var(--card))]'
+                : 'border-primary-border bg-primary-soft'
+              : isT2
+                ? 'border-[var(--line-strong)] bg-[var(--card)]'
+                : 'border-card-border bg-subtle hover:bg-subtle/60'
           }`}
         >
           <span
             className={`mt-[2px] inline-flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-[5px] border-[1.5px] ${
-              consentChecked ? 'border-primary bg-primary' : 'border-control bg-white'
+              consentChecked
+                ? isT2
+                  ? 'border-[var(--brass)] bg-[var(--brass)]'
+                  : 'border-primary bg-primary'
+                : isT2
+                  ? 'border-[var(--line-strong)] bg-[var(--card)]'
+                  : 'border-control bg-white'
             }`}
           >
             {consentChecked && (
@@ -251,7 +271,7 @@ export const SquareCardEntry = forwardRef<SquareCardEntryHandle, Props>(function
             )}
           </span>
           <span className="min-w-0 flex-1 break-words text-[11.5px] leading-[1.55] text-ink">
-            <span className="mb-0.5 block text-[10.5px] font-semibold uppercase tracking-[0.04em] text-primary">Refundable security deposit</span>
+            <span className={`mb-0.5 block text-[10.5px] font-semibold uppercase tracking-[0.04em] ${isT2 ? 'text-[var(--brass)]' : 'text-primary'}`}><Dyn>Refundable security deposit</Dyn></span>
             {depositConsentCopy}
           </span>
         </button>

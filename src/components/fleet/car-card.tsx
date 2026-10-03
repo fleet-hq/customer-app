@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { paths } from '@/lib/paths';
 import { money } from '@/lib/utils';
 import type { Vehicle } from '@/types/vehicle';
+import { Dyn } from '@/components/i18n/Dyn';
 import { trackVehicleSelect } from '@/lib/tracking-events';
 
 interface CarCardProps {
@@ -107,19 +108,19 @@ export function CarCard({ vehicle, badge, oldPrice, bookingQuery, hours, discoun
           {vehicle.seats ? (
             <span className="inline-flex shrink-0 items-center gap-[4px]">
               <SeatIcon />
-              {vehicle.seats} Seats
+              {vehicle.seats} <Dyn>Seats</Dyn>
             </span>
           ) : null}
           {vehicle.transmission ? (
             <span className="inline-flex min-w-0 items-center gap-[4px]">
               <TransmissionIcon />
-              <span className="truncate capitalize">{vehicle.transmission.toLowerCase()}</span>
+              <span className="truncate capitalize"><Dyn>{vehicle.transmission.toLowerCase()}</Dyn></span>
             </span>
           ) : null}
           {vehicle.fuelType ? (
             <span className="inline-flex shrink-0 items-center gap-[4px] capitalize">
               <FuelIcon />
-              {vehicle.fuelType.toLowerCase()}
+              <Dyn>{vehicle.fuelType.toLowerCase()}</Dyn>
             </span>
           ) : null}
         </div>
@@ -131,12 +132,12 @@ export function CarCard({ vehicle, badge, oldPrice, bookingQuery, hours, discoun
             <div className="pt-[12px]">
               <div className="text-[12px] text-muted">
                 <span className="text-[16px] font-bold text-secondary">{money(totalForRange)}</span>{' '}
-                total · {unitsCount} {unitNoun}
+                <Dyn>total</Dyn> · {unitsCount} {unitNoun}
               </div>
               <div className="mt-[6px] flex items-baseline justify-between gap-[6px]">
                 <div className="flex items-baseline gap-[6px]">
                   <span className="text-[15px] font-semibold text-secondary">{money(unitPrice)}</span>
-                  <span className="text-[11.5px] text-faint">{unitLabel}</span>
+                  <span className="text-[11.5px] text-faint"><Dyn>{unitLabel}</Dyn></span>
                   {strikeUnitPrice != null && (
                     <span className="text-[12px] text-faint line-through">{money(strikeUnitPrice)}</span>
                   )}
@@ -148,7 +149,7 @@ export function CarCard({ vehicle, badge, oldPrice, bookingQuery, hours, discoun
             <div className="flex items-baseline justify-between gap-[6px] pt-[12px]">
               <div className="flex items-baseline gap-[6px]">
                 <span className="text-[18px] font-bold text-secondary">{money(perDay)}</span>
-                <span className="text-[11.5px] text-faint">/day</span>
+                <span className="text-[11.5px] text-faint"><Dyn>/day</Dyn></span>
                 {oldPrice != null && (
                   <span className="text-[12px] text-faint line-through">{money(oldPrice)}</span>
                 )}
@@ -165,7 +166,7 @@ export function CarCard({ vehicle, badge, oldPrice, bookingQuery, hours, discoun
 function ViewCta() {
   return (
     <span className="inline-flex items-center gap-[4px] text-[12px] font-semibold text-primary">
-      View
+      <Dyn>View</Dyn>
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M5 12h14M13 6l6 6-6 6" />
       </svg>

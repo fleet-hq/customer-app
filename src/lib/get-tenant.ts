@@ -1,9 +1,11 @@
-import { headers } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { unstable_cache } from 'next/cache';
 import { cache } from 'react';
 import axios from 'axios';
 
 import { tenantFromApi, type ApiCompanyDetail, type ApiLocation, type Tenant } from './tenant';
+import { DEFAULT_LOCALE, LOCALE_COOKIE, isLocale, type Locale } from './i18n/config';
+import { translateTenant } from './i18n/translate-tenant-server';
 
 const BACKEND_URL =
   process.env.BACKEND_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
@@ -58,33 +60,36 @@ async function fetchTenantByHost(host: string): Promise<Tenant> {
   }
 }
 
+/** Resolve the tenant host for the current request. Widget-only clients
+ *  open our shared checkout at fleethq-book.vercel.app; middleware promotes
+ *  ``?tenant=<slug>`` onto ``x-fleethq-tenant-slug`` so we can identify the
+ *  tenant without a Host-header match. Tenants on their own domain carry no
+ *  such header and resolve via ``x-forwarded-host`` (load balancer) or the
+ *  bare ``host``. Shared by the tenant and blog fetches. */
+export async function resolveRequestHost(): Promise<string> {
+  const h = await headers();
+  const paramSlug = (h.get('x-fleethq-tenant-slug') ?? '').toLowerCase();
+  if (paramSlug) return paramSlug;
+  return (h.get('x-forwarded-host') ?? h.get('host') ?? '').toLowerCase();
+}
+
 /** Tag-cached server-side fetch keyed by host. Two layers of dedupe:
- *
  *   1. ``unstable_cache`` — shared across the deployment for 60s and
  *      invalidatable via ``revalidateTag`` per host or globally.
  *   2. ``react.cache`` — dedupes inside a single render so layout +
- *      page + nested server components share one fetch.
- *
- *  The host comes from ``x-forwarded-host`` (load balancer) when set,
- *  otherwise the bare ``host`` header. */
-export const getCurrentTenant = cache(async (): Promise<Tenant> => {
-  const h = await headers();
-  // Widget-only clients open our shared checkout at fleethq-book.vercel.app;
-  // middleware promotes ``?tenant=<slug>`` from the URL onto this header so
-  // we can identify the tenant without a Host-header match against a
-  // registered CompanyDomain. Tenants at their own domain never carry
-  // this header and go through the Host path unchanged.
-  const paramSlug = (h.get('x-fleethq-tenant-slug') ?? '').toLowerCase();
-  if (paramSlug) {
-    const cached = unstable_cache(
-      () => fetchTenantByHost(paramSlug),
-      ['tenant', paramSlug],
-      { tags: [TENANT_TAG, tenantTag(paramSlug)], revalidate: CACHE_REVALIDATE_SECONDS },
-    );
-    return cached();
+ *      page + nested server components share one fetch. */
+async function readLocaleCookie(): Promise<Locale> {
+  try {
+    const store = await cookies();
+    const value = store.get(LOCALE_COOKIE)?.value;
+    return isLocale(value) ? value : DEFAULT_LOCALE;
+  } catch {
+    return DEFAULT_LOCALE;
   }
+}
 
-  const host = (h.get('x-forwarded-host') ?? h.get('host') ?? '').toLowerCase();
+export const getCurrentTenant = cache(async (): Promise<Tenant> => {
+  const host = await resolveRequestHost();
   if (!host) {
     throw new TenantNotFoundError('');
   }
@@ -93,5 +98,15 @@ export const getCurrentTenant = cache(async (): Promise<Tenant> => {
     ['tenant', host],
     { tags: [TENANT_TAG, tenantTag(host)], revalidate: CACHE_REVALIDATE_SECONDS },
   );
-  return cached();
+  const tenant = await cached();
+
+  const locale = await readLocaleCookie();
+  if (locale === DEFAULT_LOCALE) return tenant;
+
+  const cachedTranslation = unstable_cache(
+    () => translateTenant(tenant, locale),
+    ['tenant-translated', host, locale],
+    { tags: [TENANT_TAG, tenantTag(host)], revalidate: CACHE_REVALIDATE_SECONDS },
+  );
+  return cachedTranslation();
 });

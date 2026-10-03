@@ -4,10 +4,16 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { Header } from './header';
 import { Footer } from './footer';
+import { HeaderT2 } from './header-t2';
+import { FooterT2 } from './footer-t2';
+import { T2Shell } from './t2-shell';
+import { useTenant } from '@/lib/tenant-context';
 
 const HIDE_CHROME_PREFIXES = ['/sign-in', '/register'];
 
 export function LayoutChrome({ children }: { children: ReactNode }) {
+  const tenant = useTenant();
+  const isT2 = tenant.websiteTemplate === 'template_2';
   const pathname = usePathname() ?? '/';
   const searchParams = useSearchParams();
   const [insideIframe, setInsideIframe] = useState(false);
@@ -29,6 +35,16 @@ export function LayoutChrome({ children }: { children: ReactNode }) {
   // reads as designed.
   const bareBackground =
     searchParams.get('bare') === '1' || searchParams.get('embed') === 'bare';
+
+  if (isT2) {
+    return (
+      <T2Shell>
+        {!hideChrome && <HeaderT2 />}
+        <main>{children}</main>
+        {!hideChrome && <FooterT2 />}
+      </T2Shell>
+    );
+  }
 
   return (
     <>

@@ -1,5 +1,8 @@
 'use client';
 
+import { Dyn } from '@/components/i18n/Dyn';
+import { useTenant } from '@/lib/tenant-context';
+
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js';
 import { loadStripe, type Stripe, type StripeElementsOptions } from '@stripe/stripe-js';
@@ -158,7 +161,7 @@ function StripeConfirmForm({
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4">
       <PaymentElement options={{ layout: 'tabs' }} />
-      {error ? <p className="text-13 text-red-600">{error}</p> : null}
+      {error ? <p className="text-13 text-red-600"><Dyn>{error}</Dyn></p> : null}
       <ActionRow
         amount={amount}
         currency={currency}
@@ -281,6 +284,9 @@ function SquarePanel(props: EmbedPaymentPanelProps) {
         if (saveTokenResult.status === 'OK' && saveTokenResult.token) {
           saveCardSourceId = saveTokenResult.token;
         }
+        // Silent skip if the second tokenize fails — payment still
+        // goes through, deposit save is a soft-fail (admin can retry
+        // from fleet-admin). We deliberately don't block the booking.
       }
 
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/payments/square/create-payment/`, {
@@ -321,6 +327,9 @@ function SquarePanel(props: EmbedPaymentPanelProps) {
           `/booking/${bookingId}?token=${encodeURIComponent(accessToken)}`;
         return;
       }
+      // Fallback if the response shape didn't include the booking
+      // (shouldn't happen post-fulfillment) — hit the generic success
+      // page.
       window.location.href = `/booking/success?session_id=${encodeURIComponent(props.pendingId)}`;
       props.onSuccess?.();
     } catch (e: any) {
@@ -343,7 +352,7 @@ function SquarePanel(props: EmbedPaymentPanelProps) {
             onChange={setConsentChecked}
           />
         ) : null}
-        {error ? <p className="text-13 text-red-600">{error}</p> : null}
+        {error ? <p className="text-13 text-red-600"><Dyn>{error}</Dyn></p> : null}
         <ActionRow
           amount={props.amount}
           currency={props.currency}
@@ -380,6 +389,7 @@ function DepositConsent({
   checked: boolean;
   onChange: (v: boolean) => void;
 }) {
+  const isT2 = useTenant().websiteTemplate === 'template_2';
   return (
     <label className="mt-[13px] flex cursor-pointer items-center gap-[10px]">
       <input
@@ -390,7 +400,13 @@ function DepositConsent({
       />
       <span
         className={`inline-flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-[5px] border-[1.5px] ${
-          checked ? 'border-primary bg-primary' : 'border-control bg-white'
+          checked
+            ? isT2
+              ? 'border-[var(--brass)] bg-[var(--brass)]'
+              : 'border-primary bg-primary'
+            : isT2
+              ? 'border-[var(--line-strong)] bg-[var(--card)]'
+              : 'border-control bg-white'
         }`}
       >
         {checked && (
@@ -435,7 +451,7 @@ function PaymentPanelShell({
   return (
     <div className="mt-6">
       <div className="mb-3 flex items-baseline justify-between">
-        <h3 className="text-[15px] font-semibold text-ink">Card details</h3>
+        <h3 className="text-[15px] font-semibold text-ink"><Dyn>Card details</Dyn></h3>
         <span className="text-[12px] text-muted">Total {formatMoney(amount, currency)}</span>
       </div>
       {children}
@@ -456,6 +472,7 @@ function ActionRow({
   submitting: boolean;
   disabled: boolean;
 }) {
+  const isT2 = useTenant().websiteTemplate === 'template_2';
   return (
     <div className="flex items-center justify-between gap-3 pt-1">
       <button
@@ -469,9 +486,13 @@ function ActionRow({
       <button
         type="submit"
         disabled={disabled}
-        className="rounded-[10px] bg-primary px-5 py-[10px] text-[14px] font-semibold text-white disabled:opacity-60"
+        className={
+          isT2
+            ? 'rounded-[2px] bg-[var(--brass)] px-5 py-[10px] text-[14px] font-semibold text-[var(--on-brass)] disabled:opacity-60'
+            : 'rounded-[10px] bg-primary px-5 py-[10px] text-[14px] font-semibold text-white disabled:opacity-60'
+        }
       >
-        {submitting ? 'Processing…' : `Pay ${formatMoney(amount, currency)}`}
+        {submitting ? <Dyn>Processing…</Dyn> : <><Dyn>Pay</Dyn>{` ${formatMoney(amount, currency)}`}</>}
       </button>
     </div>
   );

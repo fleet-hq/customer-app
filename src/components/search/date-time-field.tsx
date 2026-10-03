@@ -3,6 +3,8 @@
 import { Calendar, ClockFace } from '@/components/ui/icons';
 import { DatePicker } from '@/components/ui/date-picker';
 import { TimePicker } from '@/components/ui/time-picker';
+import { cn } from '@/lib/utils';
+import { useTenant } from '@/lib/tenant-context';
 
 interface DateTimeFieldProps {
   date: string;
@@ -36,7 +38,12 @@ export function DateTimeField({
   compact,
   label,
 }: DateTimeFieldProps) {
+  const tenant = useTenant();
+  const isT2 = tenant.websiteTemplate === 'template_2';
   const iconSize = compact ? 15 : 16;
+  // Template 2's accent is its own brass token, not the brand primary,
+  // so these icons have to follow it rather than `text-primary`.
+  const iconClass = cn('flex-shrink-0', isT2 ? 'text-[var(--brass)]' : 'text-primary');
   return (
     <div className="flex w-full items-center whitespace-nowrap">
       <DatePicker
@@ -47,9 +54,9 @@ export function DateTimeField({
         unavailableDates={unavailableDates}
         className="min-w-0 flex-1"
         aria-label={label ? `${label} date` : 'Date'}
-        icon={<Calendar size={iconSize} className="flex-shrink-0 text-primary" />}
+        icon={<Calendar size={iconSize} className={iconClass} />}
       />
-      <div className="mx-3 h-4 w-px flex-shrink-0 bg-line" />
+      <div className={cn('mx-3 h-4 w-px flex-shrink-0 bg-line', isT2 && 'bg-[var(--line)]')} />
       <TimePicker
         value={time}
         onChange={onTime}
@@ -58,7 +65,7 @@ export function DateTimeField({
         disabledSlots={disabledSlots}
         className="min-w-0 flex-1"
         aria-label={label ? `${label} time` : 'Time'}
-        icon={<ClockFace size={iconSize} className="flex-shrink-0 text-primary" />}
+        icon={<ClockFace size={iconSize} className={iconClass} />}
       />
     </div>
   );

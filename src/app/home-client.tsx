@@ -16,6 +16,7 @@ import { ContentPage } from '@/components/sections/content/content-page';
 import { useTenant } from '@/lib/tenant-context';
 import { withCompany } from '@/lib/tenant';
 import { useFleetDiscountsSummary } from '@/hooks/useFleetDiscounts';
+import HomeClientT2 from './home-client-t2';
 
 /** Every section below is rendered ONLY when the operator has filled
  *  it in. There are no FE-side copy or image fallbacks — a tenant
@@ -23,6 +24,10 @@ import { useFleetDiscountsSummary } from '@/hooks/useFleetDiscounts';
 export default function HomeClient() {
   const tenant = useTenant();
   const { sections, images } = tenant;
+
+  if (tenant.websiteTemplate === 'template_2') {
+    return <HomeClientT2 />;
+  }
 
   const co = (text: string) => withCompany(text, tenant.name);
 

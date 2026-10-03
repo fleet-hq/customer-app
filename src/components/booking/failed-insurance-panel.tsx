@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { Dyn } from '@/components/i18n/Dyn';
 import type { InsuranceVerificationDetails } from '@/services/bookingServices';
 
 const FAILED_PANEL_CLASSES = 'border-[#FECDCA] bg-[#FEF3F2]';
@@ -26,13 +27,13 @@ export function FailedInsurancePanel({ details }: { details: InsuranceVerificati
   return (
     <div className={cn('mt-3 rounded-lg border p-3', FAILED_PANEL_CLASSES)}>
       <p className={cn('text-[12px] font-semibold', FAILED_TEXT_PRIMARY)}>
-        Insurance couldn&apos;t be verified{details.disposition ? ` — ${humanize(details.disposition)}` : ''}
+        <Dyn>Insurance couldn&apos;t be verified</Dyn>{details.disposition ? ` — ${humanize(details.disposition)}` : ''}
       </p>
       {rows.length > 0 && (
         <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1">
           {rows.map((r) => (
             <div key={r.label} className="contents">
-              <dt className={cn('text-[10.5px] font-medium', FAILED_TEXT_MUTED)}>{r.label}</dt>
+              <dt className={cn('text-[10.5px] font-medium', FAILED_TEXT_MUTED)}><Dyn>{r.label}</Dyn></dt>
               <dd className={cn('text-[10.5px]', FAILED_TEXT_SECONDARY)}>{r.value}</dd>
             </div>
           ))}
@@ -41,12 +42,12 @@ export function FailedInsurancePanel({ details }: { details: InsuranceVerificati
       {details.remediationMessages.length > 0 && (
         <ul className={cn('mt-2 list-disc space-y-0.5 pl-4 text-[11px]', FAILED_TEXT_SECONDARY)}>
           {details.remediationMessages.map((m, i) => (
-            <li key={i}>{m}</li>
+            <li key={i}><Dyn>{m}</Dyn></li>
           ))}
         </ul>
       )}
       <p className={cn('mt-2 text-[10.5px] italic', FAILED_TEXT_MUTED)}>
-        Contact the operator to update your coverage.
+        <Dyn>Contact the operator to update your coverage.</Dyn>
       </p>
     </div>
   );

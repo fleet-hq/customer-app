@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { paths } from '@/lib/paths';
 import { ArrowRight, Clock } from '@/components/ui/icons';
 import { formatBlogDate, type BlogSummary } from '@/lib/blog';
+import { Dyn } from '@/components/i18n/Dyn';
 
 export function BlogFeatured({ post }: { post: BlogSummary }) {
   const date = formatBlogDate(post.publishedAt);
@@ -30,7 +31,7 @@ export function BlogFeatured({ post }: { post: BlogSummary }) {
 
       <div className="flex flex-col justify-center gap-[16px] p-[30px] sm:p-[40px]">
         <div className="flex items-center gap-[10px] text-[12px] font-semibold uppercase tracking-[0.05em] text-primary">
-          <span className="rounded-full bg-primary-soft px-[11px] py-[5px]">Latest</span>
+          <span className="rounded-full bg-primary-soft px-[11px] py-[5px]"><Dyn>Latest</Dyn></span>
           {post.category ? <span className="text-faint normal-case tracking-normal">{post.category}</span> : null}
         </div>
         <h2 className="font-manrope text-[26px] font-bold leading-[1.2] text-ink text-balance sm:text-[30px]">

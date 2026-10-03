@@ -1,82 +1,17 @@
 'use client';
 
-import { Suspense, useEffect, useRef, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { getBookingBySession, BookingNotReadyYet } from '@/services/bookingServices';
-import { setBookingToken } from '@/utils/booking-token';
-import { trackPurchase } from '@/lib/tracking-events';
+import { Suspense } from 'react';
 import { paths } from '@/lib/paths';
-import { useEmbedBridge } from '@/hooks';
-
-const POLL_INTERVAL_MS = 2000;
-const MAX_ATTEMPTS = 10;
+import { Dyn } from '@/components/i18n/Dyn';
+import { useBookingSuccess } from './use-booking-success';
+import BookingSuccessClientT2 from './success-client-t2';
 
 function SuccessContent() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const embed = useEmbedBridge();
-  const sessionId = searchParams.get('session_id') || '';
-  const [phase, setPhase] = useState<'loading' | 'processing' | 'error'>('loading');
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const startedRef = useRef(false);
+  const { tenant, phase, errorMessage, t, router } = useBookingSuccess();
 
-  useEffect(() => {
-    if (startedRef.current) return;
-    startedRef.current = true;
-
-    if (!sessionId) {
-      setPhase('error');
-      setErrorMessage('Missing checkout session reference.');
-      return;
-    }
-
-    let cancelled = false;
-    let attempts = 0;
-
-    const poll = async () => {
-      while (!cancelled && attempts < MAX_ATTEMPTS) {
-        attempts += 1;
-        try {
-          const booking = await getBookingBySession(sessionId);
-          if (cancelled) return;
-          if (booking.access_token) setBookingToken(booking.access_token);
-          // Fire the conversion once, here — the success page is only ever
-          // reached immediately after a completed checkout, so tenant GTM /
-          // Meta Pixel conversions can't double-count on later booking views.
-          trackPurchase({
-            transactionId: booking.booking_id,
-            value: Number(booking.total_price),
-          });
-          if (embed.embedded) embed.reportBookingComplete(booking.booking_id);
-          router.replace(`${paths.booking(String(booking.booking_id))}?token=${encodeURIComponent(booking.access_token)}`);
-          return;
-        } catch (err) {
-          if (err instanceof BookingNotReadyYet) {
-            if (attempts < MAX_ATTEMPTS) {
-              setPhase('processing');
-              await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
-              continue;
-            }
-            setPhase('error');
-            setErrorMessage(
-              'Your payment is still processing. Refresh in a minute, or check your email for the booking confirmation.',
-            );
-            return;
-          }
-          setPhase('error');
-          setErrorMessage(
-            err instanceof Error ? err.message : 'We could not load your booking. Please contact support.',
-          );
-          return;
-        }
-      }
-    };
-
-    poll();
-    return () => {
-      cancelled = true;
-    };
-  }, [sessionId, router]);
+  if (tenant.websiteTemplate === 'template_2') {
+    return <BookingSuccessClientT2 />;
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-white text-ink">
@@ -88,23 +23,23 @@ function SuccessContent() {
                 <div className="h-12 w-12 animate-spin rounded-full border-2 border-primary border-t-transparent" />
               </div>
               <h1 className="mb-2 text-2xl font-semibold text-ink">
-                {phase === 'processing' ? 'Finalising your booking…' : 'Confirming payment…'}
+                {phase === 'processing' ? t('Finalising your booking…') : t('Confirming payment…')}
               </h1>
               <p className="text-sm text-muted">
                 {phase === 'processing'
-                  ? 'Stripe is processing your payment. This usually takes just a moment.'
-                  : 'One second while we set up your reservation.'}
+                  ? t('Stripe is processing your payment. This usually takes just a moment.')
+                  : t('One second while we set up your reservation.')}
               </p>
             </>
           ) : (
             <>
-              <h1 className="mb-2 text-2xl font-semibold text-ink">Something went wrong</h1>
-              <p className="mb-6 text-sm text-muted">{errorMessage}</p>
+              <h1 className="mb-2 text-2xl font-semibold text-ink"><Dyn>Something went wrong</Dyn></h1>
+              <p className="mb-6 text-sm text-muted">{t(errorMessage)}</p>
               <button
                 onClick={() => router.replace(paths.home)}
                 className="rounded-[10px] bg-primary px-6 py-3 text-sm font-semibold text-white"
               >
-                Back to home
+                <Dyn>Back to home</Dyn>
               </button>
             </>
           )}

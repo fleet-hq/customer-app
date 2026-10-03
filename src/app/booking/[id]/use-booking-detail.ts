@@ -1,0 +1,440 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import type { BookingMode } from '@/components/booking/verify-first-confirm';
+import { useBookingDetails, useBookingDrivers } from '@/hooks/useBooking';
+import { useBookingBalance } from '@/hooks/useBookingBalance';
+import { useAgreementByBooking } from '@/hooks/useAgreements';
+import { useBookingImages } from '@/hooks/useTripImages';
+import {
+  useVerificationStatus,
+  useCreateIdentityVerification,
+  useCreateInsuranceVerification,
+} from '@/hooks/useVerification';
+import {
+  useBookingVerificationPolicy,
+  useStartVerificationFirstPayment,
+} from '@/hooks/useBookingPolicy';
+import {
+  HoldExpiredError,
+  VerificationIncompleteError,
+} from '@/services/bookingPolicyServices';
+import { isInsuranceFailed, isInsuranceVerified } from '@/services/bookingServices';
+import { squareCreatePaymentForVerifyFirst } from '@/services/squarePaymentServices';
+import { createBillingCheckoutSession } from '@/services/billingServices';
+import { bookingHasInsuranceCover } from '@/lib/insurance-extras';
+import { setBookingToken } from '@/utils/booking-token';
+import { usePublicPaymentProviders } from '@/hooks';
+import { useTenant } from '@/lib/tenant-context';
+import { paths } from '@/lib/paths';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  getManualVerifications,
+  latestSubmissionFor,
+} from '@/services/manualVerificationServices';
+
+function buildBookingReturnUrl(id: string, token: string | null) {
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  return `${origin}/booking/${id}${token ? `?token=${token}` : ''}`;
+}
+
+function buildBookingSuccessUrl() {
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  return `${origin}/booking/success?session_id={CHECKOUT_SESSION_ID}`;
+}
+
+function messageForPaymentError(err: unknown): string {
+  if (err instanceof VerificationIncompleteError) {
+    const labels = err.missing.map((m) =>
+      m === 'identity' ? 'ID verification' : 'insurance verification',
+    );
+    return `Please complete: ${labels.join(' and ')}.`;
+  }
+  if (err instanceof HoldExpiredError) {
+    return 'This booking hold has expired. Please start a new booking.';
+  }
+  return 'Could not start payment. Please try again.';
+}
+
+/** All booking-detail/payment/verification data, state, and handlers —
+ *  shared verbatim by both templates' booking pages so this
+ *  payment-critical logic lives in exactly one place. Templates differ
+ *  only in how they render what this returns. This is a pure mechanical
+ *  extraction of what used to be inline in page.tsx — nothing about the
+ *  logic itself has changed. */
+export function useBookingDetail(id: string) {
+  const searchParams = useSearchParams();
+  const token = searchParams.get('token');
+  const providerParam = searchParams.get('provider');
+  const providerOverride: 'stripe' | 'square' | undefined =
+    providerParam === 'stripe' || providerParam === 'square' ? providerParam : undefined;
+  const [tokenReady, setTokenReady] = useState(!token);
+
+  useEffect(() => {
+    if (token) {
+      setBookingToken(token);
+      setTokenReady(true);
+    }
+  }, [token]);
+
+  const fetchId = tokenReady ? id : undefined;
+
+  const [insuranceSent, setInsuranceSent] = useState(false);
+  const [idSent, setIdSent] = useState(false);
+  const [idError, setIdError] = useState<string | null>(null);
+  const [insuranceError, setInsuranceError] = useState<string | null>(null);
+
+  const { data: booking, isLoading, isError, error } = useBookingDetails(fetchId);
+  const { data: balance } = useBookingBalance(!!fetchId, id);
+  const { data: verificationStatus } = useVerificationStatus(fetchId, {
+    pollFast: idSent || insuranceSent,
+  });
+  const { data: agreementApi } = useAgreementByBooking(fetchId);
+  const { data: secondaryDrivers } = useBookingDrivers(fetchId);
+  const { data: bookingImages = [] } = useBookingImages(fetchId);
+  const { data: verificationPolicy } = useBookingVerificationPolicy();
+  const { data: manualSubmissions = [] } = useQuery({
+    queryKey: ['manualVerifications', fetchId],
+    queryFn: getManualVerifications,
+    enabled: !!fetchId,
+    refetchInterval: 60 * 1000,
+    refetchOnWindowFocus: true,
+  });
+  const { mutateAsync: startVerifyFirstPayment } = useStartVerificationFirstPayment();
+
+  const { mutate: createIdVerification, isPending: idPending } = useCreateIdentityVerification();
+  const { mutate: createInsuranceVerification, isPending: insurancePending } =
+    useCreateInsuranceVerification();
+
+  const [nowMs, setNowMs] = useState<number>(() => Date.now());
+
+  const isVerifyFirst = booking?.status === 'pending_verification';
+  const holdExpiresAt = booking?.holdExpiresAt;
+  useEffect(() => {
+    if (!isVerifyFirst || !holdExpiresAt) return;
+    const intervalId = setInterval(() => setNowMs(Date.now()), 1000);
+    return () => clearInterval(intervalId);
+  }, [isVerifyFirst, holdExpiresAt]);
+
+  const [payLoading, setPayLoading] = useState(false);
+  const [payError, setPayError] = useState<string | null>(null);
+  const [squareModalOpen, setSquareModalOpen] = useState(false);
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!fetchId) return;
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return;
+      queryClient.invalidateQueries({ queryKey: ['booking', fetchId] });
+      queryClient.invalidateQueries({ queryKey: ['verificationStatus', fetchId] });
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', onVisible);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', onVisible);
+    };
+  }, [fetchId, queryClient]);
+  const tenant = useTenant();
+  const { data: providersData } = usePublicPaymentProviders();
+  const activeProvider: 'stripe' | 'square' =
+    providerOverride
+      ?? (providersData?.providers?.[0] as 'stripe' | 'square')
+      ?? 'stripe';
+
+  const handlePay = async () => {
+    if (payLoading) return;
+    setPayError(null);
+    if (
+      isVerifyFirst
+      && token
+      && activeProvider === 'square'
+      && providersData?.square
+    ) {
+      setSquareModalOpen(true);
+      return;
+    }
+    setPayLoading(true);
+    try {
+      const cancelUrl = buildBookingReturnUrl(id, token);
+      const successUrl = buildBookingSuccessUrl();
+      const checkoutUrl =
+        isVerifyFirst && token
+          ? (
+              await startVerifyFirstPayment({
+                bookingId: Number(id),
+                accessToken: token,
+                successUrl,
+                cancelUrl,
+                provider: providerOverride,
+              })
+            ).checkout_url
+          : (
+              await createBillingCheckoutSession({
+                successUrl: cancelUrl,
+                cancelUrl,
+              })
+            ).checkout_url;
+      window.location.href = checkoutUrl;
+    } catch (err) {
+      setPayError(messageForPaymentError(err));
+      setPayLoading(false);
+    }
+  };
+
+  const handleSquarePaySubmit = async (args: {
+    paymentSourceId: string;
+    saveCardSourceId: string | null;
+    consentCopy: string;
+  }) => {
+    if (!token || !booking) return;
+    setPayLoading(true);
+    setPayError(null);
+    try {
+      await squareCreatePaymentForVerifyFirst({
+        bookingId: Number(id),
+        accessToken: token,
+        sourceId: args.paymentSourceId,
+        currency: 'usd',
+        deposit: args.saveCardSourceId
+          ? { saveCardSourceId: args.saveCardSourceId, consentCopy: args.consentCopy }
+          : null,
+      });
+      setSquareModalOpen(false);
+      await queryClient.invalidateQueries();
+      window.location.href = `/booking/${id}?token=${encodeURIComponent(token)}`;
+    } catch (err) {
+      setPayError(messageForPaymentError(err));
+    } finally {
+      setPayLoading(false);
+    }
+  };
+
+  const handleIdVerify = () => {
+    if (!booking) return;
+    setIdError(null);
+    // Open the target window synchronously in this click handler so
+    // the browser keeps the user-gesture context; async ``window.open``
+    // calls inside a mutation callback are consistently popup-blocked.
+    // The window sits on ``about:blank`` until Stripe's session URL
+    // comes back, then we redirect it.
+    //
+    // We deliberately do NOT pass ``noopener``/``noreferrer`` here —
+    // both cause ``window.open`` to return null, which was leaving the
+    // blank placeholder tab orphaned. Instead we null out
+    // ``verifyWindow.opener`` right after the redirect to sever the
+    // tabnabbing surface manually; the target is Stripe Identity so the
+    // trust boundary is fine.
+    const verifyWindow = window.open("", "_blank");
+    createIdVerification(
+      { customerId: booking.customerId },
+      {
+        onSuccess: (data) => {
+          if (!data.url) {
+            verifyWindow?.close();
+            return;
+          }
+          setIdSent(true);
+          if (verifyWindow && !verifyWindow.closed) {
+            try {
+              verifyWindow.opener = null;
+            } catch {
+              // Cross-origin write can throw once the URL loads — safe to
+              // swallow because at that point we've already handed off.
+            }
+            verifyWindow.location.href = data.url;
+          } else {
+            // Placeholder tab was blocked or closed by the user — fall
+            // back to a fresh tab. Still never the current tab, so the
+            // half-completed booking flow is preserved either way.
+            window.open(data.url, "_blank", "noopener,noreferrer");
+          }
+        },
+        onError: () => {
+          verifyWindow?.close();
+          setIdError("Failed to start verification. Please try again.");
+        },
+      },
+    );
+  };
+
+  const handleInsuranceVerify = () => {
+    if (!booking) return;
+    setInsuranceError(null);
+    const verifyWindow = window.open("", "_blank");
+    createInsuranceVerification(
+      {
+        customerId: booking.customerId,
+        rentalStartDate: booking.pickUp.rawDatetime.slice(0, 10),
+        rentalEndDate: booking.dropOff.rawDatetime.slice(0, 10),
+        bookingId: id,
+      },
+      {
+        onSuccess: (data) => {
+          const url = data.magicLink;
+          if (!url) {
+            verifyWindow?.close();
+            return;
+          }
+          setInsuranceSent(true);
+          if (verifyWindow && !verifyWindow.closed) {
+            try {
+              verifyWindow.opener = null;
+            } catch {
+              /* cross-origin write after nav — safe to swallow */
+            }
+            verifyWindow.location.href = url;
+          } else {
+            window.open(url, "_blank", "noopener,noreferrer");
+          }
+        },
+        onError: () => {
+          verifyWindow?.close();
+          setInsuranceError('Failed to create insurance verification. Please try again.');
+        },
+      },
+    );
+  };
+
+  const common = {
+    id,
+    token,
+    tenant,
+    tokenReady,
+    providersData,
+  };
+
+  if (!tokenReady || isLoading) {
+    return { status: 'loading' as const, ...common };
+  }
+
+  if (isError || !booking) {
+    const response = (error as { response?: { status?: number; data?: unknown } })?.response;
+    let body = '';
+    try {
+      body = JSON.stringify(response?.data ?? '');
+    } catch {
+      body = '';
+    }
+    const expired =
+      response?.status === 401 &&
+      (body.includes('booking_token_expired') || /token has expired/i.test(body));
+    if (expired) {
+      return { status: 'link-expired' as const, ...common };
+    }
+    return { status: 'not-found' as const, ...common };
+  }
+
+  const outstanding = Number(balance?.outstanding_balance ?? 0);
+  const isCancelled = booking.status === 'cancelled';
+  const isPaid = booking.paymentStatus === 'paid' && outstanding <= 0;
+  const showPaymentDue = outstanding > 0;
+
+  const idVerified = (verificationStatus?.idVerification ?? booking.verifications.idVerification) === 'verified';
+  const insuranceStatusRaw =
+    verificationStatus?.insuranceVerification ?? booking.verifications.insuranceVerification;
+  const insuranceDetails =
+    verificationStatus?.insuranceDetails ?? booking.verifications.insuranceDetails ?? null;
+  const insuranceVerified = isInsuranceVerified(insuranceStatusRaw, insuranceDetails);
+  const insuranceFailed = isInsuranceFailed(insuranceStatusRaw, insuranceDetails);
+  const insuranceLinkAlreadySent =
+    insuranceSent ||
+    insuranceStatusRaw === 'linksent' ||
+    insuranceStatusRaw === 'verifying';
+
+  const holdMsLeft = holdExpiresAt ? new Date(holdExpiresAt).getTime() - nowMs : null;
+  const holdExpired = holdMsLeft != null && holdMsLeft <= 0;
+  const holdCountdownLabel = (() => {
+    if (holdMsLeft == null) return null;
+    if (holdMsLeft <= 0) return 'Expired';
+    const total = Math.floor(holdMsLeft / 1000);
+    const m = Math.floor(total / 60);
+    const s = total % 60;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  })();
+  const requireId = verificationPolicy?.require_id ?? true;
+  // Counts insurance bought through us, not just an extras line. A
+  // renter who paid for Bonzah at checkout was still shown "verify
+  // your insurance" and held behind it.
+  const hasInsuranceExtra = bookingHasInsuranceCover(booking);
+  const requireInsurance =
+    (verificationPolicy?.require_insurance ?? false) && !hasInsuranceExtra;
+  const pendingChecks: string[] = [];
+  if (requireId && !idVerified) pendingChecks.push('verify your ID');
+  if (requireInsurance && !insuranceVerified) pendingChecks.push('verify your insurance');
+  const allRequiredChecksDone = pendingChecks.length === 0;
+  const isReserved = String(booking.status ?? '').toLowerCase() === 'reserved';
+  const manualIdSubmission = latestSubmissionFor(manualSubmissions, 'id');
+  const manualInsuranceSubmission = latestSubmissionFor(manualSubmissions, 'insurance');
+
+  const showInsuranceStep =
+    !hasInsuranceExtra && (requireInsurance || !!booking.hasOwnInsurance);
+
+  const mode: BookingMode =
+    isCancelled
+      ? 'cancelled'
+      : isVerifyFirst
+        ? 'pending_verification'
+        : showPaymentDue
+          ? 'payment_due'
+          : 'confirmed_paid';
+
+  const preTrip = bookingImages.filter((img) => img.imageType === 'preTrip');
+  const postTrip = bookingImages.filter((img) => img.imageType === 'postTrip');
+
+  const agreementSigned = !!agreementApi?.signatureImage;
+  const agreementHref = `${paths.terms}?bookingId=${id}${token ? `&token=${token}` : ''}`;
+
+  const payAmount = isVerifyFirst
+    ? Number(booking.totalPrice) || booking.invoice.total
+    : outstanding;
+
+  return {
+    status: 'ready' as const,
+    ...common,
+    booking,
+    balance,
+    outstanding,
+    isCancelled,
+    isReserved,
+    manualIdSubmission,
+    manualInsuranceSubmission,
+    refetchManual: () =>
+      queryClient.invalidateQueries({ queryKey: ['manualVerifications', fetchId] }),
+    isPaid,
+    showPaymentDue,
+    idVerified,
+    insuranceVerified,
+    insuranceFailed,
+    insuranceDetails,
+    insuranceLinkAlreadySent,
+    holdCountdownLabel,
+    holdExpired,
+    requireId,
+    requireInsurance,
+    showInsuranceStep,
+    allRequiredChecksDone,
+    mode,
+    preTrip,
+    postTrip,
+    agreementSigned,
+    agreementHref,
+    payAmount,
+    idPending,
+    idError,
+    idSent,
+    insurancePending,
+    insuranceError,
+    secondaryDrivers,
+    handlePay,
+    handleSquarePaySubmit,
+    handleIdVerify,
+    handleInsuranceVerify,
+    payLoading,
+    payError,
+    squareModalOpen,
+    setSquareModalOpen,
+    activeProvider,
+  };
+}

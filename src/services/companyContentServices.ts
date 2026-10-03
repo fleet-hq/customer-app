@@ -16,6 +16,11 @@ export interface SocialLink {
   url: string;
 }
 
+/** Which customer-central component tree renders this company's site.
+ *  Both templates consume the exact same content below — this only
+ *  selects the presentational layer. */
+export type WebsiteTemplate = 'template_1' | 'template_2';
+
 export interface BrandTheme {
   primary: string;
   secondary: string;
@@ -86,6 +91,45 @@ export interface FeatureColumnsSection {
   items?: { title: string; description: string }[];
 }
 
+/** Template-2 "company at a glance" band. ``value`` is whatever the
+ *  operator types ("1240+", "4.9", "24/7") — a leading number animates
+ *  up on scroll and any prefix/suffix is preserved verbatim, so no
+ *  separate count/suffix/decimals fields are needed. */
+export interface StatItem {
+  value: string;
+  label: string;
+}
+
+export interface StatsSection {
+  items?: StatItem[];
+}
+
+/** Template-2 "how it works" section — an ordered list, so the step
+ *  numbers are genuinely positional rather than decorative. */
+export interface StepItem {
+  title: string;
+  description: string;
+}
+
+export interface StepsSection {
+  eyebrow?: string;
+  title?: string;
+  items?: StepItem[];
+}
+
+/** Template-2-only presentation settings. Template 2 has structural
+ *  colours (the dark "ink" surfaces, the navy band) that template 1's
+ *  four-colour brand theme has no slot for, and its brass accent
+ *  otherwise just inherits the brand primary — which is why a red-brand
+ *  tenant got a red "brass". Every field is optional and falls back to
+ *  the previous behaviour. Extra template-2 settings belong here too. */
+export interface Template2Settings {
+  brass?: string;
+  brass_bright?: string;
+  ink?: string;
+  band?: string;
+}
+
 export interface CopyBlockSection {
   eyebrow?: string;
   title?: string;
@@ -104,6 +148,9 @@ export interface TestimonialItem {
   name: string;
   role: string;
   initials: string;
+  /** 1–5. Absent means a full five stars, which is what every review
+   *  rendered as before this field existed. */
+  rating?: number;
 }
 
 export interface TestimonialsSection {
@@ -139,8 +186,6 @@ export interface ServicesSection {
   og_description?: string;
   og_image?: string;
   h1?: string;
-  hero_image?: string;
-  image?: string;
   intro?: string[];
   blocks?: ServicesBlock[];
   cta?: { title?: string; description?: string; cta_label?: string; cta_href?: string };
@@ -191,7 +236,6 @@ export interface BlogIndexSection {
   eyebrow?: string;
   heading?: string;
   intro?: string;
-  hero_image?: string;
   meta_title?: string;
   meta_description?: string;
   og_title?: string;
@@ -225,8 +269,6 @@ export interface ContentBlock {
   faqs?: FaqItem[];
   link?: ContentLink;
   is_step?: boolean;
-  image?: string;
-  pills?: string[];
 }
 
 export interface ContentPageMeta {
@@ -260,7 +302,6 @@ export interface ContentPage {
   layout?: 'default' | 'about' | 'contact';
   eyebrow?: string;
   h1?: string;
-  hero_image?: string;
   intro?: string[];
   blocks?: ContentBlock[];
   faqs?: FaqItem[];
@@ -288,6 +329,14 @@ export interface ContentSections {
   promo?: PromoSection | null;
   discount_banner?: DiscountBannerSection | null;
   feature_columns?: FeatureColumnsSection | null;
+  /** Template 2 has a narrative "about the company" block that template
+   *  1 has no equivalent for, so it gets its own key rather than
+   *  overloading why_choose (which supplies the heading above the
+   *  feature columns). */
+  about?: CopyBlockSection | null;
+  template_2?: Template2Settings | null;
+  stats?: StatsSection | null;
+  steps?: StepsSection | null;
   fleet_section?: CopyBlockSection | null;
   why_choose?: CopyBlockSection | null;
   categories?: CategoriesSection | null;

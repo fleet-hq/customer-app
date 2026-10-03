@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useTenant } from '@/lib/tenant-context';
 import { paths } from '@/lib/paths';
 import { Mail, MapPin, Phone } from '@/components/ui/icons';
+import { Dyn } from '@/components/i18n/Dyn';
 
 export function Footer() {
   const tenant = useTenant();
@@ -52,27 +53,27 @@ export function Footer() {
 
           <div>
             <h4 className="mb-4 text-[11px] font-semibold tracking-[0.06em] whitespace-nowrap text-white/50 uppercase">
-              Explore
+              <Dyn>Explore</Dyn>
             </h4>
             <nav className="flex flex-col gap-3">
               <Link href={`${paths.home}#about`} className="text-[13px] text-white/80 transition-colors hover:text-footer-hover">
-                About Us
+                <Dyn>About Us</Dyn>
               </Link>
               <Link href={paths.fleet} className="text-[13px] text-white/80 transition-colors hover:text-footer-hover">
-                Our Fleet
+                <Dyn>Our Fleet</Dyn>
               </Link>
               <Link href={`${paths.home}#faqs`} className="text-[13px] text-white/80 transition-colors hover:text-footer-hover">
-                FAQs
+                <Dyn>FAQs</Dyn>
               </Link>
               <Link href={paths.privacy} className="text-[13px] text-white/80 transition-colors hover:text-footer-hover">
-                Privacy
+                <Dyn>Privacy</Dyn>
               </Link>
             </nav>
           </div>
 
           <div>
             <h4 className="mb-4 text-[11px] font-semibold tracking-[0.06em] whitespace-nowrap text-white/50 uppercase">
-              Get in Touch
+              <Dyn>Get in Touch</Dyn>
             </h4>
             <div className="flex flex-col gap-[13px]">
               {footer.contact.phone ? (
@@ -110,7 +111,7 @@ export function Footer() {
 }
 
 function SocialGlyph({ label }: { label: string }) {
-  const key = (label ?? '').toLowerCase().trim();
+  const key = label.toLowerCase().trim();
 
   if (key === 'x' || key === 'twitter') {
     return (

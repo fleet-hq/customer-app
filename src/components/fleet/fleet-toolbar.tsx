@@ -6,6 +6,8 @@ import { Search, Close, Check } from '@/components/ui/icons';
 import { useClickOutside } from '@/lib/use-click-outside';
 import { cn } from '@/lib/utils';
 import { FleetFilters, type FilterState, type FilterOptions } from '@/components/fleet/fleet-filters';
+import { Dyn } from '@/components/i18n/Dyn';
+import { useDynamicTranslation } from '@/hooks/useDynamicTranslation';
 
 interface FleetToolbarProps {
   heading: string;
@@ -43,6 +45,7 @@ export function FleetToolbar({
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   useClickOutside(panelRef, () => setOpen(false), open);
+  const { t } = useDynamicTranslation(['Clear filter', 'Sort & filter', ...sorts]);
 
   return (
     <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:mb-8 sm:gap-5 md:flex-row md:items-start">
@@ -51,11 +54,11 @@ export function FleetToolbar({
         {isFiltered && (
           <div className="inline-flex items-center gap-2 self-start rounded-full border border-primary-border bg-primary-soft py-[6px] pr-2 pl-[14px]">
             <span className="text-[13px] font-medium text-secondary">
-              Filtered by <span className="font-semibold text-primary">{activeLabel}</span>
+              <Dyn>Filtered by</Dyn> <span className="font-semibold text-primary">{activeLabel}</span>
             </span>
             <Link
               href={clearHref}
-              aria-label="Clear filter"
+              aria-label={t('Clear filter')}
               className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary text-white"
             >
               <Close size={11} strokeWidth={3} />
@@ -77,7 +80,7 @@ export function FleetToolbar({
         <div ref={panelRef} className="relative flex-shrink-0">
           <button
             onClick={() => setOpen((o) => !o)}
-            aria-label="Sort & filter"
+            aria-label={t('Sort & filter')}
             className={cn(
               'relative flex h-[44px] w-[44px] items-center justify-center rounded-[9px] border bg-white text-ink',
               activeFilterCount > 0 ? 'border-primary text-primary' : 'border-line',
@@ -94,7 +97,7 @@ export function FleetToolbar({
           </button>
           {open && (
             <div className="fixed inset-x-0 bottom-0 z-40 max-h-[80vh] overflow-y-auto rounded-t-[14px] border border-line bg-white p-4 shadow-[var(--shadow-pop)] md:absolute md:inset-x-auto md:top-[calc(100%+8px)] md:bottom-auto md:right-0 md:max-h-none md:w-[300px] md:overflow-visible md:rounded-[14px]">
-              <div className="mb-2 px-[3px] text-[10px] font-semibold tracking-[0.05em] text-faint uppercase">Sort by</div>
+              <div className="mb-2 px-[3px] text-[10px] font-semibold tracking-[0.05em] text-faint uppercase"><Dyn>Sort by</Dyn></div>
               <div className="-mx-1">
                 {sorts.map((s) => (
                   <button
@@ -106,7 +109,7 @@ export function FleetToolbar({
                       s === sort ? 'bg-primary-soft font-semibold text-secondary' : 'text-label hover:bg-primary-soft hover:text-secondary',
                     )}
                   >
-                    {s}
+                    {t(s)}
                     {s === sort && <Check size={14} className="text-primary" />}
                   </button>
                 ))}

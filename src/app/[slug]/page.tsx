@@ -41,5 +41,5 @@ export default async function DynamicContentPage({ params }: Params) {
   const tenant = await getCurrentTenant();
   const page = tenant.sections.pages?.[slug];
   if (!page) notFound();
-  return <ContentPage tenant={tenant} page={page} path={`/${slug}`} heroImage={page.hero_image} />;
+  return <ContentPage tenant={tenant} page={page} path={`/${slug}`} />;
 }

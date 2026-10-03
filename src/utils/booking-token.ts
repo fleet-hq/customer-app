@@ -26,6 +26,11 @@ export function clearBookingToken(): void {
 /**
  * Build headers object with X-Booking-Token for post-booking API calls.
  */
+export function getBookingTokenAuthHeaders(): Record<string, string> {
+  const token = getBookingToken();
+  return token ? { 'X-Booking-Token': token } : {};
+}
+
 export function getBookingTokenHeaders(): Record<string, string> {
   const token = getBookingToken();
   const headers: Record<string, string> = {

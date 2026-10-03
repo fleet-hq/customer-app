@@ -1,9 +1,8 @@
-import { headers } from 'next/headers';
 import { unstable_cache } from 'next/cache';
 import { cache } from 'react';
 import axios from 'axios';
 
-import { TENANT_TAG, tenantTag } from './get-tenant';
+import { TENANT_TAG, tenantTag, resolveRequestHost } from './get-tenant';
 import {
   blogSummaryFromApi,
   blogPostFromApi,
@@ -17,13 +16,6 @@ const BACKEND_URL =
   process.env.BACKEND_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
 
 const CACHE_REVALIDATE_SECONDS = 60;
-
-async function currentHost(): Promise<string> {
-  const h = await headers();
-  const paramSlug = (h.get('x-fleethq-tenant-slug') ?? '').toLowerCase();
-  if (paramSlug) return paramSlug;
-  return (h.get('x-forwarded-host') ?? h.get('host') ?? '').toLowerCase();
-}
 
 async function fetchBlogList(host: string): Promise<BlogSummary[]> {
   const res = await axios.get<{ results?: ApiBlogSummary[] } | ApiBlogSummary[]>(
@@ -52,7 +44,7 @@ async function fetchBlogPost(host: string, slug: string): Promise<BlogPost | nul
  *  cache tags so an admin content revalidation busts blogs too, plus a
  *  60s TTL fallback. */
 export const getTenantBlogs = cache(async (): Promise<BlogSummary[]> => {
-  const host = await currentHost();
+  const host = await resolveRequestHost();
   if (!host) return [];
   const cached = unstable_cache(
     () => fetchBlogList(host).catch(() => [] as BlogSummary[]),
@@ -63,7 +55,7 @@ export const getTenantBlogs = cache(async (): Promise<BlogSummary[]> => {
 });
 
 export const getTenantBlogPost = cache(async (slug: string): Promise<BlogPost | null> => {
-  const host = await currentHost();
+  const host = await resolveRequestHost();
   if (!host) return null;
   const cached = unstable_cache(
     () => fetchBlogPost(host, slug),

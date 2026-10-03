@@ -6,7 +6,7 @@ import { JsonLd } from '@/components/seo/json-ld';
 import { ContactActions } from './contact-actions';
 import { MapPin } from '@/components/ui/icons';
 
-export function ContactLayout({ tenant, page, path, heroImage }: { tenant: Tenant; page: ContentPage; path: string; heroImage?: string | null }) {
+export function ContactLayout({ tenant, page, path }: { tenant: Tenant; page: ContentPage; path: string }) {
   const co = (t: string) => withCompany(t, tenant.name);
   const blocks = page.blocks ?? [];
 
@@ -15,16 +15,6 @@ export function ContactLayout({ tenant, page, path, heroImage }: { tenant: Tenan
       <JsonLd data={contentPageSchema(tenant, page, path)} />
 
       <section className="relative overflow-hidden border-b border-hairline bg-secondary">
-        {heroImage ? (
-          <>
-            <div
-              className="absolute inset-0 bg-cover bg-center"
-              aria-hidden="true"
-              style={{ backgroundImage: `url('${heroImage}')` }}
-            />
-            <div className="absolute inset-0 bg-black/55" aria-hidden="true" />
-          </>
-        ) : null}
         <div
           className="pointer-events-none absolute inset-0 opacity-80"
           aria-hidden="true"
@@ -33,7 +23,7 @@ export function ContactLayout({ tenant, page, path, heroImage }: { tenant: Tenan
               'radial-gradient(110% 120% at 90% -20%, color-mix(in srgb, var(--color-primary) 45%, transparent) 0%, transparent 60%)',
           }}
         />
-        <div className={'relative mx-auto w-full max-w-[1080px] px-4 pt-[56px] pb-[48px] sm:px-6 sm:pt-[72px] sm:pb-[56px] ' + (heroImage ? 'flex min-h-[500px] flex-col justify-center sm:min-h-[560px]' : '')}>
+        <div className="relative mx-auto w-full max-w-[1080px] px-4 pt-[56px] pb-[48px] sm:px-6 sm:pt-[72px] sm:pb-[56px]">
           <span className="text-[12px] font-semibold uppercase tracking-[0.1em] text-white/70">
             {co(page.eyebrow || 'Contact')}
           </span>

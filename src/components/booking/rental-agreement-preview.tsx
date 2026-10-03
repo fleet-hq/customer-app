@@ -1,7 +1,8 @@
 'use client';
 
-import DOMPurify from 'dompurify';
 import { SignaturePad } from '@/components/ui/signature-pad';
+import { Dyn } from '@/components/i18n/Dyn';
+import { DynHtml } from '@/components/i18n/DynHtml';
 import type { AgreementData } from '@/services/agreementServices';
 
 const DASH = '—';
@@ -62,7 +63,7 @@ function SpecTable({ rows }: { rows: SpecRow[] }) {
       <tbody>
         {rows.map(([label, value], i) => (
           <tr key={i}>
-            <td className="border border-[#E0E0E0] px-3 py-2 text-[#5D5D5D]">{label}</td>
+            <td className="border border-[#E0E0E0] px-3 py-2 text-[#5D5D5D]"><Dyn>{label}</Dyn></td>
             <td className="border border-[#E0E0E0] px-3 py-2 font-bold text-[#131314]">{value}</td>
           </tr>
         ))}
@@ -250,21 +251,21 @@ export function RentalAgreementPreview({ data, onSignatureChange }: RentalAgreem
                 </div>
               </div>
               <div className="text-right font-normal text-[10px] leading-none text-[#515151] shrink-0">
-                <p className="font-bold text-[10px] text-[#131314] mb-1.5">Vehicle Rental Agreement</p>
+                <p className="font-bold text-[10px] text-[#131314] mb-1.5"><Dyn>Vehicle Rental Agreement</Dyn></p>
                 <div className="space-y-2">
                   <p>
-                    <span>Agreement No.</span>{' '}
+                    <span><Dyn>Agreement No.</Dyn></span>{' '}
                     <span className="font-bold text-[#131314]">{agreementNo(d.id)}</span>
                   </p>
                   <p>
-                    <span>Issued</span> <span className="font-bold text-[#131314]">{issued}</span>
+                    <span><Dyn>Issued</Dyn></span> <span className="font-bold text-[#131314]">{issued}</span>
                   </p>
                 </div>
               </div>
             </div>
           </div>
 
-          <SectionTitle className="mt-12">Parties</SectionTitle>
+          <SectionTitle className="mt-12"><Dyn>Parties</Dyn></SectionTitle>
           <p className="mt-3 text-[10px] sm:text-[12px] leading-[1.6] text-[#131314]">
             This Car Rental Agreement (hereinafter referred to as the{' '}
             <b className="font-bold">“Rental Agreement”</b>) is entered into on{' '}
@@ -279,16 +280,16 @@ export function RentalAgreementPreview({ data, onSignatureChange }: RentalAgreem
             <b className="font-bold">“Parties”</b>).
           </p>
           <p className="mt-3 text-[10px] sm:text-[12px] leading-[1.6] text-[#131314]">
-            This contract outlines the respective rights and obligations of the Parties.
+            <Dyn>This contract outlines the respective rights and obligations of the Parties.</Dyn>
           </p>
 
-          <SectionTitle className="mt-10">RENTAL TERM</SectionTitle>
+          <SectionTitle className="mt-10"><Dyn>RENTAL TERM</Dyn></SectionTitle>
           <SpecTable rows={rentalTerm} />
 
-          <SectionTitle className="mt-10">RENTAL VEHICLE SPECIFICATIONS</SectionTitle>
+          <SectionTitle className="mt-10"><Dyn>RENTAL VEHICLE SPECIFICATIONS</Dyn></SectionTitle>
           <SpecTable rows={vehicleSpecs} />
 
-          <SectionTitle className="mt-8">RENTAL FEES</SectionTitle>
+          <SectionTitle className="mt-8"><Dyn>RENTAL FEES</Dyn></SectionTitle>
           {feeRows.length > 0 ? (
             <SpecTable rows={feeRows} />
           ) : (
@@ -297,9 +298,9 @@ export function RentalAgreementPreview({ data, onSignatureChange }: RentalAgreem
         </Paper>
 
         <Paper>
-          <SectionTitle>Driver Details</SectionTitle>
+          <SectionTitle><Dyn>Driver Details</Dyn></SectionTitle>
           <p className="mt-3 text-[10px] sm:text-[12px] leading-[1.6] text-[#131314]">
-            No additional authorized driver without our prior written consent.
+            <Dyn>No additional authorized driver without our prior written consent.</Dyn>
           </p>
           <div className="mt-4">
             <SpecTable rows={driverDetails} />
@@ -307,7 +308,7 @@ export function RentalAgreementPreview({ data, onSignatureChange }: RentalAgreem
 
           {(d.secondaryDrivers ?? []).map((sd, i) => (
             <div key={i} className="mt-8">
-              <SectionTitle>{`Additional Driver ${i + 1}`}</SectionTitle>
+              <SectionTitle><Dyn>{`Additional Driver ${i + 1}`}</Dyn></SectionTitle>
               <div className="mt-4">
                 <SpecTable
                   rows={[
@@ -326,24 +327,24 @@ export function RentalAgreementPreview({ data, onSignatureChange }: RentalAgreem
             </div>
           ))}
 
-          <SectionTitle className="mt-10">INSURANCE</SectionTitle>
+          <SectionTitle className="mt-10"><Dyn>INSURANCE</Dyn></SectionTitle>
           <SpecTable rows={insuranceRows} />
 
-          <SectionTitle className="mt-10">Terms &amp; Conditions</SectionTitle>
+          <SectionTitle className="mt-10"><Dyn>Terms &amp; Conditions</Dyn></SectionTitle>
           <div className="mt-4 space-y-5">
             {d.clauses.length === 0 ? (
               <p className="text-[12px] leading-[1.6] text-slate-400 text-center">
-                No clauses have been activated yet.
+                <Dyn>No clauses have been activated yet.</Dyn>
               </p>
             ) : (
               d.clauses.map((clause, index) => (
                 <div key={clause.id} className="clause-block">
                   <h4 className="font-bold text-[12px] tracking-tight-2 text-[#131314] mb-2">
-                    {index + 1}. {clause.title}
+                    {index + 1}. <Dyn>{clause.title}</Dyn>
                   </h4>
-                  <div
+                  <DynHtml
+                    html={clause.content}
                     className="text-[12px] leading-[1.6] text-[#131314] prose prose-sm max-w-none"
-                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(clause.content) }}
                   />
                 </div>
               ))
@@ -353,14 +354,14 @@ export function RentalAgreementPreview({ data, onSignatureChange }: RentalAgreem
 
         {d.addendum && d.addendum.sections.length > 0 && (
           <Paper>
-            <SectionTitle>{d.addendum.title}</SectionTitle>
+            <SectionTitle><Dyn>{d.addendum.title}</Dyn></SectionTitle>
             <div className="mt-4 space-y-5">
               {d.addendum.sections.map((sec, index) => (
                 <div key={index} className="clause-block">
                   <h4 className="font-bold text-[12px] tracking-tight-2 text-[#131314] mb-2">
-                    {index + 1}. {sec.heading}
+                    {index + 1}. <Dyn>{sec.heading}</Dyn>
                   </h4>
-                  <p className="text-[12px] leading-[1.6] text-[#131314]">{sec.body}</p>
+                  <p className="text-[12px] leading-[1.6] text-[#131314]"><Dyn>{sec.body}</Dyn></p>
                 </div>
               ))}
             </div>
@@ -368,15 +369,13 @@ export function RentalAgreementPreview({ data, onSignatureChange }: RentalAgreem
         )}
 
         <Paper>
-          <SectionTitle>SIGNATURE AND DATE</SectionTitle>
+          <SectionTitle><Dyn>SIGNATURE AND DATE</Dyn></SectionTitle>
           <p className="mt-3 text-[10px] sm:text-[12px] leading-[1.6] text-[#131314]">
-            <b className="font-bold">IN WITNESS WHEREOF</b>, the parties have executed this Vehicle Rental
-            Agreement as of the date first written above. By signing, the renter party acknowledges that they
-            have read, understand, and agree to be bound by all terms and conditions contained herein.
+            <b className="font-bold"><Dyn>IN WITNESS WHEREOF</Dyn></b><Dyn>, the parties have executed this Vehicle Rental Agreement as of the date first written above. By signing, the renter party acknowledges that they have read, understand, and agree to be bound by all terms and conditions contained herein.</Dyn>
           </p>
 
           <div className="mt-8">
-            <p className="font-bold text-[12px] tracking-tight-2 text-[#131314] mb-2">Renter&apos;s Signature</p>
+            <p className="font-bold text-[12px] tracking-tight-2 text-[#131314] mb-2"><Dyn>Renter&apos;s Signature</Dyn></p>
             {d.signatureImage ? (
               <>
                 <div className="w-[200px] h-20 border border-[#E0E0E0] flex items-center justify-center p-1">
@@ -384,7 +383,7 @@ export function RentalAgreementPreview({ data, onSignatureChange }: RentalAgreem
                   <img src={d.signatureImage} alt="" className="max-w-full max-h-full object-contain" />
                 </div>
                 <p className="mt-3 text-[12px] text-[#131314]">
-                  <span className="text-[#7D7D7D]">Signed</span>{' '}
+                  <span className="text-[#7D7D7D]"><Dyn>Signed</Dyn></span>{' '}
                   <span className="font-bold text-[#131314] ml-1">
                     {fmtDateLong(d.signedAt, d.timezone)}
                   </span>

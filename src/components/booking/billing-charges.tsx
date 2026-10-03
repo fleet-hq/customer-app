@@ -1,6 +1,7 @@
 'use client';
 
 import type { BillingChargeRow } from '@/services/billingServices';
+import { Dyn } from '@/components/i18n/Dyn';
 import { cn, money } from '@/lib/utils';
 
 const CHARGE_TYPE_LABELS: Record<string, string> = {
@@ -31,18 +32,18 @@ export function StatusPill({ charge }: { charge: BillingChargeRow }) {
   const base =
     'inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide';
   if (charge.is_voided || charge.status === 'voided') {
-    return <span className={cn(base, 'bg-chip text-faint')}>Voided</span>;
+    return <span className={cn(base, 'bg-chip text-faint')}><Dyn>Voided</Dyn></span>;
   }
   if (charge.status === 'paid') {
-    return <span className={cn(base, 'bg-green-bg-2 text-success')}>Paid</span>;
+    return <span className={cn(base, 'bg-green-bg-2 text-success')}><Dyn>Paid</Dyn></span>;
   }
   if (charge.status === 'partially_paid') {
-    return <span className={cn(base, 'bg-amber-bg text-amber-text-2')}>Partial</span>;
+    return <span className={cn(base, 'bg-amber-bg text-amber-text-2')}><Dyn>Partial</Dyn></span>;
   }
   if (charge.status === 'refunded' || charge.status === 'partially_refunded') {
-    return <span className={cn(base, 'bg-track text-glyph')}>Refunded</span>;
+    return <span className={cn(base, 'bg-track text-glyph')}><Dyn>Refunded</Dyn></span>;
   }
-  return <span className={cn(base, 'bg-amber-bg text-amber-text-2')}>Pending</span>;
+  return <span className={cn(base, 'bg-amber-bg text-amber-text-2')}><Dyn>Pending</Dyn></span>;
 }
 
 export function ChargeRow({ charge }: { charge: BillingChargeRow }) {
@@ -51,7 +52,7 @@ export function ChargeRow({ charge }: { charge: BillingChargeRow }) {
     <div className="flex items-center justify-between gap-4 px-5 py-[14px]">
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <p className="truncate text-[13.5px] font-semibold text-ink">{label}</p>
+          <p className="truncate text-[13.5px] font-semibold text-ink"><Dyn>{label}</Dyn></p>
           <StatusPill charge={charge} />
         </div>
         {charge.description ? (
@@ -90,9 +91,9 @@ export function OutstandingChargesCard({
   return (
     <div className="rounded-2xl border border-card-border bg-white p-0 overflow-hidden">
       <div className="flex items-center justify-between px-5 py-4 border-b border-card-border">
-        <span className="text-[15px] font-semibold text-ink">Outstanding charges</span>
+        <span className="text-[15px] font-semibold text-ink"><Dyn>Outstanding charges</Dyn></span>
         <span className="text-[11px] font-medium text-faint">
-          {outstanding.length} {outstanding.length === 1 ? 'charge' : 'charges'} due
+          {outstanding.length} <Dyn>{outstanding.length === 1 ? 'charge' : 'charges'}</Dyn> <Dyn>due</Dyn>
         </span>
       </div>
       <div className="divide-y divide-card-border">
@@ -106,7 +107,7 @@ export function OutstandingChargesCard({
             href={paymentPendingHref}
             className="text-[12px] font-semibold text-primary hover:underline"
           >
-            View all charges &amp; payment history →
+            <Dyn>View all charges &amp; payment history →</Dyn>
           </a>
         </div>
       ) : null}

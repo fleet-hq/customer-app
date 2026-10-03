@@ -1,266 +1,22 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { use } from 'react';
 import { BackLink } from '@/components/ui/back-link';
 import { VerifyFirstConfirm } from '@/components/booking/verify-first-confirm';
-import { useBookingDetails, useBookingDrivers } from '@/hooks/useBooking';
-import { useBookingBalance } from '@/hooks/useBookingBalance';
-import { useAgreementByBooking } from '@/hooks/useAgreements';
-import { useBookingImages } from '@/hooks/useTripImages';
-import {
-  useVerificationStatus,
-  useCreateIdentityVerification,
-  useCreateInsuranceVerification,
-} from '@/hooks/useVerification';
-import {
-  useBookingVerificationPolicy,
-  useStartVerificationFirstPayment,
-} from '@/hooks/useBookingPolicy';
-import {
-  HoldExpiredError,
-  VerificationIncompleteError,
-} from '@/services/bookingPolicyServices';
-import { isInsuranceFailed, isInsuranceVerified } from '@/services/bookingServices';
-import { squareCreatePaymentForVerifyFirst } from '@/services/squarePaymentServices';
-import { createBillingCheckoutSession } from '@/services/billingServices';
-import { bookingHasInsuranceExtra } from '@/lib/insurance-extras';
-import { setBookingToken } from '@/utils/booking-token';
-import { paths } from '@/lib/paths';
-import { usePublicPaymentProviders } from '@/hooks';
-import { useTenant } from '@/lib/tenant-context';
 import { SquarePayModal } from '@/components/booking/square-pay-modal';
-import { useQueryClient } from '@tanstack/react-query';
+import { paths } from '@/lib/paths';
+import { useBookingDetail } from './use-booking-detail';
+import BookingDetailClientT2 from './booking-detail-client-t2';
 
 export default function BookingPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const searchParams = useSearchParams();
-  const token = searchParams.get('token');
-  const providerParam = searchParams.get('provider');
-  const providerOverride: 'stripe' | 'square' | undefined =
-    providerParam === 'stripe' || providerParam === 'square' ? providerParam : undefined;
-  const [tokenReady, setTokenReady] = useState(!token);
+  const bd = useBookingDetail(id);
 
-  useEffect(() => {
-    if (token) {
-      setBookingToken(token);
-      setTokenReady(true);
-    }
-  }, [token]);
+  if (bd.tenant.websiteTemplate === 'template_2') {
+    return <BookingDetailClientT2 id={id} />;
+  }
 
-  const fetchId = tokenReady ? id : undefined;
-
-  const [insuranceSent, setInsuranceSent] = useState(false);
-  const [idSent, setIdSent] = useState(false);
-  const [idError, setIdError] = useState<string | null>(null);
-  const [insuranceError, setInsuranceError] = useState<string | null>(null);
-
-  const { data: booking, isLoading, isError } = useBookingDetails(fetchId);
-  const { data: balance } = useBookingBalance(!!fetchId, id);
-  const { data: verificationStatus } = useVerificationStatus(fetchId, {
-    pollFast: idSent || insuranceSent,
-  });
-  const { data: agreementApi } = useAgreementByBooking(fetchId);
-  const { data: secondaryDrivers } = useBookingDrivers(fetchId);
-  const { data: bookingImages = [] } = useBookingImages(fetchId);
-  const { data: verificationPolicy } = useBookingVerificationPolicy();
-  const { mutateAsync: startVerifyFirstPayment } = useStartVerificationFirstPayment();
-
-  const { mutate: createIdVerification, isPending: idPending } = useCreateIdentityVerification();
-  const { mutate: createInsuranceVerification, isPending: insurancePending } =
-    useCreateInsuranceVerification();
-
-  const [nowMs, setNowMs] = useState<number>(() => Date.now());
-
-  const isVerifyFirst = booking?.status === 'pending_verification';
-  const holdExpiresAt = booking?.holdExpiresAt;
-  useEffect(() => {
-    if (!isVerifyFirst || !holdExpiresAt) return;
-    const intervalId = setInterval(() => setNowMs(Date.now()), 1000);
-    return () => clearInterval(intervalId);
-  }, [isVerifyFirst, holdExpiresAt]);
-
-  const [payLoading, setPayLoading] = useState(false);
-  const [payError, setPayError] = useState<string | null>(null);
-  const [squareModalOpen, setSquareModalOpen] = useState(false);
-  const queryClient = useQueryClient();
-
-  useEffect(() => {
-    if (!fetchId) return;
-    const onVisible = () => {
-      if (document.visibilityState !== 'visible') return;
-      queryClient.invalidateQueries({ queryKey: ['booking', fetchId] });
-      queryClient.invalidateQueries({ queryKey: ['verificationStatus', fetchId] });
-    };
-    document.addEventListener('visibilitychange', onVisible);
-    window.addEventListener('focus', onVisible);
-    return () => {
-      document.removeEventListener('visibilitychange', onVisible);
-      window.removeEventListener('focus', onVisible);
-    };
-  }, [fetchId, queryClient]);
-  const tenant = useTenant();
-  const { data: providersData } = usePublicPaymentProviders();
-  const activeProvider: 'stripe' | 'square' =
-    providerOverride
-      ?? (providersData?.providers?.[0] as 'stripe' | 'square')
-      ?? 'stripe';
-
-  const handlePay = async () => {
-    if (payLoading) return;
-    setPayError(null);
-    if (
-      isVerifyFirst
-      && token
-      && activeProvider === 'square'
-      && providersData?.square
-    ) {
-      setSquareModalOpen(true);
-      return;
-    }
-    setPayLoading(true);
-    try {
-      const cancelUrl = buildBookingReturnUrl(id, token);
-      const successUrl = buildBookingSuccessUrl();
-      const checkoutUrl =
-        isVerifyFirst && token
-          ? (
-              await startVerifyFirstPayment({
-                bookingId: Number(id),
-                accessToken: token,
-                successUrl,
-                cancelUrl,
-                provider: providerOverride,
-              })
-            ).checkout_url
-          : (
-              await createBillingCheckoutSession({
-                successUrl: cancelUrl,
-                cancelUrl,
-              })
-            ).checkout_url;
-      window.location.href = checkoutUrl;
-    } catch (err) {
-      setPayError(messageForPaymentError(err));
-      setPayLoading(false);
-    }
-  };
-
-  const handleSquarePaySubmit = async (args: {
-    paymentSourceId: string;
-    saveCardSourceId: string | null;
-    consentCopy: string;
-  }) => {
-    if (!token || !booking) return;
-    setPayLoading(true);
-    setPayError(null);
-    try {
-      await squareCreatePaymentForVerifyFirst({
-        bookingId: Number(id),
-        accessToken: token,
-        sourceId: args.paymentSourceId,
-        currency: 'usd',
-        deposit: args.saveCardSourceId
-          ? { saveCardSourceId: args.saveCardSourceId, consentCopy: args.consentCopy }
-          : null,
-      });
-      setSquareModalOpen(false);
-      await queryClient.invalidateQueries();
-      window.location.href = `/booking/${id}?token=${encodeURIComponent(token)}`;
-    } catch (err) {
-      setPayError(messageForPaymentError(err));
-    } finally {
-      setPayLoading(false);
-    }
-  };
-
-  const handleIdVerify = () => {
-    if (!booking) return;
-    setIdError(null);
-    // Open the target window synchronously in this click handler so
-    // the browser keeps the user-gesture context; async ``window.open``
-    // calls inside a mutation callback are consistently popup-blocked.
-    // The window sits on ``about:blank`` until Stripe's session URL
-    // comes back, then we redirect it.
-    //
-    // We deliberately do NOT pass ``noopener``/``noreferrer`` here —
-    // both cause ``window.open`` to return null, which was leaving the
-    // blank placeholder tab orphaned. Instead we null out
-    // ``verifyWindow.opener`` right after the redirect to sever the
-    // tabnabbing surface manually; the target is Stripe Identity so the
-    // trust boundary is fine.
-    const verifyWindow = window.open("", "_blank");
-    createIdVerification(
-      { customerId: booking.customerId },
-      {
-        onSuccess: (data) => {
-          if (!data.url) {
-            verifyWindow?.close();
-            return;
-          }
-          setIdSent(true);
-          if (verifyWindow && !verifyWindow.closed) {
-            try {
-              verifyWindow.opener = null;
-            } catch {
-              // Cross-origin write can throw once the URL loads — safe to
-              // swallow because at that point we've already handed off.
-            }
-            verifyWindow.location.href = data.url;
-          } else {
-            // Placeholder tab was blocked or closed by the user — fall
-            // back to a fresh tab. Still never the current tab, so the
-            // half-completed booking flow is preserved either way.
-            window.open(data.url, "_blank", "noopener,noreferrer");
-          }
-        },
-        onError: () => {
-          verifyWindow?.close();
-          setIdError("Failed to start verification. Please try again.");
-        },
-      },
-    );
-  };
-
-  const handleInsuranceVerify = () => {
-    if (!booking) return;
-    setInsuranceError(null);
-    const verifyWindow = window.open("", "_blank");
-    createInsuranceVerification(
-      {
-        customerId: booking.customerId,
-        rentalStartDate: booking.pickUp.rawDatetime.slice(0, 10),
-        rentalEndDate: booking.dropOff.rawDatetime.slice(0, 10),
-        bookingId: id,
-      },
-      {
-        onSuccess: (data) => {
-          const url = data.magicLink;
-          if (!url) {
-            verifyWindow?.close();
-            return;
-          }
-          setInsuranceSent(true);
-          if (verifyWindow && !verifyWindow.closed) {
-            try {
-              verifyWindow.opener = null;
-            } catch {
-              /* cross-origin write after nav — safe to swallow */
-            }
-            verifyWindow.location.href = url;
-          } else {
-            window.open(url, "_blank", "noopener,noreferrer");
-          }
-        },
-        onError: () => {
-          verifyWindow?.close();
-          setInsuranceError('Failed to create insurance verification. Please try again.');
-        },
-      },
-    );
-  };
-
-  if (!tokenReady || isLoading) {
+  if (bd.status === 'loading') {
     return (
       <div className="flex min-h-screen flex-col bg-white text-ink">
         <div className="mx-auto flex w-full max-w-[1140px] flex-1 flex-col items-center justify-center gap-4 px-6 py-32">
@@ -271,79 +27,98 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
     );
   }
 
-  if (isError || !booking) {
+  if (bd.status === 'link-expired') {
     return (
       <div className="flex min-h-screen flex-col bg-white text-ink">
         <div className="mx-auto w-full max-w-[1140px] flex-1 px-6 pt-[22px] pb-16">
           <BackLink href={paths.home}>Back to home</BackLink>
           <div className="mt-16 text-center">
-            <h1 className="text-2xl font-semibold text-ink">Booking not found</h1>
-            <p className="mt-3 text-sm text-muted">
-              We couldn’t load this booking. Please use the link from your confirmation email.
+            <h1 className="text-2xl font-semibold text-ink">This booking link has expired</h1>
+            <p className="mx-auto mt-3 max-w-md text-sm text-muted">
+              For your security, booking links stop working once the trip is over.
+              Your booking is safe — look it up with your booking reference and
+              email to carry on.
             </p>
+            <a
+              href={paths.manage}
+              className="mt-6 inline-flex items-center justify-center rounded-[9px] bg-primary px-6 py-3 text-[13px] font-semibold text-white hover:bg-primary-hover"
+            >
+              Manage your booking
+            </a>
           </div>
         </div>
       </div>
     );
   }
 
-  const outstanding = Number(balance?.outstanding_balance ?? 0);
-  const isCancelled = booking.status === 'cancelled';
-  const isPaid = booking.paymentStatus === 'paid' && outstanding <= 0;
-  const showPaymentDue = outstanding > 0;
+  if (bd.status === 'not-found') {
+    return (
+      <div className="flex min-h-screen flex-col bg-white text-ink">
+        <div className="mx-auto w-full max-w-[1140px] flex-1 px-6 pt-[22px] pb-16">
+          <BackLink href={paths.home}>Back to home</BackLink>
+          <div className="mt-16 text-center">
+            <h1 className="text-2xl font-semibold text-ink">Booking not found</h1>
+            <p className="mx-auto mt-3 max-w-md text-sm text-muted">
+              We couldn’t load this booking. Check the link from your confirmation
+              email, or look it up with your booking reference and email.
+            </p>
+            <a
+              href={paths.manage}
+              className="mt-6 inline-flex items-center justify-center rounded-[9px] border border-card-border px-6 py-3 text-[13px] font-semibold text-secondary hover:bg-subtle"
+            >
+              Manage your booking
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-  const idVerified = (verificationStatus?.idVerification ?? booking.verifications.idVerification) === 'verified';
-  const insuranceStatusRaw =
-    verificationStatus?.insuranceVerification ?? booking.verifications.insuranceVerification;
-  const insuranceDetails =
-    verificationStatus?.insuranceDetails ?? booking.verifications.insuranceDetails ?? null;
-  const insuranceVerified = isInsuranceVerified(insuranceStatusRaw, insuranceDetails);
-  const insuranceFailed = isInsuranceFailed(insuranceStatusRaw, insuranceDetails);
-  const insuranceLinkAlreadySent =
-    insuranceSent ||
-    insuranceStatusRaw === 'linksent' ||
-    insuranceStatusRaw === 'verifying';
-
-  const holdMsLeft = holdExpiresAt ? new Date(holdExpiresAt).getTime() - nowMs : null;
-  const holdExpired = holdMsLeft != null && holdMsLeft <= 0;
-  const holdCountdownLabel = (() => {
-    if (holdMsLeft == null) return null;
-    if (holdMsLeft <= 0) return 'Expired';
-    const total = Math.floor(holdMsLeft / 1000);
-    const m = Math.floor(total / 60);
-    const s = total % 60;
-    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-  })();
-  const requireId = verificationPolicy?.require_id ?? true;
-  const hasInsuranceExtra = bookingHasInsuranceExtra(booking);
-  const requireInsurance =
-    (verificationPolicy?.require_insurance ?? false) && !hasInsuranceExtra;
-  const pendingChecks: string[] = [];
-  if (requireId && !idVerified) pendingChecks.push('verify your ID');
-  if (requireInsurance && !insuranceVerified) pendingChecks.push('verify your insurance');
-  const allRequiredChecksDone = pendingChecks.length === 0;
-
-  const showInsuranceStep =
-    !hasInsuranceExtra && (requireInsurance || !!booking.hasOwnInsurance);
-
-  const mode: 'pending_verification' | 'payment_due' | 'confirmed_paid' | 'cancelled' =
-    isCancelled
-      ? 'cancelled'
-      : isVerifyFirst
-        ? 'pending_verification'
-        : showPaymentDue
-          ? 'payment_due'
-          : 'confirmed_paid';
-
-  const preTrip = bookingImages.filter((img) => img.imageType === 'preTrip');
-  const postTrip = bookingImages.filter((img) => img.imageType === 'postTrip');
-
-  const agreementSigned = !!agreementApi?.signatureImage;
-  const agreementHref = `${paths.terms}?bookingId=${id}${token ? `&token=${token}` : ''}`;
-
-  const payAmount = isVerifyFirst
-    ? Number(booking.totalPrice) || booking.invoice.total
-    : outstanding;
+  const {
+    booking,
+    balance,
+    outstanding,
+    mode,
+    holdCountdownLabel,
+    holdExpired,
+    idVerified,
+    insuranceVerified,
+    insuranceFailed,
+    insuranceDetails,
+    showInsuranceStep,
+    requireId,
+    requireInsurance,
+    idPending,
+    idError,
+    idSent,
+    insurancePending,
+    insuranceError,
+    insuranceLinkAlreadySent,
+    allRequiredChecksDone,
+    handlePay,
+    payLoading,
+    payError,
+    agreementSigned,
+    agreementHref,
+    secondaryDrivers,
+    tokenReady,
+    isCancelled,
+    isReserved,
+    manualIdSubmission,
+    manualInsuranceSubmission,
+    refetchManual,
+    preTrip,
+    postTrip,
+    token,
+    providersData,
+    tenant,
+    payAmount,
+    squareModalOpen,
+    setSquareModalOpen,
+    handleSquarePaySubmit,
+    handleIdVerify,
+    handleInsuranceVerify,
+  } = bd;
 
   return (
     <>
@@ -385,6 +160,10 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
       canModify={booking.canModify}
       preTripPhotos={preTrip}
       postTripPhotos={postTrip}
+      isReserved={isReserved}
+      manualIdSubmission={manualIdSubmission}
+      manualInsuranceSubmission={manualInsuranceSubmission}
+      onManualUploaded={refetchManual}
       canUploadPhotos={tokenReady && !isCancelled}
     />
     {providersData?.square && (
@@ -405,27 +184,4 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
     )}
     </>
   );
-}
-
-function buildBookingReturnUrl(id: string, token: string | null) {
-  const origin = typeof window !== 'undefined' ? window.location.origin : '';
-  return `${origin}/booking/${id}${token ? `?token=${token}` : ''}`;
-}
-
-function buildBookingSuccessUrl() {
-  const origin = typeof window !== 'undefined' ? window.location.origin : '';
-  return `${origin}/booking/success?session_id={CHECKOUT_SESSION_ID}`;
-}
-
-function messageForPaymentError(err: unknown): string {
-  if (err instanceof VerificationIncompleteError) {
-    const labels = err.missing.map((m) =>
-      m === 'identity' ? 'ID verification' : 'insurance verification',
-    );
-    return `Please complete: ${labels.join(' and ')}.`;
-  }
-  if (err instanceof HoldExpiredError) {
-    return 'This booking hold has expired. Please start a new booking.';
-  }
-  return 'Could not start payment. Please try again.';
 }

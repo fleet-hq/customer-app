@@ -4,20 +4,35 @@ import Link from 'next/link';
 import { Check, Clock, Close, Download, IdCard, Pencil, ShieldCheck, Swap } from '@/components/ui/icons';
 import { BackLink } from '@/components/ui/back-link';
 import { cn, money } from '@/lib/utils';
+import { Dyn } from '@/components/i18n/Dyn';
 import { insuranceCoverageLines } from '@/lib/insurance-lines';
 import { paths } from '@/lib/paths';
 import { TripPhotos } from '@/components/booking/side-panels';
 import type { BookingDetails, BookingDriver, InsuranceVerificationDetails } from '@/services/bookingServices';
+import type {
+  ManualVerificationKind,
+  ManualVerificationSubmission,
+} from '@/services/manualVerificationServices';
+import { ManualVerificationModal } from './manual-verification-modal';
 import SecondaryDriverVerification from '@/components/booking/secondary-driver-verification';
 import { FailedInsurancePanel } from '@/components/booking/failed-insurance-panel';
 import { useState } from 'react';
 import type { BillingChargeRow } from '@/services/billingServices';
 import type { TripImage } from '@/services/tripImageServices';
+import { useTenant } from '@/lib/tenant-context';
 
 const PLACEHOLDER_IMAGE = '/images/vehicles/car_placeholder.svg';
 
 const FAILED_PILL_CLASSES = 'bg-[#FEF3F2] text-[#B42318]';
 const FAILED_BUTTON_CLASSES = 'bg-[#FEF3F2] text-[#B42318] hover:bg-[#FEE4E2]';
+const T2_FAILED_PILL_CLASSES =
+  'bg-[color-mix(in_srgb,var(--danger)_16%,var(--card))] text-[var(--danger)]';
+const T2_FAILED_BUTTON_CLASSES =
+  'bg-[color-mix(in_srgb,var(--danger)_14%,var(--card))] text-[var(--danger)] hover:bg-[color-mix(in_srgb,var(--danger)_22%,var(--card))]';
+
+function useIsT2(): boolean {
+  return useTenant().websiteTemplate === 'template_2';
+}
 
 function rentalDays(booking: BookingDetails): number {
   const start = new Date(booking.pickUp.rawDatetime).getTime();
@@ -45,7 +60,7 @@ function shortLocation(address: string): string {
   return parts.slice(-2).join(', ');
 }
 
-type BookingMode =
+export type BookingMode =
   | 'pending_verification'
   | 'payment_due'
   | 'confirmed_paid'
@@ -58,8 +73,6 @@ interface Props {
   outstanding: number;
   charges: BillingChargeRow[];
   paymentPendingHref: string;
-
-  // pending_verification props (ignored in other modes)
   holdCountdownLabel: string | null;
   holdExpired: boolean;
   idVerified: boolean;
@@ -78,13 +91,9 @@ interface Props {
   insuranceFailureDetails: InsuranceVerificationDetails | null;
   onInsuranceVerify: () => void;
   allRequiredChecksDone: boolean;
-
-  // pay flow
   onPay: () => void;
   payLoading: boolean;
   payError: string | null;
-
-  // agreement + actions + photos
   agreementSigned: boolean;
   agreementHref: string | null;
   bookingId: string;
@@ -96,13 +105,22 @@ interface Props {
   preTripPhotos: TripImage[];
   postTripPhotos: TripImage[];
   canUploadPhotos: boolean;
+  isReserved: boolean;
+  manualIdSubmission: ManualVerificationSubmission | null;
+  manualInsuranceSubmission: ManualVerificationSubmission | null;
+  onManualUploaded: () => void;
 }
 
 export function VerifyFirstConfirm(props: Props) {
+  const isT2 = useIsT2();
   const {
     booking,
     backHref,
     mode,
+    isReserved,
+    manualIdSubmission,
+    manualInsuranceSubmission,
+    onManualUploaded,
     outstanding,
     charges,
     paymentPendingHref,
@@ -163,7 +181,13 @@ export function VerifyFirstConfirm(props: Props) {
   // total — the older formula then multiplied by ``days`` a second time,
   // rendering "$total × N days = $total × N" (e.g. $50/day × 3 days
   // showed as $150 × 3 = $450).
+  // Gross, because this summary lists the discount as its own
+  // subtraction a few lines below. Using the net total showed the
+  // discount twice: booking 794 read "$220.00 x 18 days" (the
+  // discounted rate) and then "-$3,960.00", so the visible lines came
+  // to $913.60 against a stated total of $4,873.60.
   const rentalLine =
+    inv.rentalGross ||
     inv.rentalTotal ||
     inv.items.reduce(
       (sum, it) => sum + Number(it.pricePerDay || 0) * (it.quantity || 1),
@@ -215,24 +239,39 @@ export function VerifyFirstConfirm(props: Props) {
     lineItems.push({ label: 'Taxes', value: inv.tax });
   }
 
+  const outstandingId = requireId && !idVerified;
+  const outstandingInsurance = insuranceBlocking && !insuranceVerified;
   const modeCopy = getModeCopy(mode, {
     email: booking.customer.email,
     outstanding,
     requireId,
     requireInsurance: insuranceBlocking,
+    isReserved,
+    outstandingId,
+    outstandingInsurance,
   });
 
   return (
-    <div className="bg-white text-ink">
+    <div className={cn(isT2 ? 'bg-[var(--paper)] text-[var(--text)]' : 'bg-white text-ink')}>
       <div className="mx-auto max-w-[1180px] px-4 pt-5 pb-16 sm:px-6">
-        <BackLink href={backHref}>{modeCopy.backLabel}</BackLink>
+        <BackLink href={backHref}><Dyn>{modeCopy.backLabel}</Dyn></BackLink>
 
         <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-4">
           <div className="min-w-0 flex-1">
-            <h1 className="text-[22px] leading-[1.2] font-semibold tracking-[-0.01em] text-ink sm:text-[28px]">
+            <h1
+              className={cn(
+                'text-[22px] leading-[1.2] font-semibold tracking-[-0.01em] sm:text-[28px]',
+                isT2 ? 'text-[var(--text)]' : 'text-ink',
+              )}
+            >
               {modeCopy.title(booking.invoice.number)}
             </h1>
-            <p className="mt-2 text-[12.5px] leading-[1.5] text-muted sm:text-[13.5px] sm:leading-[1.55]">
+            <p
+              className={cn(
+                'mt-2 text-[12.5px] leading-[1.5] sm:text-[13.5px] sm:leading-[1.55]',
+                isT2 ? 'text-[var(--text-muted)]' : 'text-muted',
+              )}
+            >
               {modeCopy.subtitle}
             </p>
           </div>
@@ -256,6 +295,9 @@ export function VerifyFirstConfirm(props: Props) {
           outstanding={outstanding}
           requireId={requireId}
           requireInsurance={insuranceBlocking}
+          isReserved={isReserved}
+          outstandingId={outstandingId}
+          outstandingInsurance={outstandingInsurance}
         />
 
         <div className="mt-6 grid grid-cols-1 items-start gap-6 lg:grid-cols-[1.55fr_1fr]">
@@ -273,43 +315,53 @@ export function VerifyFirstConfirm(props: Props) {
             />
 
             {requiredCount > 0 && (
-              <div className="rounded-2xl border border-card-border bg-white p-5">
+              <div
+                className={cn(
+                  'rounded-2xl border p-5',
+                  isT2 ? 'rounded-[3px] border-[var(--line)] bg-[var(--card)]' : 'border-card-border bg-white',
+                )}
+              >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <h3 className="text-[16px] font-bold text-ink">
-                      {doneCount === requiredCount
+                    <h3 className={cn('text-[16px] font-bold', isT2 ? 'text-[var(--text)]' : 'text-ink')}>
+                      <Dyn>{doneCount === requiredCount
                         ? 'Verifications complete'
-                        : 'Complete verification'}
+                        : 'Complete verification'}</Dyn>
                     </h3>
-                    <p className="mt-1 text-[12.5px] text-muted">
-                      {mode === 'pending_verification'
+                    <p className={cn('mt-1 text-[12.5px]', isT2 ? 'text-[var(--text-muted)]' : 'text-muted')}>
+                      <Dyn>{mode === 'pending_verification'
                         ? 'Both steps must be verified before you can pay and confirm.'
                         : doneCount === requiredCount
                           ? "You're fully verified for this rental."
-                          : 'ID and insurance verification for this rental.'}
+                          : 'ID and insurance verification for this rental.'}</Dyn>
                     </p>
                   </div>
                   <p
                     className={cn(
                       'text-[12.5px] font-semibold',
-                      doneCount === requiredCount
-                        ? 'text-success'
-                        : 'text-amber-text-2',
+                      isT2
+                        ? doneCount === requiredCount ? 'text-[var(--success)]' : 'text-[var(--brass)]'
+                        : doneCount === requiredCount ? 'text-success' : 'text-amber-text-2',
                     )}
                   >
-                    {doneCount} of {requiredCount} verified
+                    {doneCount} <Dyn>of</Dyn> {requiredCount} <Dyn>verified</Dyn>
                   </p>
                 </div>
-                <div className="mt-4 h-1 overflow-hidden rounded-full bg-track">
+                <div
+                  className={cn(
+                    'mt-4 h-1 overflow-hidden rounded-full',
+                    isT2 ? 'bg-[var(--line)]' : 'bg-track',
+                  )}
+                >
                   <div
-                    className="h-full rounded-full bg-success transition-all"
+                    className={cn('h-full rounded-full transition-all', isT2 ? 'bg-[var(--success)]' : 'bg-success')}
                     style={{ width: `${(doneCount / requiredCount) * 100}%` }}
                   />
                 </div>
                 <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
                   {requireId && (
                     <VerifySubCard
-                      icon={<IdCard size={18} className="text-muted" />}
+                      icon={<IdCard size={18} className={isT2 ? 'text-[var(--text-muted)]' : 'text-muted'} />}
                       title="ID verification"
                       description="Add your driver's license details so we can confirm your identity."
                       verified={idVerified}
@@ -317,11 +369,16 @@ export function VerifyFirstConfirm(props: Props) {
                       error={idError}
                       linkSent={idLinkSent}
                       onVerify={onIdVerify}
+                      manualKind="id"
+                      manualSubmission={manualIdSubmission}
+                      onManualUploaded={onManualUploaded}
+                      automatedLabel="Verify through Stripe"
+                      automatedDescription="Scan your licence with Stripe Identity. Usually instant."
                     />
                   )}
                   {requireInsurance && (
                     <VerifySubCard
-                      icon={<ShieldCheck size={18} className="text-muted" />}
+                      icon={<ShieldCheck size={18} className={isT2 ? 'text-[var(--text-muted)]' : 'text-muted'} />}
                       title="Insurance verification"
                       description="Add your coverage details or confirm the plan you selected."
                       verified={insuranceVerified}
@@ -330,6 +387,11 @@ export function VerifyFirstConfirm(props: Props) {
                       failed={insuranceFailed}
                       failureDetails={insuranceFailureDetails}
                       onVerify={onInsuranceVerify}
+                      manualKind="insurance"
+                      manualSubmission={manualInsuranceSubmission}
+                      onManualUploaded={onManualUploaded}
+                      automatedLabel="Verify through Modives"
+                      automatedDescription="We look your policy up with your insurer automatically."
                     />
                   )}
                 </div>
@@ -370,8 +432,15 @@ export function VerifyFirstConfirm(props: Props) {
           </div>
 
           <aside className="flex flex-col gap-4">
-            <div className="rounded-2xl border border-card-border bg-white p-5">
-              <h3 className="text-[16px] font-bold text-ink">Price summary</h3>
+            <div
+              className={cn(
+                'rounded-2xl border p-5',
+                isT2 ? 'rounded-[3px] border-[var(--line)] bg-[var(--card)]' : 'border-card-border bg-white',
+              )}
+            >
+              <h3 className={cn('text-[16px] font-bold', isT2 ? 'text-[var(--text)]' : 'text-ink')}>
+                <Dyn>Price summary</Dyn>
+              </h3>
               <div className="mt-4 flex flex-col gap-3">
                 {lineItems.map((item) => (
                   <div
@@ -379,24 +448,38 @@ export function VerifyFirstConfirm(props: Props) {
                     className="flex items-start justify-between gap-3 text-[13px]"
                   >
                     <div className="min-w-0">
-                      <p className="text-ink">{item.label}</p>
+                      <p className={isT2 ? 'text-[var(--text)]' : 'text-ink'}><Dyn>{item.label}</Dyn></p>
                       {item.sub && (
-                        <p className="mt-0.5 text-[11.5px] text-faint">{item.sub}</p>
+                        <p className={cn('mt-0.5 text-[11.5px]', isT2 ? 'text-[var(--text-muted)]' : 'text-faint')}>
+                          {item.sub}
+                        </p>
                       )}
                     </div>
-                    <span className="whitespace-nowrap font-medium text-ink">
+                    <span className={cn('whitespace-nowrap font-medium', isT2 ? 'text-[var(--text)]' : 'text-ink')}>
                       {money(item.value)}
                     </span>
                   </div>
                 ))}
                 {inv.discount > 0 && (
-                  <div className="flex items-start justify-between gap-3 text-[13px] text-success">
+                  <div
+                    className={cn(
+                      'flex items-start justify-between gap-3 text-[13px]',
+                      isT2 ? 'text-[var(--success)]' : 'text-success',
+                    )}
+                  >
                     <div className="flex items-center gap-2">
                       <span className="font-semibold">
-                        {inv.discountCode ? 'Discount' : 'Discount applied'}
+                        <Dyn>{inv.discountCode ? 'Discount' : 'Discount applied'}</Dyn>
                       </span>
                       {inv.discountCode && (
-                        <span className="rounded-md border border-green-border-2 bg-green-bg px-1.5 py-[1px] text-[10.5px] font-bold uppercase tracking-[0.04em] text-success">
+                        <span
+                          className={cn(
+                            'rounded-md border px-1.5 py-[1px] text-[10.5px] font-bold uppercase tracking-[0.04em]',
+                            isT2
+                              ? 'border-[color-mix(in_srgb,var(--success)_45%,var(--line))] bg-[color-mix(in_srgb,var(--success)_14%,var(--card))] text-[var(--success)]'
+                              : 'border-green-border-2 bg-green-bg text-success',
+                          )}
+                        >
                           {inv.discountCode}
                         </span>
                       )}
@@ -408,27 +491,33 @@ export function VerifyFirstConfirm(props: Props) {
                 )}
                 {inv.deposit > 0 && (
                   <div className="flex items-start justify-between gap-3 text-[13px]">
-                    <p className="text-ink">
-                      Security deposit{' '}
-                      <span className="text-[11px] text-faint">(refundable)</span>
+                    <p className={isT2 ? 'text-[var(--text)]' : 'text-ink'}>
+                      <Dyn>Security deposit</Dyn>{' '}
+                      <span className={cn('text-[11px]', isT2 ? 'text-[var(--text-muted)]' : 'text-faint')}>
+                        <Dyn>(refundable)</Dyn>
+                      </span>
                     </p>
-                    <span className="whitespace-nowrap font-medium text-ink">
+                    <span className={cn('whitespace-nowrap font-medium', isT2 ? 'text-[var(--text)]' : 'text-ink')}>
                       {money(inv.deposit)}
                     </span>
                   </div>
                 )}
               </div>
-              <div className="my-5 h-px bg-card-border" />
+              <div className={cn('my-5 h-px', isT2 ? 'bg-[var(--line)]' : 'bg-card-border')} />
               <div className="flex items-baseline justify-between">
-                <span className="text-[16px] font-bold text-ink">
-                  {mode === 'confirmed_paid' ? 'Total paid' : 'Total due'}
+                <span className={cn('text-[16px] font-bold', isT2 ? 'text-[var(--text)]' : 'text-ink')}>
+                  <Dyn>{mode === 'confirmed_paid' ? 'Total paid' : 'Total due'}</Dyn>
                 </span>
                 <span>
-                  <span className="mr-1 text-[10px] font-semibold text-faint">USD</span>
+                  <span className={cn('mr-1 text-[10px] font-semibold', isT2 ? 'text-[var(--text-muted)]' : 'text-faint')}>
+                    USD
+                  </span>
                   <span
                     className={cn(
                       'text-[22px] font-bold',
-                      mode === 'confirmed_paid' ? 'text-success' : 'text-secondary',
+                      isT2
+                        ? mode === 'confirmed_paid' ? 'text-[var(--success)]' : 'text-[var(--brass)]'
+                        : mode === 'confirmed_paid' ? 'text-success' : 'text-secondary',
                     )}
                   >
                     {money(
@@ -440,9 +529,8 @@ export function VerifyFirstConfirm(props: Props) {
                 </span>
               </div>
               {inv.deposit > 0 && mode !== 'payment_due' && (
-                <p className="mt-2 text-[11px] leading-[1.5] text-faint">
-                  Includes a refundable {money(inv.deposit)} security deposit,
-                  refunded after your trip minus any damage claims.
+                <p className={cn('mt-2 text-[11px] leading-[1.5]', isT2 ? 'text-[var(--text-muted)]' : 'text-faint')}>
+                  <Dyn>Includes a refundable</Dyn> {money(inv.deposit)} <Dyn>security deposit, refunded after your trip minus any damage claims.</Dyn>
                 </p>
               )}
 
@@ -479,35 +567,52 @@ export function VerifyFirstConfirm(props: Props) {
               )}
 
               {mode === 'confirmed_paid' && (
-                <div className="mt-4 flex items-center justify-center gap-2 rounded-[10px] bg-green-bg-2 py-3 text-[13px] font-semibold text-success">
-                  <Check size={14} strokeWidth={3} /> Paid
+                <div
+                  className={cn(
+                    'mt-4 flex items-center justify-center gap-2 rounded-[10px] py-3 text-[13px] font-semibold',
+                    isT2
+                      ? 'bg-[color-mix(in_srgb,var(--success)_14%,var(--card))] text-[var(--success)]'
+                      : 'bg-green-bg-2 text-success',
+                  )}
+                >
+                  <Check size={14} strokeWidth={3} /> <Dyn>Paid</Dyn>
                 </div>
               )}
 
               {mode === 'cancelled' && (
-                <div className="mt-4 rounded-[10px] bg-chip py-3 text-center text-[13px] font-semibold text-muted">
-                  Booking cancelled
+                <div
+                  className={cn(
+                    'mt-4 rounded-[10px] py-3 text-center text-[13px] font-semibold',
+                    isT2 ? 'bg-[var(--line)] text-[var(--text-muted)]' : 'bg-chip text-muted',
+                  )}
+                >
+                  <Dyn>Booking cancelled</Dyn>
                 </div>
               )}
 
-              <ul className="mt-5 space-y-2 text-[12px] text-muted">
+              <ul className={cn('mt-5 space-y-2 text-[12px]', isT2 ? 'text-[var(--text-muted)]' : 'text-muted')}>
                 <TrustRow>
-                  {mode === 'confirmed_paid'
+                  <Dyn>{mode === 'confirmed_paid'
                     ? 'Confirmation emailed'
                     : mode === 'cancelled'
                       ? 'Refunds follow the operator policy'
-                      : 'No charge until you confirm'}
+                      : 'No charge until you confirm'}</Dyn>
                 </TrustRow>
-                <TrustRow>Free cancellation up to 48h</TrustRow>
-                <TrustRow>Encrypted, secure payment</TrustRow>
+                <TrustRow><Dyn>Free cancellation up to 48h</Dyn></TrustRow>
+                <TrustRow><Dyn>Encrypted, secure payment</Dyn></TrustRow>
               </ul>
 
               <button
                 type="button"
                 onClick={() => window.print()}
-                className="mt-4 flex w-full items-center justify-center gap-2 rounded-[10px] border border-line py-2.5 text-[12.5px] font-medium text-ink hover:bg-subtle"
+                className={cn(
+                  'mt-4 flex w-full items-center justify-center gap-2 rounded-[10px] border py-2.5 text-[12.5px] font-medium',
+                  isT2
+                    ? 'border-[var(--line-strong)] text-[var(--text)] hover:bg-[var(--paper)]'
+                    : 'border-line text-ink hover:bg-subtle',
+                )}
               >
-                <Download size={14} /> Download invoice
+                <Download size={14} /> <Dyn>Download invoice</Dyn>
               </button>
             </div>
           </aside>
@@ -517,39 +622,85 @@ export function VerifyFirstConfirm(props: Props) {
   );
 }
 
+const bookingTitle = (num: string) => (
+  <>
+    <Dyn>Booking</Dyn> #{num}
+  </>
+);
+
 function getModeCopy(
   mode: BookingMode,
-  ctx: { email: string; outstanding: number; requireId: boolean; requireInsurance: boolean },
-): { backLabel: string; title: (num: string) => string; subtitle: string } {
+  ctx: {
+    email: string;
+    outstanding: number;
+    requireId: boolean;
+    requireInsurance: boolean;
+    isReserved: boolean;
+    outstandingId: boolean;
+    outstandingInsurance: boolean;
+  },
+): { backLabel: string; title: (num: string) => React.ReactNode; subtitle: React.ReactNode } {
   if (mode === 'pending_verification') {
     const verificationLabel = verificationTaskLabel(ctx.requireId, ctx.requireInsurance);
-    const subtitle = verificationLabel
-      ? `We're holding this vehicle for you. Complete ${verificationLabel} below, then pay to lock in your reservation, you're not charged until you confirm.`
-      : "We're holding this vehicle for you. Complete payment below to lock in your reservation.";
+    const subtitle = verificationLabel ? (
+      <>
+        <Dyn>We&apos;re holding this vehicle for you. Complete</Dyn> <Dyn>{verificationLabel}</Dyn>{' '}
+        <Dyn>below, then pay to lock in your reservation, you&apos;re not charged until you confirm.</Dyn>
+      </>
+    ) : (
+      <Dyn>We&apos;re holding this vehicle for you. Complete payment below to lock in your reservation.</Dyn>
+    );
     return {
       backLabel: 'Back to checkout',
-      title: () => 'Confirm your booking',
+      title: () => <Dyn>Confirm your booking</Dyn>,
       subtitle,
     };
   }
   if (mode === 'payment_due') {
     return {
       backLabel: 'Back to home',
-      title: (num) => `Booking #${num}`,
-      subtitle: `You have additional charges of ${money(ctx.outstanding)} pending on this booking.`,
+      title: bookingTitle,
+      subtitle: (
+        <>
+          <Dyn>You have additional charges of</Dyn> {money(ctx.outstanding)}{' '}
+          <Dyn>pending on this booking.</Dyn>
+        </>
+      ),
     };
   }
   if (mode === 'cancelled') {
     return {
       backLabel: 'Back to home',
-      title: (num) => `Booking #${num}`,
-      subtitle: 'This booking was cancelled. Any refund will follow the operator policy.',
+      title: bookingTitle,
+      subtitle: <Dyn>This booking was cancelled. Any refund will follow the operator policy.</Dyn>,
+    };
+  }
+  if (ctx.isReserved) {
+    const label = verificationTaskLabel(ctx.outstandingId, ctx.outstandingInsurance);
+    return {
+      backLabel: 'Back to home',
+      title: bookingTitle,
+      subtitle: label ? (
+        <>
+          <Dyn>Your booking is reserved and your vehicle is held. Complete</Dyn>{' '}
+          <Dyn>{label}</Dyn> <Dyn>below to confirm it. We emailed the details to</Dyn> {ctx.email}.
+        </>
+      ) : (
+        <>
+          <Dyn>Your booking is reserved and your vehicle is held. We emailed the details to</Dyn>{' '}
+          {ctx.email}.
+        </>
+      ),
     };
   }
   return {
     backLabel: 'Back to home',
-    title: (num) => `Booking #${num}`,
-    subtitle: `Your booking is confirmed. A copy of the confirmation was emailed to ${ctx.email}.`,
+    title: bookingTitle,
+    subtitle: (
+      <>
+        <Dyn>Your booking is confirmed. A copy of the confirmation was emailed to</Dyn> {ctx.email}.
+      </>
+    ),
   };
 }
 
@@ -568,6 +719,9 @@ function StateBanner({
   outstanding,
   requireId,
   requireInsurance,
+  isReserved,
+  outstandingId,
+  outstandingInsurance,
 }: {
   mode: BookingMode;
   holdCountdownLabel: string | null;
@@ -576,31 +730,43 @@ function StateBanner({
   outstanding: number;
   requireId: boolean;
   requireInsurance: boolean;
+  isReserved: boolean;
+  outstandingId: boolean;
+  outstandingInsurance: boolean;
 }) {
+  const isT2 = useIsT2();
+  const t2Banner = 'rounded-[3px] border-[var(--line-strong)] bg-[var(--card)]';
+  const t2IconCircle = 'bg-[var(--paper)]';
+
   if (mode === 'pending_verification') {
     return (
-      <div className="mt-6 flex items-center gap-4 rounded-2xl border border-amber-border bg-amber-bg px-4 py-4 sm:px-5">
-        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-white">
-          <Clock size={20} className="text-amber-text" />
+      <div
+        className={cn(
+          'mt-6 flex items-center gap-4 rounded-2xl border px-4 py-4 sm:px-5',
+          isT2 ? t2Banner : 'border-amber-border bg-amber-bg',
+        )}
+      >
+        <div className={cn('flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full', isT2 ? t2IconCircle : 'bg-white')}>
+          <Clock size={20} className={isT2 ? 'text-[var(--brass)]' : 'text-amber-text'} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[14px] font-semibold text-amber-text">
-            {holdExpired ? 'This hold has expired' : "We're holding your vehicle"}
+          <p className={cn('text-[14px] font-semibold', isT2 ? 'text-[var(--text)]' : 'text-amber-text')}>
+            <Dyn>{holdExpired ? 'This hold has expired' : "We're holding your vehicle"}</Dyn>
           </p>
-          <p className="mt-0.5 text-[12.5px] leading-[1.5] text-amber-text-2">
-            {holdExpired
+          <p className={cn('mt-0.5 text-[12.5px] leading-[1.5]', isT2 ? 'text-[var(--text-muted)]' : 'text-amber-text-2')}>
+            <Dyn>{holdExpired
               ? 'Please start a new booking — this vehicle is no longer being held for you.'
               : verificationTaskLabel(requireId, requireInsurance)
                 ? `Complete ${verificationTaskLabel(requireId, requireInsurance)} and pay before the timer runs out to confirm your booking.`
-                : 'Complete payment before the timer runs out to confirm your booking.'}
+                : 'Complete payment before the timer runs out to confirm your booking.'}</Dyn>
           </p>
         </div>
         {holdCountdownLabel && (
           <div className="flex-shrink-0 text-right">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-text-2">
-              Time left
+            <p className={cn('text-[10px] font-semibold uppercase tracking-[0.08em]', isT2 ? 'text-[var(--text-muted)]' : 'text-amber-text-2')}>
+              <Dyn>Time left</Dyn>
             </p>
-            <p className="mt-0.5 font-inter text-[22px] font-bold tabular-nums text-amber-text-2">
+            <p className={cn('mt-0.5 font-inter text-[22px] font-bold tabular-nums', isT2 ? 'text-[var(--brass)]' : 'text-amber-text-2')}>
               {holdCountdownLabel}
             </p>
           </div>
@@ -611,14 +777,21 @@ function StateBanner({
 
   if (mode === 'payment_due') {
     return (
-      <div className="mt-6 flex items-center gap-4 rounded-2xl border border-amber-border bg-amber-bg px-4 py-4 sm:px-5">
-        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-white">
-          <Clock size={20} className="text-amber-text" />
+      <div
+        className={cn(
+          'mt-6 flex items-center gap-4 rounded-2xl border px-4 py-4 sm:px-5',
+          isT2 ? t2Banner : 'border-amber-border bg-amber-bg',
+        )}
+      >
+        <div className={cn('flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full', isT2 ? t2IconCircle : 'bg-white')}>
+          <Clock size={20} className={isT2 ? 'text-[var(--brass)]' : 'text-amber-text'} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[14px] font-semibold text-amber-text">Additional payment due</p>
-          <p className="mt-0.5 text-[12.5px] leading-[1.5] text-amber-text-2">
-            {money(outstanding)} needs to be paid to keep this booking active.
+          <p className={cn('text-[14px] font-semibold', isT2 ? 'text-[var(--text)]' : 'text-amber-text')}>
+            <Dyn>Additional payment due</Dyn>
+          </p>
+          <p className={cn('mt-0.5 text-[12.5px] leading-[1.5]', isT2 ? 'text-[var(--text-muted)]' : 'text-amber-text-2')}>
+            {money(outstanding)} <Dyn>needs to be paid to keep this booking active.</Dyn>
           </p>
         </div>
       </div>
@@ -627,14 +800,55 @@ function StateBanner({
 
   if (mode === 'cancelled') {
     return (
-      <div className="mt-6 flex items-center gap-4 rounded-2xl border border-danger-border bg-danger-bg px-4 py-4 sm:px-5">
-        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-white">
-          <Close size={20} className="text-danger" />
+      <div
+        className={cn(
+          'mt-6 flex items-center gap-4 rounded-2xl border px-4 py-4 sm:px-5',
+          isT2 ? t2Banner : 'border-danger-border bg-danger-bg',
+        )}
+      >
+        <div className={cn('flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full', isT2 ? t2IconCircle : 'bg-white')}>
+          <Close size={20} className={isT2 ? 'text-[var(--danger)]' : 'text-danger'} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[14px] font-semibold text-danger-text">Booking cancelled</p>
-          <p className="mt-0.5 text-[12.5px] leading-[1.5] text-danger-soft">
-            Any refund will follow the operator&apos;s cancellation policy.
+          <p className={cn('text-[14px] font-semibold', isT2 ? 'text-[var(--danger)]' : 'text-danger-text')}>
+            <Dyn>Booking cancelled</Dyn>
+          </p>
+          <p className={cn('mt-0.5 text-[12.5px] leading-[1.5]', isT2 ? 'text-[var(--text-muted)]' : 'text-danger-soft')}>
+            <Dyn>Any refund will follow the operator&apos;s cancellation policy.</Dyn>
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isReserved) {
+    const label = verificationTaskLabel(outstandingId, outstandingInsurance);
+    return (
+      <div
+        className={cn(
+          'mt-6 flex items-center gap-4 rounded-2xl border px-4 py-4 sm:px-5',
+          isT2 ? t2Banner : 'border-info-border bg-info-bg',
+        )}
+      >
+        <div className={cn('flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full', isT2 ? t2IconCircle : 'bg-white')}>
+          <Clock size={20} className={isT2 ? 'text-[var(--brass)]' : 'text-info-text'} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className={cn('text-[14px] font-semibold', isT2 ? 'text-[var(--text)]' : 'text-info-text')}>
+            <Dyn>Your booking is reserved</Dyn>
+          </p>
+          <p className={cn('mt-0.5 text-[12.5px] leading-[1.5]', isT2 ? 'text-[var(--text-muted)]' : 'text-muted')}>
+            {label ? (
+              <>
+                <Dyn>We emailed the details to</Dyn> {email}. <Dyn>Complete</Dyn> <Dyn>{label}</Dyn>{' '}
+                <Dyn>below and your booking is confirmed automatically.</Dyn>
+              </>
+            ) : (
+              <>
+                <Dyn>We emailed the details to</Dyn> {email}.{' '}
+                <Dyn>Your booking will be confirmed once your verifications are reviewed.</Dyn>
+              </>
+            )}
           </p>
         </div>
       </div>
@@ -642,14 +856,21 @@ function StateBanner({
   }
 
   return (
-    <div className="mt-6 flex items-center gap-4 rounded-2xl border border-green-border bg-green-bg px-4 py-4 sm:px-5">
-      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-white">
-        <Check size={20} strokeWidth={3} className="text-success" />
+    <div
+      className={cn(
+        'mt-6 flex items-center gap-4 rounded-2xl border px-4 py-4 sm:px-5',
+        isT2 ? t2Banner : 'border-green-border bg-green-bg',
+      )}
+    >
+      <div className={cn('flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full', isT2 ? t2IconCircle : 'bg-white')}>
+        <Check size={20} strokeWidth={3} className={isT2 ? 'text-[var(--success)]' : 'text-success'} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-[14px] font-semibold text-success">Your booking is confirmed</p>
-        <p className="mt-0.5 text-[12.5px] leading-[1.5] text-muted">
-          A confirmation was emailed to {email}. Please arrive at pickup with a valid license and the payment card on file.
+        <p className={cn('text-[14px] font-semibold', isT2 ? 'text-[var(--success)]' : 'text-success')}>
+          <Dyn>Your booking is confirmed</Dyn>
+        </p>
+        <p className={cn('mt-0.5 text-[12.5px] leading-[1.5]', isT2 ? 'text-[var(--text-muted)]' : 'text-muted')}>
+          <Dyn>A confirmation was emailed to</Dyn> {email}. <Dyn>Please arrive at pickup with a valid license and the payment card on file.</Dyn>
         </p>
       </div>
     </div>
@@ -669,68 +890,28 @@ function VehicleCard({
   location: string;
   dateRange: string;
 }) {
+  const isT2 = useIsT2();
   return (
-    <div className="rounded-2xl border border-card-border bg-white p-4 sm:p-5">
+    <div
+      className={cn(
+        'rounded-2xl border p-4 sm:p-5',
+        isT2 ? 'rounded-[3px] border-[var(--line)] bg-[var(--card)]' : 'border-card-border bg-white',
+      )}
+    >
       <div className="flex items-start gap-4">
         <div
-          className="h-[70px] w-[110px] flex-shrink-0 rounded-lg bg-cover bg-center bg-chip"
+          className={cn('h-[70px] w-[110px] flex-shrink-0 rounded-lg bg-cover bg-center', isT2 ? 'bg-[var(--paper)]' : 'bg-chip')}
           style={{ backgroundImage: `url(${vehicleImage})` }}
         />
         <div className="min-w-0">
-          <p className="text-[11.5px] text-muted">{title}</p>
-          <h3 className="mt-1 text-[18px] font-bold text-secondary">{vehicleName}</h3>
-          <p className="mt-1 text-[12.5px] text-muted">
+          <p className={cn('text-[11.5px]', isT2 ? 'text-[var(--text-muted)]' : 'text-muted')}>{title}</p>
+          <h3 className={cn('mt-1 text-[18px] font-bold', isT2 ? 'text-[var(--text)]' : 'text-secondary')}>{vehicleName}</h3>
+          <p className={cn('mt-1 text-[12.5px]', isT2 ? 'text-[var(--text-muted)]' : 'text-muted')}>
             {location && <>{location} · </>}
             {dateRange}
           </p>
         </div>
       </div>
-    </div>
-  );
-}
-
-function TripInfoCard({
-  pickup,
-  dropoff,
-  customer,
-}: {
-  pickup: BookingDetails['pickUp'];
-  dropoff: BookingDetails['dropOff'];
-  customer: BookingDetails['customer'];
-}) {
-  return (
-    <div className="rounded-2xl border border-card-border bg-white p-4 sm:p-5">
-      <h3 className="text-[15px] font-bold text-ink">Trip details</h3>
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <TripInfoRow label="Pickup" primary={`${pickup.date} · ${pickup.time}`} secondary={pickup.address} />
-        <TripInfoRow label="Drop-off" primary={`${dropoff.date} · ${dropoff.time}`} secondary={dropoff.address} />
-        <TripInfoRow label="Renter" primary={customer.name} secondary={customer.email} />
-        {customer.phone && (
-          <TripInfoRow label="Phone" primary={customer.phone} />
-        )}
-      </div>
-    </div>
-  );
-}
-
-function TripInfoRow({
-  label,
-  primary,
-  secondary,
-}: {
-  label: string;
-  primary: string;
-  secondary?: string;
-}) {
-  return (
-    <div>
-      <p className="text-[10.5px] font-semibold uppercase tracking-[0.06em] text-faint">
-        {label}
-      </p>
-      <p className="mt-1 text-[13px] font-medium text-ink">{primary}</p>
-      {secondary && (
-        <p className="mt-0.5 text-[12px] leading-[1.5] text-muted">{secondary}</p>
-      )}
     </div>
   );
 }
@@ -742,26 +923,34 @@ function OutstandingChargesCard({
   charges: BillingChargeRow[];
   paymentPendingHref: string;
 }) {
+  const isT2 = useIsT2();
   const pending = charges.filter(
     (c) => c.status !== 'paid' && c.status !== 'refunded' && !c.is_voided,
   );
   if (pending.length === 0) return null;
   return (
-    <div className="rounded-2xl border border-card-border bg-white p-4 sm:p-5">
+    <div
+      className={cn(
+        'rounded-2xl border p-4 sm:p-5',
+        isT2 ? 'rounded-[3px] border-[var(--line)] bg-[var(--card)]' : 'border-card-border bg-white',
+      )}
+    >
       <div className="flex items-center justify-between">
-        <h3 className="text-[15px] font-bold text-ink">Additional charges</h3>
+        <h3 className={cn('text-[15px] font-bold', isT2 ? 'text-[var(--text)]' : 'text-ink')}>
+          <Dyn>Additional charges</Dyn>
+        </h3>
         <a
           href={paymentPendingHref}
-          className="text-[12.5px] font-semibold text-primary underline"
+          className={cn('text-[12.5px] font-semibold underline', isT2 ? 'text-[var(--brass)]' : 'text-primary')}
         >
-          View details
+          <Dyn>View details</Dyn>
         </a>
       </div>
       <ul className="mt-3 space-y-2 text-[13px]">
         {pending.map((c) => (
           <li key={c.id} className="flex items-center justify-between gap-3">
-            <span className="text-ink">{c.description || c.type}</span>
-            <span className="whitespace-nowrap font-medium text-ink">
+            <span className={isT2 ? 'text-[var(--text)]' : 'text-ink'}>{c.description || c.type}</span>
+            <span className={cn('whitespace-nowrap font-medium', isT2 ? 'text-[var(--text)]' : 'text-ink')}>
               {money(Number(c.amount || 0))}
             </span>
           </li>
@@ -784,6 +973,7 @@ function PayCTA({
   label: string;
   hint: string | null;
 }) {
+  const isT2 = useIsT2();
   return (
     <>
       <button
@@ -792,19 +982,28 @@ function PayCTA({
         disabled={disabled}
         className={cn(
           'mt-4 w-full rounded-[10px] py-3 text-center text-[13.5px] font-semibold transition-colors',
-          disabled
-            ? 'cursor-not-allowed bg-track text-muted'
-            : 'bg-primary text-white hover:bg-primary-hover',
+          isT2
+            ? disabled
+              ? 'cursor-not-allowed bg-[var(--line)] text-[var(--text-muted)]'
+              : 'bg-[var(--brass)] text-[var(--on-brass)] hover:opacity-90'
+            : disabled
+              ? 'cursor-not-allowed bg-track text-muted'
+              : 'bg-primary text-white hover:bg-primary-hover',
         )}
       >
-        {loading ? 'Redirecting…' : label}
+        <Dyn>{loading ? 'Redirecting…' : label}</Dyn>
       </button>
       {hint && (
-        <p className="mt-3 flex items-start gap-2 text-[12px] text-muted">
-          <span className="mt-[1px] flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full border border-line text-[10px] leading-none text-faint">
+        <p className={cn('mt-3 flex items-start gap-2 text-[12px]', isT2 ? 'text-[var(--text-muted)]' : 'text-muted')}>
+          <span
+            className={cn(
+              'mt-[1px] flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full border text-[10px] leading-none',
+              isT2 ? 'border-[var(--line-strong)] text-[var(--text-muted)]' : 'border-line text-faint',
+            )}
+          >
             i
           </span>
-          <span>{hint}</span>
+          <span><Dyn>{hint}</Dyn></span>
         </p>
       )}
     </>
@@ -820,28 +1019,42 @@ function AgreementCard({
   href: string | null;
   mode: BookingMode;
 }) {
+  const isT2 = useIsT2();
   if (!href && !signed) return null;
   const primary = signed ? 'View agreement' : 'Sign now';
   return (
-    <div className="rounded-2xl border border-card-border bg-white p-5">
+    <div
+      className={cn(
+        'rounded-2xl border p-5',
+        isT2 ? 'rounded-[3px] border-[var(--line)] bg-[var(--card)]' : 'border-card-border bg-white',
+      )}
+    >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-start gap-3">
           <div
             className={cn(
               'flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg',
-              signed ? 'bg-green-bg-2 text-success' : 'bg-chip text-muted',
+              isT2
+                ? signed
+                  ? 'bg-[color-mix(in_srgb,var(--success)_16%,var(--card))] text-[var(--success)]'
+                  : 'bg-[var(--paper)] text-[var(--text-muted)]'
+                : signed
+                  ? 'bg-green-bg-2 text-success'
+                  : 'bg-chip text-muted',
             )}
           >
             {signed ? <Check size={16} strokeWidth={3} /> : <Pencil size={14} strokeWidth={2.5} />}
           </div>
           <div>
-            <p className="text-[14px] font-semibold text-ink">Rental agreement</p>
-            <p className="mt-0.5 text-[12px] text-muted">
-              {signed
+            <p className={cn('text-[14px] font-semibold', isT2 ? 'text-[var(--text)]' : 'text-ink')}>
+              <Dyn>Rental agreement</Dyn>
+            </p>
+            <p className={cn('mt-0.5 text-[12px]', isT2 ? 'text-[var(--text-muted)]' : 'text-muted')}>
+              <Dyn>{signed
                 ? 'Signed. A copy is attached to this booking.'
                 : mode === 'pending_verification'
                   ? 'Review and sign before pickup — it takes about a minute.'
-                  : 'Review and sign to complete your paperwork.'}
+                  : 'Review and sign to complete your paperwork.'}</Dyn>
             </p>
           </div>
         </div>
@@ -850,12 +1063,16 @@ function AgreementCard({
             href={href}
             className={cn(
               'inline-flex flex-shrink-0 items-center justify-center rounded-[9px] px-4 py-2 text-[12.5px] font-semibold transition-colors',
-              signed
-                ? 'border border-line bg-white text-ink hover:bg-subtle'
-                : 'bg-primary text-white hover:bg-primary-hover',
+              isT2
+                ? signed
+                  ? 'border border-[var(--line-strong)] bg-[var(--card)] text-[var(--text)] hover:bg-[var(--paper)]'
+                  : 'bg-[var(--brass)] text-[var(--on-brass)] hover:opacity-90'
+                : signed
+                  ? 'border border-line bg-white text-ink hover:bg-subtle'
+                  : 'bg-primary text-white hover:bg-primary-hover',
             )}
           >
-            {primary}
+            <Dyn>{primary}</Dyn>
           </Link>
         )}
       </div>
@@ -874,14 +1091,20 @@ function BookingActionsRow({
   canModify: BookingDetails['canModify'];
   verificationsComplete: boolean;
 }) {
+  const isT2 = useIsT2();
   const withToken = (href: string) =>
     token ? `${href}?token=${encodeURIComponent(token)}` : href;
-  const canEdit = !!(canModify?.extend || canModify?.reduce) && verificationsComplete;
-  const canSwap = !!canModify?.swap && verificationsComplete;
-  const canCancel = !!canModify?.cancel && verificationsComplete;
+  void verificationsComplete;
+  const canEdit = !!(canModify?.extend || canModify?.reduce);
+  const canSwap = !!canModify?.swap;
+  const canCancel = !!canModify?.cancel;
 
-  const btn = 'inline-flex items-center gap-1.5 rounded-[9px] border border-line bg-white px-3 py-2 text-[12.5px] font-medium text-ink hover:bg-subtle transition-colors';
-  const btnDisabled = 'inline-flex items-center gap-1.5 rounded-[9px] border border-line bg-white px-3 py-2 text-[12.5px] font-medium text-faint opacity-60 cursor-not-allowed';
+  const btn = isT2
+    ? 'inline-flex items-center gap-1.5 rounded-[3px] border border-[var(--line-strong)] bg-[var(--card)] px-3 py-2 text-[12.5px] font-medium text-[var(--text)] hover:bg-[var(--paper)] transition-colors'
+    : 'inline-flex items-center gap-1.5 rounded-[9px] border border-line bg-white px-3 py-2 text-[12.5px] font-medium text-ink hover:bg-subtle transition-colors';
+  const btnDisabled = isT2
+    ? 'inline-flex items-center gap-1.5 rounded-[3px] border border-[var(--line-strong)] bg-[var(--card)] px-3 py-2 text-[12.5px] font-medium text-[var(--text-muted)] opacity-60 cursor-not-allowed'
+    : 'inline-flex items-center gap-1.5 rounded-[9px] border border-line bg-white px-3 py-2 text-[12.5px] font-medium text-faint opacity-60 cursor-not-allowed';
 
   const Action = ({
     label,
@@ -896,31 +1119,35 @@ function BookingActionsRow({
   }) =>
     enabled ? (
       <Link href={withToken(href)} className={btn}>
-        {icon} {label}
+        {icon} <Dyn>{label}</Dyn>
       </Link>
     ) : (
       <button type="button" disabled className={btnDisabled}>
-        {icon} {label}
+        {icon} <Dyn>{label}</Dyn>
       </button>
     );
+
+  const enabledIconCls = isT2 ? 'text-[var(--brass)]' : 'text-primary';
+  const disabledIconCls = isT2 ? 'text-[var(--text-muted)]' : 'text-faint';
+  const dangerIconCls = isT2 ? 'text-[var(--danger)]' : 'text-danger';
 
   return (
     <div className="flex w-max items-center gap-2 sm:w-auto sm:flex-wrap">
       <Action
         label="Modify"
-        icon={<Pencil size={13} className={canEdit ? 'text-primary' : 'text-faint'} />}
+        icon={<Pencil size={13} className={canEdit ? enabledIconCls : disabledIconCls} />}
         href={paths.modify(bookingId)}
         enabled={canEdit}
       />
       <Action
         label="Change vehicle"
-        icon={<Swap size={13} className={canSwap ? 'text-primary' : 'text-faint'} />}
+        icon={<Swap size={13} className={canSwap ? enabledIconCls : disabledIconCls} />}
         href={paths.swap(bookingId)}
         enabled={canSwap}
       />
       <Action
         label="Cancel"
-        icon={<Close size={13} strokeWidth={2} className={canCancel ? 'text-danger' : 'text-faint'} />}
+        icon={<Close size={13} strokeWidth={2} className={canCancel ? dangerIconCls : disabledIconCls} />}
         href={paths.cancel(bookingId)}
         enabled={canCancel}
       />
@@ -929,9 +1156,10 @@ function BookingActionsRow({
 }
 
 function TrustRow({ children }: { children: React.ReactNode }) {
+  const isT2 = useIsT2();
   return (
     <li className="flex items-center gap-2">
-      <Check size={13} strokeWidth={3} className="text-success" />
+      <Check size={13} strokeWidth={3} className={isT2 ? 'text-[var(--success)]' : 'text-success'} />
       <span>{children}</span>
     </li>
   );
@@ -948,6 +1176,11 @@ function VerifySubCard({
   failed,
   failureDetails,
   onVerify,
+  manualKind,
+  manualSubmission,
+  onManualUploaded,
+  automatedLabel,
+  automatedDescription,
 }: {
   icon: React.ReactNode;
   title: string;
@@ -959,53 +1192,100 @@ function VerifySubCard({
   failed?: boolean;
   failureDetails?: InsuranceVerificationDetails | null;
   onVerify: () => void;
+  manualKind: ManualVerificationKind;
+  manualSubmission: ManualVerificationSubmission | null;
+  onManualUploaded: () => void;
+  automatedLabel: string;
+  automatedDescription: string;
 }) {
+  const isT2 = useIsT2();
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [chooserOpen, setChooserOpen] = useState(false);
 
-  const label = failed
-    ? detailsOpen ? 'Hide details' : 'View details'
-    : verified
-      ? 'Verified'
-      : loading
-        ? 'Sending…'
-        : linkSent
-          ? 'In progress…'
-          : 'Verify';
+  const underReview = !verified && manualSubmission?.status === 'pending_review';
+  const manualRejected = !verified && manualSubmission?.status === 'rejected';
 
-  const pillCopy = failed ? 'Not verified' : verified ? 'Verified' : 'Required';
+  const label = underReview
+    ? 'Under review'
+    : failed
+      ? detailsOpen ? 'Hide details' : 'View details'
+      : verified
+        ? 'Verified'
+        : loading
+          ? 'Sending…'
+          : linkSent
+            ? 'In progress…'
+            : manualRejected
+              ? 'Re-verify'
+              : 'Verify';
+
+  const pillCopy = underReview
+    ? 'Under review'
+    : failed
+      ? 'Not verified'
+      : verified
+        ? 'Verified'
+        : 'Required';
 
   const handleClick = () => {
+    if (underReview) return;
     if (failed) {
       setDetailsOpen((v) => !v);
       return;
     }
-    onVerify();
+    setChooserOpen(true);
   };
 
-  const buttonDisabled = !failed && (verified || loading || linkSent);
+  const buttonDisabled = underReview || (!failed && (verified || loading || linkSent));
 
   return (
-    <div className="flex flex-col rounded-xl border border-card-border bg-white p-4">
+    <div
+      className={cn(
+        'flex flex-col rounded-xl border p-4',
+        isT2 ? 'rounded-[3px] border-[var(--line)] bg-[var(--card)]' : 'border-card-border bg-white',
+      )}
+    >
       <div className="flex items-start justify-between gap-2">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-chip">
+        <div className={cn('flex h-9 w-9 items-center justify-center rounded-lg', isT2 ? 'bg-[var(--paper)]' : 'bg-chip')}>
           {icon}
         </div>
         <span
           className={cn(
             'rounded-md px-2 py-0.5 text-[10.5px] font-semibold',
-            failed
-              ? FAILED_PILL_CLASSES
-              : verified
-                ? 'bg-green-bg-2 text-success'
-                : 'bg-amber-bg text-amber-text-2',
+            isT2
+              ? failed
+                ? T2_FAILED_PILL_CLASSES
+                : verified
+                  ? 'bg-[color-mix(in_srgb,var(--success)_16%,var(--card))] text-[var(--success)]'
+                  : 'bg-[color-mix(in_srgb,var(--brass)_16%,var(--card))] text-[var(--brass)]'
+              : failed
+                ? FAILED_PILL_CLASSES
+                : verified
+                  ? 'bg-green-bg-2 text-success'
+                  : 'bg-amber-bg text-amber-text-2',
           )}
         >
-          {pillCopy}
+          <Dyn>{pillCopy}</Dyn>
         </span>
       </div>
       <div className="mt-3 flex-1">
-        <p className="text-[13.5px] font-semibold text-ink">{title}</p>
-        <p className="mt-1 text-[12px] leading-[1.5] text-muted">{description}</p>
+        <p className={cn('text-[13.5px] font-semibold', isT2 ? 'text-[var(--text)]' : 'text-ink')}>
+          <Dyn>{title}</Dyn>
+        </p>
+        <p className={cn('mt-1 text-[12px] leading-[1.5]', isT2 ? 'text-[var(--text-muted)]' : 'text-muted')}>
+          <Dyn>{description}</Dyn>
+        </p>
+        {manualRejected && manualSubmission?.rejectionReason ? (
+          <p
+            className={cn(
+              'mt-2 text-[11.5px] leading-[1.5]',
+              isT2 ? 'text-[var(--danger)]' : 'text-danger-text',
+            )}
+          >
+            <Dyn>Your documents were not approved:</Dyn>{' '}
+            <Dyn>{manualSubmission.rejectionReason}</Dyn>
+          </p>
+        ) : null}
       </div>
       <button
         type="button"
@@ -1013,22 +1293,57 @@ function VerifySubCard({
         disabled={buttonDisabled}
         className={cn(
           'mt-4 w-full rounded-[9px] py-2.5 text-center text-[12.5px] font-semibold transition-colors',
-          failed
-            ? FAILED_BUTTON_CLASSES
-            : verified
-              ? 'cursor-default bg-green-bg-2 text-success'
-              : buttonDisabled
-                ? 'cursor-not-allowed bg-track text-muted'
-                : 'bg-secondary text-white hover:opacity-90',
+          isT2
+            ? failed
+              ? T2_FAILED_BUTTON_CLASSES
+              : verified
+                ? 'cursor-default bg-[color-mix(in_srgb,var(--success)_16%,var(--card))] text-[var(--success)]'
+                : buttonDisabled
+                  ? 'cursor-not-allowed bg-[var(--line)] text-[var(--text-muted)]'
+                  : 'bg-[var(--ink)] text-[var(--on-ink)] hover:opacity-90'
+            : failed
+              ? FAILED_BUTTON_CLASSES
+              : verified
+                ? 'cursor-default bg-green-bg-2 text-success'
+                : buttonDisabled
+                  ? 'cursor-not-allowed bg-track text-muted'
+                  : 'bg-secondary text-white hover:opacity-90',
         )}
       >
-        {label}
+        <Dyn>{label}</Dyn>
       </button>
       {failed && detailsOpen && failureDetails && (
         <FailedInsurancePanel details={failureDetails} />
       )}
+      {failed && !verified && !underReview ? (
+        <button
+          type="button"
+          onClick={() => setChooserOpen(true)}
+          className={cn(
+            'mt-2 w-full rounded-[9px] py-2 text-center text-[12px] font-semibold transition-colors',
+            isT2
+              ? 'border border-[var(--line)] text-[var(--text)] hover:bg-[var(--paper)]'
+              : 'border border-card-border text-secondary hover:bg-subtle',
+          )}
+        >
+          <Dyn>Upload documents instead</Dyn>
+        </button>
+      ) : null}
+      <ManualVerificationModal
+        open={chooserOpen}
+        onClose={() => setChooserOpen(false)}
+        kind={manualKind}
+        onUploaded={() => {
+          setChooserOpen(false);
+          onManualUploaded();
+        }}
+        onAutomated={onVerify}
+        automatedLabel={automatedLabel}
+        automatedDescription={automatedDescription}
+        rejectionReason={manualRejected ? manualSubmission?.rejectionReason : undefined}
+      />
       {error && (
-        <p className="mt-2 text-[11.5px] text-danger">{error}</p>
+        <p className={cn('mt-2 text-[11.5px]', isT2 ? 'text-[var(--danger)]' : 'text-danger')}><Dyn>{error}</Dyn></p>
       )}
     </div>
   );

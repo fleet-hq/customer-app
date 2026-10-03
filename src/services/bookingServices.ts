@@ -348,6 +348,21 @@ const INSURANCE_FAILED_DISPOSITIONS = new Set([
   'inadequate', 'failed', 'incomplete', 'unverified',
 ]);
 
+function toRemediationMessages(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((m) => {
+      if (typeof m === 'string') return m;
+      if (m && typeof m === 'object') {
+        const v = (m as Record<string, unknown>).message;
+        return typeof v === 'string' ? v : '';
+      }
+      return '';
+    })
+    .map((m) => m.trim())
+    .filter(Boolean);
+}
+
 export function mapInsuranceVerificationDetails(
   raw: unknown,
 ): InsuranceVerificationDetails | null {
@@ -361,9 +376,7 @@ export function mapInsuranceVerificationDetails(
     policyStatus: (r.policy_status as string) ?? null,
     activeStatus: (r.active_status as string) ?? null,
     policyExpiryDate: (r.policy_expiry_date as string) ?? null,
-    remediationMessages: Array.isArray(r.remediation_messages)
-      ? (r.remediation_messages as string[])
-      : [],
+    remediationMessages: toRemediationMessages(r.remediation_messages),
   };
 }
 
@@ -448,6 +461,13 @@ export interface BookingDetails {
       price: number;
     }[];
     rentalTotal: number;
+    /**
+     * The rental before any discount. `rentalTotal` stays net because
+     * the rental agreement quotes what the renter actually pays, but a
+     * screen that also lists the discount as its own subtraction has to
+     * start from the gross or it applies the discount twice.
+     */
+    rentalGross: number;
     fees: number;
     insurancePremium: number;
     insuranceCoverages: {
@@ -469,6 +489,8 @@ export interface BookingDetails {
     balance: number;
   };
   hasOwnInsurance: boolean;
+  /** Insurance bought through us at checkout, rather than the renter's own. */
+  hasPlatformInsurance: boolean;
   insuranceCoverage: {
     cdw: boolean;
     rcli: boolean;
@@ -600,6 +622,18 @@ function transformBooking(api: ApiBooking): BookingDetails {
     0,
   );
   const rentalSum = Math.max(0, subtotal - locationCharges - extrasFromApi);
+  // ``subtotal`` arrives NET of any discount, and the invoice renders
+  // ``total_discount`` as its own subtraction line below. Pricing the
+  // rental line off the net sum therefore applied the discount twice on
+  // screen: booking 791 showed "$220.00 x 18 days" (the discounted
+  // rate) and then "-$3,960.00" underneath, so the visible lines summed
+  // to $913.60 against a stated total of $4,873.60. The line has to be
+  // gross for the discount line to be a real subtraction.
+  //
+  // Derived by adding the discount back rather than from
+  // ``base_price x days``, because dynamic per-day pricing means those
+  // two are not the same number.
+  const grossRentalSum = rentalSum + discount;
   // ``api.base_price`` is the day rate stored on the booking — the API
   // doesn't surface ``price_per_hour``, so we infer the billing unit
   // from what was actually charged. When the rental sum equals
@@ -610,7 +644,7 @@ function transformBooking(api: ApiBooking): BookingDetails {
   // per hour" — they're correctly "1x Base price per day".
   const dailyRentalSum = pricePerDay * rentalDays;
   const looksDaily =
-    pricePerDay > 0 && Math.abs(rentalSum - dailyRentalSum) < 0.01;
+    pricePerDay > 0 && Math.abs(grossRentalSum - dailyRentalSum) < 0.01;
   const isHourly = rentalHours <= HOURLY_RATE_MAX_HOURS && !looksDaily;
   const total = Number(api.total_price) || subtotal - discount + tax + locationCharges + fees;
   const deposit = Number(api.security_deposit) || 0;
@@ -630,8 +664,8 @@ function transformBooking(api: ApiBooking): BookingDetails {
   // charged. Falls back to base_price when the math can't be derived.
   const quantity = isHourly ? rentalHours : rentalDays;
   const unitPrice =
-    quantity > 0 && rentalSum > 0
-      ? rentalSum / quantity
+    quantity > 0 && grossRentalSum > 0
+      ? grossRentalSum / quantity
       : pricePerDay;
   const invoiceItems: BookingDetails['invoice']['items'] = [
     {
@@ -706,6 +740,7 @@ function transformBooking(api: ApiBooking): BookingDetails {
       items: invoiceItems,
       extras: invoiceExtras,
       rentalTotal: rentalSum,
+      rentalGross: grossRentalSum,
       fees,
       insurancePremium: Number(api.insurance_details?.premium_amount) || 0,
       insuranceCoverages: Array.isArray(api.insurance_details?.coverages)
@@ -729,6 +764,7 @@ function transformBooking(api: ApiBooking): BookingDetails {
       balance,
     },
     hasOwnInsurance: !api.insurance_selected,
+    hasPlatformInsurance: !!api.insurance_selected,
     insuranceCoverage: api.insurance_selected && api.insurance_details
       ? {
           cdw: api.insurance_details?.coverage?.cdw_cover || false,
@@ -861,7 +897,6 @@ export interface CreateBookingPayload {
    *  enabled. Snapshots are frozen on the backend at booking create. */
   manual_insurance_package_ids?: number[];
   extras?: { id: number; quantity: number }[];
-  discount_code?: string;
   promo_code?: string;
   /** Base64 data URI of the pre-signed rental-agreement signature.
    *  Stashed on PendingBookingCheckout and promoted into a

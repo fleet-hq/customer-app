@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { useClickOutside } from '@/lib/use-click-outside';
 import { buildLocationTimeSlots, type TimeSlot } from '@/lib/time-slots';
 import { computeAnchoredPanelPosition } from '@/lib/anchored-position';
+import { useTenant } from '@/lib/tenant-context';
 
 export interface TimePickerProps {
   value: string;
@@ -47,6 +48,7 @@ export function TimePicker({
   disabledSlots,
   disabled = false,
 }: TimePickerProps) {
+  const isT2 = useTenant().websiteTemplate === 'template_2';
   const disabledSlotSet = useMemo(
     () => new Set(disabledSlots ?? []),
     [disabledSlots],
@@ -161,7 +163,18 @@ export function TimePicker({
         className={cn('flex items-center gap-2 p-0', disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer')}
       >
         {icon}
-        <span className={cn('text-sm', value ? 'text-ink' : 'text-placeholder')}>
+        <span
+          className={cn(
+            'text-sm',
+            isT2
+              ? value
+                ? 'text-[var(--text)]'
+                : 'text-[var(--text-muted)]'
+              : value
+                ? 'text-ink'
+                : 'text-placeholder',
+          )}
+        >
           {value ? formatTimeDisplay(value) : placeholder}
         </span>
       </button>
@@ -171,7 +184,10 @@ export function TimePicker({
         aria-label="Select time"
         style={dropdownStyle}
         className={cn(
-          'z-50 min-w-40 rounded-lg border border-line bg-white shadow-[var(--shadow-pop)] transition-all duration-200 ease-out',
+          'z-50 min-w-40 shadow-[var(--shadow-pop)] transition-all duration-200 ease-out',
+          isT2
+            ? 'rounded-[3px] border border-[var(--line)] bg-[var(--card)]'
+            : 'rounded-lg border border-line bg-white',
           originClass,
           isOpen ? 'scale-y-100 opacity-100' : 'pointer-events-none scale-y-0 opacity-0',
         )}
@@ -192,11 +208,17 @@ export function TimePicker({
                 title={slotDisabled ? 'Already booked' : undefined}
                 className={cn(
                   'flex w-full px-4 py-2 text-left text-sm transition-colors',
-                  slotDisabled
-                    ? 'cursor-not-allowed text-faint line-through opacity-60'
-                    : selected
-                      ? 'bg-hover font-medium text-primary'
-                      : 'text-ink hover:bg-subtle',
+                  isT2
+                    ? slotDisabled
+                      ? 'cursor-not-allowed text-[var(--text-muted)] line-through opacity-50'
+                      : selected
+                        ? 'bg-[color-mix(in_srgb,var(--brass)_14%,var(--card))] font-medium text-[var(--brass)]'
+                        : 'text-[var(--text)] hover:bg-[color-mix(in_srgb,var(--brass)_10%,var(--card))]'
+                    : slotDisabled
+                      ? 'cursor-not-allowed text-faint line-through opacity-60'
+                      : selected
+                        ? 'bg-hover font-medium text-primary'
+                        : 'text-ink hover:bg-subtle',
                 )}
               >
                 {slot.label}

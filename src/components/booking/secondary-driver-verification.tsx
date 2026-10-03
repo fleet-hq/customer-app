@@ -4,6 +4,7 @@ import { useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { IdCard, ShieldCheck } from '@/components/ui/icons';
+import { Dyn } from '@/components/i18n/Dyn';
 import { cn } from '@/lib/utils';
 import {
   mapInsuranceVerificationDetails,
@@ -107,12 +108,12 @@ function DriverVerifyCard({
                 : 'bg-amber-bg text-amber-text-2',
           )}
         >
-          {pillCopy}
+          <Dyn>{pillCopy}</Dyn>
         </span>
       </div>
       <div className="mt-3 flex-1">
-        <p className="text-[13.5px] font-semibold text-ink">{title}</p>
-        <p className="mt-1 text-[12px] leading-[1.5] text-muted">{description}</p>
+        <p className="text-[13.5px] font-semibold text-ink"><Dyn>{title}</Dyn></p>
+        <p className="mt-1 text-[12px] leading-[1.5] text-muted"><Dyn>{description}</Dyn></p>
       </div>
       <button
         type="button"
@@ -129,12 +130,12 @@ function DriverVerifyCard({
                 : 'bg-secondary text-white hover:opacity-90',
         )}
       >
-        {label}
+        <Dyn>{label}</Dyn>
       </button>
       {failed && detailsOpen && failureDetails && (
         <FailedInsurancePanel details={failureDetails} />
       )}
-      {error && <p className="mt-2 text-[11.5px] text-danger">{error}</p>}
+      {error && <p className="mt-2 text-[11.5px] text-danger"><Dyn>{error}</Dyn></p>}
     </div>
   );
 }
@@ -154,9 +155,9 @@ export default function SecondaryDriverVerification({
 
   return (
     <div className="rounded-2xl border border-card-border bg-white p-5 sm:p-6">
-      <p className="text-[15px] font-semibold text-ink">Additional drivers</p>
+      <p className="text-[15px] font-semibold text-ink"><Dyn>Additional drivers</Dyn></p>
       <p className="mt-1 text-[12.5px] leading-[1.5] text-muted">
-        Each additional driver verifies their own ID and insurance.
+        <Dyn>Each additional driver verifies their own ID and insurance.</Dyn>
       </p>
       <div className="mt-4 space-y-5">
         {drivers.map((d) => {

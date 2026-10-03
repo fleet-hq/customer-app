@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useClickOutside } from '@/lib/use-click-outside';
 import { ChevronDown } from '@/components/ui/icons';
+import { useTenant } from '@/lib/tenant-context';
 
 export interface Country {
   iso2: string;
@@ -142,6 +143,8 @@ export function PhoneInput({
   defaultCountry?: string;
   placeholder?: string;
 }) {
+  const tenant = useTenant();
+  const isT2 = tenant.websiteTemplate === 'template_2';
   const [country, setCountry] = useState<Country>(
     () => COUNTRIES.find((c) => c.iso2 === defaultCountry) ?? COUNTRIES[0],
   );
@@ -196,44 +199,68 @@ export function PhoneInput({
       <div
         className={cn(
           'flex h-[46px] items-center gap-2 rounded-[10px] border bg-white px-[10px] transition-colors focus-within:border-primary',
-          error ? 'border-danger' : 'border-line',
+          isT2 && 'rounded-[2px] bg-[var(--card)] focus-within:border-[var(--brass)]',
+          isT2
+            ? error
+              ? 'border-[var(--danger)]'
+              : 'border-[var(--line-strong)]'
+            : error
+              ? 'border-danger'
+              : 'border-line',
         )}
       >
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
           aria-label="Select country code"
-          className="flex flex-shrink-0 items-center gap-[5px] text-sm text-ink"
+          className={cn('flex flex-shrink-0 items-center gap-[5px] text-sm text-ink', isT2 && 'text-[var(--text)]')}
         >
           <span className="text-[18px] leading-none">{flagEmoji(country.iso2)}</span>
-          <span className="text-muted">+{country.dialCode}</span>
-          <ChevronDown size={14} className={cn('text-faint transition-transform', open && 'rotate-180')} />
+          <span className={cn('text-muted', isT2 && 'text-[var(--text-muted)]')}>+{country.dialCode}</span>
+          <ChevronDown
+            size={14}
+            className={cn('text-faint transition-transform', isT2 && 'text-[var(--text-muted)]', open && 'rotate-180')}
+          />
         </button>
-        <div className="h-5 w-px flex-shrink-0 bg-line" />
+        <div className={cn('h-5 w-px flex-shrink-0 bg-line', isT2 && 'bg-[var(--line)]')} />
         <input
           type="tel"
           value={national}
           onChange={(e) => handleNational(e.target.value)}
           onBlur={onBlur}
           placeholder={placeholder}
-          className="h-full min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-faint"
+          className={cn(
+            'h-full min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-faint',
+            isT2 && 'text-[var(--text)] placeholder:text-[var(--text-muted)]',
+          )}
         />
       </div>
 
       {open && (
-        <div className="absolute left-0 z-50 mt-1 w-full overflow-hidden rounded-[10px] border border-line bg-white shadow-[var(--shadow-pop)]">
-          <div className="border-b border-hairline p-2">
+        <div
+          className={cn(
+            'absolute left-0 z-50 mt-1 w-full overflow-hidden rounded-[10px] border border-line bg-white shadow-[var(--shadow-pop)]',
+            isT2 && 'rounded-[2px] border-[var(--line-strong)] bg-[var(--card)] shadow-[var(--shadow)]',
+          )}
+        >
+          <div className={cn('border-b border-hairline p-2', isT2 && 'border-[var(--line)]')}>
             <input
               autoFocus
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search country"
-              className="h-9 w-full rounded-[8px] border border-line bg-white px-3 text-sm text-ink outline-none focus:border-primary placeholder:text-faint"
+              className={cn(
+                'h-9 w-full rounded-[8px] border border-line bg-white px-3 text-sm text-ink outline-none focus:border-primary placeholder:text-faint',
+                isT2 &&
+                  'rounded-[2px] border-[var(--line-strong)] bg-[var(--card)] text-[var(--text)] focus:border-[var(--brass)] placeholder:text-[var(--text-muted)]',
+              )}
             />
           </div>
           <div className="max-h-[220px] overflow-y-auto py-1">
             {filtered.length === 0 ? (
-              <div className="px-3 py-4 text-center text-[13px] text-faint">No matches</div>
+              <div className={cn('px-3 py-4 text-center text-[13px] text-faint', isT2 && 'text-[var(--text-muted)]')}>
+                No matches
+              </div>
             ) : (
               filtered.map((c) => (
                 <button
@@ -242,12 +269,13 @@ export function PhoneInput({
                   onClick={() => pick(c)}
                   className={cn(
                     'flex w-full items-center gap-[10px] px-3 py-2 text-left text-sm transition-colors hover:bg-primary-soft',
-                    c.iso2 === country.iso2 && 'bg-primary-soft',
+                    isT2 && 'hover:bg-[color-mix(in_srgb,var(--brass)_14%,var(--card))]',
+                    c.iso2 === country.iso2 && (isT2 ? 'bg-[color-mix(in_srgb,var(--brass)_14%,var(--card))]' : 'bg-primary-soft'),
                   )}
                 >
                   <span className="text-[18px] leading-none">{flagEmoji(c.iso2)}</span>
-                  <span className="flex-1 truncate text-ink">{c.name}</span>
-                  <span className="text-muted">+{c.dialCode}</span>
+                  <span className={cn('flex-1 truncate text-ink', isT2 && 'text-[var(--text)]')}>{c.name}</span>
+                  <span className={cn('text-muted', isT2 && 'text-[var(--text-muted)]')}>+{c.dialCode}</span>
                 </button>
               ))
             )}

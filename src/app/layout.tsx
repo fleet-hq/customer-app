@@ -1,9 +1,11 @@
 import type { Metadata } from 'next';
-import { headers } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { Inter, Manrope, Caveat } from 'next/font/google';
 import './globals.css';
 import { getCurrentTenant, TenantNotFoundError } from '@/lib/get-tenant';
 import { TenantProvider } from '@/lib/tenant-context';
+import { LocaleProvider } from '@/lib/i18n/locale-context';
+import { DEFAULT_LOCALE, LOCALE_COOKIE, isLocale } from '@/lib/i18n/config';
 import { Providers } from './providers';
 import { CompanyProvider } from '@/contexts';
 import { LayoutChrome } from '@/components/layout/layout-chrome';
@@ -73,6 +75,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     throw err;
   }
 
+  const localeCookie = (await cookies()).get(LOCALE_COOKIE)?.value;
+  const locale = isLocale(localeCookie) ? localeCookie : DEFAULT_LOCALE;
+
   const { theme } = tenant.brand;
   const brandVars = {
     '--color-primary': theme.primary,
@@ -82,11 +87,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   } as React.CSSProperties;
 
   return (
-    <html lang="en-US" data-tenant={tenant.slug} style={brandVars} className={`${inter.variable} ${manrope.variable} ${caveat.variable}`}>
+    <html lang={locale === 'es' ? 'es' : 'en-US'} data-tenant={tenant.slug} style={brandVars} className={`${inter.variable} ${manrope.variable} ${caveat.variable}`}>
       <body>
         <JsonLd data={organizationSchema(tenant)} />
         <SiteTracking tracking={tenant.tracking} />
         <Providers>
+          <LocaleProvider initialLocale={locale}>
           {/* TenantProvider must wrap CompanyProvider. CompanyProvider
               calls useCompanySettings which reads useTenant for the
               per-tenant queryKey — inverting the order makes the
@@ -103,6 +109,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               </StripeProvider>
             </CompanyProvider>
           </TenantProvider>
+          </LocaleProvider>
         </Providers>
       </body>
     </html>

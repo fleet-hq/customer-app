@@ -4,6 +4,8 @@ import { useState, useRef, useCallback, useMemo, useEffect, type ReactNode, type
 import { cn } from '@/lib/utils';
 import { useClickOutside } from '@/lib/use-click-outside';
 import { computeAnchoredPanelPosition } from '@/lib/anchored-position';
+import { useLocale } from '@/lib/i18n/locale-context';
+import { useTenant } from '@/lib/tenant-context';
 
 export interface DatePickerProps {
   value: string;
@@ -18,7 +20,6 @@ export interface DatePickerProps {
   'aria-label'?: string;
 }
 
-const DAYS_OF_WEEK = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'] as const;
 const PANEL_HEIGHT = 320;
 const PANEL_WIDTH = 256;
 
@@ -38,9 +39,9 @@ function isSameDay(year: number, month: number, day: number, compare: Date): boo
   return compare.getFullYear() === year && compare.getMonth() === month && compare.getDate() === day;
 }
 
-function formatDisplay(value: string): string {
+function formatDisplay(value: string, intlLocale: string): string {
   const date = new Date(value + 'T00:00:00');
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return date.toLocaleDateString(intlLocale, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 export function DatePicker({
@@ -55,11 +56,25 @@ export function DatePicker({
   className,
   'aria-label': ariaLabel,
 }: DatePickerProps) {
+  const isT2 = useTenant().websiteTemplate === 'template_2';
   const unavailableSet = useMemo(() => new Set(unavailableDates ?? []), [unavailableDates]);
   const [isOpen, setIsOpen] = useState(false);
   const [viewDate, setViewDate] = useState<Date>(() => (value ? new Date(value + 'T00:00:00') : new Date()));
   const [dropdownStyle, setDropdownStyle] = useState<CSSProperties>({ position: 'fixed' });
   const [originClass, setOriginClass] = useState('origin-top');
+
+  const locale = useLocale();
+  const intlLocale = locale === 'es' ? 'es-ES' : 'en-US';
+  const weekdays = useMemo(
+    () =>
+      Array.from({ length: 7 }, (_, i) =>
+        new Date(2023, 0, 1 + i)
+          .toLocaleDateString(intlLocale, { weekday: 'short' })
+          .replace('.', '')
+          .slice(0, 2),
+      ),
+    [intlLocale],
+  );
 
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -145,7 +160,7 @@ export function DatePicker({
     [isOpen],
   );
 
-  const monthLabel = viewDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const monthLabel = viewDate.toLocaleDateString(intlLocale, { month: 'long', year: 'numeric' });
 
   return (
     <div ref={containerRef} className={cn('relative', className)} onKeyDown={handleKeyDown}>
@@ -160,8 +175,19 @@ export function DatePicker({
         className="flex cursor-pointer items-center gap-2 p-0"
       >
         {icon}
-        <span className={cn('text-sm', value ? 'text-ink' : 'text-placeholder')}>
-          {value ? formatDisplay(value) : placeholder}
+        <span
+          className={cn(
+            'text-sm',
+            isT2
+              ? value
+                ? 'text-[var(--text)]'
+                : 'text-[var(--text-muted)]'
+              : value
+                ? 'text-ink'
+                : 'text-placeholder',
+          )}
+        >
+          {value ? formatDisplay(value, intlLocale) : placeholder}
         </span>
       </button>
 
@@ -171,34 +197,58 @@ export function DatePicker({
         aria-label="Choose date"
         style={dropdownStyle}
         className={cn(
-          'z-50 w-[280px] rounded-lg border border-line bg-white shadow-[var(--shadow-pop)] transition-all duration-200 ease-out sm:w-64',
+          'z-50 w-[280px] shadow-[var(--shadow-pop)] transition-all duration-200 ease-out sm:w-64',
+          isT2
+            ? 'rounded-[3px] border border-[var(--line)] bg-[var(--card)]'
+            : 'rounded-lg border border-line bg-white',
           originClass,
           isOpen ? 'scale-y-100 opacity-100' : 'pointer-events-none scale-y-0 opacity-0',
         )}
       >
-        <div className="flex items-center justify-between border-b border-hairline px-3 py-2.5">
+        <div
+          className={cn(
+            'flex items-center justify-between border-b px-3 py-2.5',
+            isT2 ? 'border-[var(--line)]' : 'border-hairline',
+          )}
+        >
           <button
             type="button"
             onClick={prevMonth}
             aria-label="Previous month"
-            className="rounded-md p-1 text-faint transition-colors hover:bg-hover hover:text-ink"
+            className={cn(
+              'p-1 transition-colors',
+              isT2
+                ? 'rounded-[2px] text-[var(--text-muted)] hover:text-[var(--brass)]'
+                : 'rounded-md text-faint hover:bg-hover hover:text-ink',
+            )}
           >
             <ChevronLeftIcon />
           </button>
-          <span className="text-sm font-medium text-ink">{monthLabel}</span>
+          <span className={cn('text-sm font-medium', isT2 ? 'text-[var(--text)]' : 'text-ink')}>{monthLabel}</span>
           <button
             type="button"
             onClick={nextMonth}
             aria-label="Next month"
-            className="rounded-md p-1 text-faint transition-colors hover:bg-hover hover:text-ink"
+            className={cn(
+              'p-1 transition-colors',
+              isT2
+                ? 'rounded-[2px] text-[var(--text-muted)] hover:text-[var(--brass)]'
+                : 'rounded-md text-faint hover:bg-hover hover:text-ink',
+            )}
           >
             <ChevronRightIcon />
           </button>
         </div>
 
         <div className="grid grid-cols-7 px-3 pt-2">
-          {DAYS_OF_WEEK.map((day) => (
-            <div key={day} className="py-1 text-center text-xs font-medium text-faint">
+          {weekdays.map((day, i) => (
+            <div
+              key={i}
+              className={cn(
+                'py-1 text-center text-xs font-medium',
+                isT2 ? 'text-[var(--text-muted)]' : 'text-faint',
+              )}
+            >
               {day}
             </div>
           ))}
@@ -227,13 +277,35 @@ export function DatePicker({
                 title={isBlocked ? 'Unavailable' : undefined}
                 onClick={() => handleSelect(dateStr)}
                 className={cn(
-                  'flex h-10 w-10 items-center justify-center rounded-md text-sm transition-colors sm:h-8 sm:w-8',
-                  selected && 'bg-primary font-medium text-white',
-                  !selected && isHighlighted && 'bg-primary/10 font-medium text-primary ring-1 ring-primary/30',
-                  !selected && !isHighlighted && isToday && !isBlocked && 'border border-primary font-medium text-primary',
-                  !selected && !isHighlighted && !isToday && !disabled && 'text-ink hover:bg-hover',
-                  disabled && !isBlocked && 'cursor-not-allowed text-placeholder',
-                  isBlocked && 'cursor-not-allowed text-placeholder line-through',
+                  'flex h-10 w-10 items-center justify-center text-sm transition-colors sm:h-8 sm:w-8',
+                  isT2 ? 'rounded-[2px]' : 'rounded-md',
+                  isT2
+                    ? cn(
+                        selected && 'bg-[var(--brass)] font-medium text-[var(--on-brass)]',
+                        !selected &&
+                          isHighlighted &&
+                          'bg-[color-mix(in_srgb,var(--brass)_14%,var(--card))] font-medium text-[var(--brass)]',
+                        !selected &&
+                          !isHighlighted &&
+                          isToday &&
+                          !isBlocked &&
+                          'border border-[var(--brass)] font-medium text-[var(--brass)]',
+                        !selected &&
+                          !isHighlighted &&
+                          !isToday &&
+                          !disabled &&
+                          'text-[var(--text)] hover:bg-[color-mix(in_srgb,var(--brass)_10%,var(--card))]',
+                        disabled && !isBlocked && 'cursor-not-allowed text-[var(--text-muted)] opacity-50',
+                        isBlocked && 'cursor-not-allowed text-[var(--text-muted)] line-through opacity-50',
+                      )
+                    : cn(
+                        selected && 'bg-primary font-medium text-white',
+                        !selected && isHighlighted && 'bg-primary/10 font-medium text-primary ring-1 ring-primary/30',
+                        !selected && !isHighlighted && isToday && !isBlocked && 'border border-primary font-medium text-primary',
+                        !selected && !isHighlighted && !isToday && !disabled && 'text-ink hover:bg-hover',
+                        disabled && !isBlocked && 'cursor-not-allowed text-placeholder',
+                        isBlocked && 'cursor-not-allowed text-placeholder line-through',
+                      ),
                 )}
               >
                 {day}

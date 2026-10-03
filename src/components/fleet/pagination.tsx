@@ -1,6 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
+import { useDynamicTranslation } from '@/hooks/useDynamicTranslation';
 
 interface PaginationProps {
   currentPage: number;
@@ -18,6 +19,7 @@ export function Pagination({
   onPageChange,
 }: PaginationProps) {
   const showingTo = Math.min(currentPage * resultsPerPage, totalResults);
+  const { t } = useDynamicTranslation(['Previous page', 'Next page', 'Last page']);
 
   const getPageNumbers = (): (number | string)[] => {
     const pages: (number | string)[] = [];
@@ -48,7 +50,7 @@ export function Pagination({
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
           className={navBtn}
-          aria-label="Previous page"
+          aria-label={t('Previous page')}
         >
           <ChevronLeftIcon />
         </button>
@@ -78,7 +80,7 @@ export function Pagination({
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
           className={navBtn}
-          aria-label="Next page"
+          aria-label={t('Next page')}
         >
           <ChevronRightIcon />
         </button>
@@ -88,7 +90,7 @@ export function Pagination({
           onClick={() => onPageChange(totalPages)}
           disabled={currentPage === totalPages}
           className={navBtn}
-          aria-label="Last page"
+          aria-label={t('Last page')}
         >
           <ChevronDoubleRightIcon />
         </button>

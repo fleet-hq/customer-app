@@ -9,6 +9,9 @@ import { cn } from '@/lib/utils';
 import { DEMO_USER } from '@/lib/mock-data';
 import { paths } from '@/lib/paths';
 import { BookmarkList, ChevronDown, Logout, User, Close } from '@/components/ui/icons';
+import { LanguageSwitcher } from '@/components/i18n/language-switcher';
+import { Dyn } from '@/components/i18n/Dyn';
+import { useDynamicTranslation } from '@/hooks/useDynamicTranslation';
 
 interface HeaderProps {
   /** Optional override; when omitted the active link is derived from
@@ -44,6 +47,7 @@ export function Header({
   userEmail = DEMO_USER.email,
 }: HeaderProps) {
   const tenant = useTenant();
+  const { t } = useDynamicTranslation(['Open menu', 'Close menu']);
   const serviceLinks = (tenant.sections.services?.blocks ?? [])
     .filter((b) => b.href)
     .map((b) => ({ href: b.href as string, label: b.heading || b.link_label || '' }))
@@ -152,16 +156,17 @@ export function Header({
         </div>
 
         <div className="flex items-center justify-end gap-[14px]">
+          <LanguageSwitcher />
           <Link
             href={paths.manage}
             className="whitespace-nowrap rounded-[7px] border border-primary bg-primary px-[18px] py-[9px] text-xs font-semibold text-white"
           >
-            Manage Bookings
+            <Dyn>Manage Bookings</Dyn>
           </Link>
 
           <button
             type="button"
-            aria-label={mobileNavOpen ? 'Close menu' : 'Open menu'}
+            aria-label={mobileNavOpen ? t('Close menu') : t('Open menu')}
             aria-expanded={mobileNavOpen}
             onClick={() => setMobileNavOpen((o) => !o)}
             className="flex h-[38px] w-[38px] flex-shrink-0 items-center justify-center rounded-[8px] border border-line text-ink min-[840px]:hidden"
@@ -203,20 +208,20 @@ export function Header({
                     href={paths.manage}
                     className="flex items-center gap-[10px] rounded-lg px-3 py-[9px] text-[13px] font-medium text-ink hover:bg-hover"
                   >
-                    <BookmarkList size={15} className="text-primary" /> My bookings
+                    <BookmarkList size={15} className="text-primary" /> <Dyn>My bookings</Dyn>
                   </Link>
                   <Link
                     href={paths.manage}
                     className="flex items-center gap-[10px] rounded-lg px-3 py-[9px] text-[13px] font-medium text-ink hover:bg-hover"
                   >
-                    <User size={15} className="text-primary" /> Account settings
+                    <User size={15} className="text-primary" /> <Dyn>Account settings</Dyn>
                   </Link>
                   <div className="mx-1 my-1.5 h-px bg-hairline" />
                   <Link
                     href={paths.home}
                     className="flex items-center gap-[10px] rounded-lg px-3 py-[9px] text-[13px] font-semibold text-signout hover:bg-signout-bg"
                   >
-                    <Logout size={15} /> Sign out
+                    <Logout size={15} /> <Dyn>Sign out</Dyn>
                   </Link>
                 </div>
               )}

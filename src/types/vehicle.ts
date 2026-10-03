@@ -71,6 +71,8 @@ export interface ApiTaxProfile {
 export interface ApiBookingRule {
   id?: number;
   available_at?: number[];
+  min_duration?: number | string | null;
+  max_duration?: number | string | null;
   miles_per_day?: number;
   miles_overage_rate?: number;
   security_deposit?: number;
@@ -168,6 +170,8 @@ export interface Vehicle {
   description: string;
   status?: string;
   availableLocations?: number[];
+  minDuration?: number;
+  maxDuration?: number;
   milesPerDay?: number;
   milesOverageRate?: number;
   securityDeposit?: number;
@@ -307,6 +311,8 @@ export function transformApiVehicle(apiVehicle: ApiVehicle): Vehicle {
     description: apiVehicle.description || '',
     status: apiVehicle.status,
     availableLocations: apiVehicle.booking_rule?.available_at || [],
+    minDuration: Number(apiVehicle.booking_rule?.min_duration) || 1,
+    maxDuration: Number(apiVehicle.booking_rule?.max_duration) || undefined,
     milesPerDay: apiVehicle.booking_rule?.miles_per_day,
     milesOverageRate: apiVehicle.booking_rule?.miles_overage_rate,
     securityDeposit: Number(apiVehicle.booking_rule?.security_deposit) || 0,

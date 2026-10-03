@@ -12,12 +12,16 @@ import type {
   TestimonialsSection,
   FaqsSection,
   FeatureColumnsSection,
+  StatsSection,
+  Template2Settings,
+  StepsSection,
   ServicesSection,
   InquiryFormConfig,
   FleetPageSection,
   BlogIndexSection,
   SiteSeoConfig,
   ContentPage,
+  WebsiteTemplate,
 } from '@/services/companyContentServices';
 import { DEFAULT_NAV_LINKS, DEFAULT_THEME } from './tenant-defaults';
 
@@ -31,6 +35,10 @@ export interface TenantSections {
   promo: PromoSection | null;
   discount_banner: DiscountBannerSection | null;
   feature_columns: FeatureColumnsSection | null;
+  about: CopyBlockSection | null;
+  template_2: Template2Settings | null;
+  stats: StatsSection | null;
+  steps: StepsSection | null;
   fleet_section: CopyBlockSection | null;
   why_choose: CopyBlockSection | null;
   categories: CategoriesSection | null;
@@ -89,6 +97,7 @@ export interface Tenant {
   images: ImagesPayload;
   sections: TenantSections;
   tracking: TenantTracking;
+  websiteTemplate: WebsiteTemplate;
 }
 
 export function defaultLocation(tenant: Tenant): TenantLocation | undefined {
@@ -117,6 +126,7 @@ interface ApiCompanyDetail {
   zip_code: string;
   default_location: { id: number; name: string } | null;
   content: {
+    website_template?: WebsiteTemplate;
     brand?: {
       logo?: string | null;
       logo_mono?: string | null;
@@ -155,6 +165,23 @@ function nonEmpty(value: string | null | undefined): string {
   return value ?? '';
 }
 
+/** Merge admin-supplied theme colors over the defaults, per key — an
+ *  admin who has set ``primary`` but left ``accent`` blank should get
+ *  the real primary AND the sane default accent. A blanket object
+ *  spread would zero out ``accent`` instead, since the API always
+ *  sends all four keys (as '' when unset, never omitted). An empty
+ *  CSS custom property is "set but empty," not "unset" — var()'s own
+ *  fallback only fires for the latter — so this has to be resolved
+ *  here, before the value ever reaches a CSS variable. */
+function mergeTheme(theme: Partial<BrandTheme> | undefined): BrandTheme {
+  const merged = { ...DEFAULT_THEME };
+  for (const key of Object.keys(DEFAULT_THEME) as (keyof BrandTheme)[]) {
+    const value = theme?.[key];
+    if (value) merged[key] = value;
+  }
+  return merged;
+}
+
 export function tenantFromApi(detail: ApiCompanyDetail, locations: ApiLocation[]): Tenant {
   const content = detail.content ?? {};
   const brand = content.brand ?? {};
@@ -175,16 +202,13 @@ export function tenantFromApi(detail: ApiCompanyDetail, locations: ApiLocation[]
       logoMono: brand.logo_mono ?? null,
       description: nonEmpty(brand.brand_description),
       copyright: nonEmpty(brand.copyright_text),
-      theme: { ...DEFAULT_THEME, ...(brand.theme ?? {}) },
+      theme: mergeTheme(brand.theme),
       navLinks:
         brand.nav_links && brand.nav_links.length > 0 ? brand.nav_links : DEFAULT_NAV_LINKS,
     },
     footer: {
       description: nonEmpty(footer.description),
-      // Drop placeholder rows the operator never actually filled in —
-      // a social-link entry with no platform crashes SocialGlyph, and
-      // one with no url is just a blank icon that goes nowhere.
-      socials: (footer.socials ?? []).filter((s) => s?.platform && s?.url),
+      socials: footer.socials ?? [],
       contact: {
         phone: nonEmpty(footer.contact?.phone) || nonEmpty(detail.phone_no),
         email: nonEmpty(footer.contact?.email) || nonEmpty(detail.email),
@@ -207,6 +231,10 @@ export function tenantFromApi(detail: ApiCompanyDetail, locations: ApiLocation[]
       promo: sections.promo ?? null,
       discount_banner: sections.discount_banner ?? null,
       feature_columns: sections.feature_columns ?? null,
+      about: sections.about ?? null,
+      template_2: sections.template_2 ?? null,
+      stats: sections.stats ?? null,
+      steps: sections.steps ?? null,
       fleet_section: sections.fleet_section ?? null,
       why_choose: sections.why_choose ?? null,
       categories: sections.categories ?? null,
@@ -229,6 +257,7 @@ export function tenantFromApi(detail: ApiCompanyDetail, locations: ApiLocation[]
       bodyScript: nonEmpty(tracking.body_script),
       thankYouScript: nonEmpty(tracking.thank_you_script),
     },
+    websiteTemplate: content.website_template ?? 'template_1',
   };
 }
 

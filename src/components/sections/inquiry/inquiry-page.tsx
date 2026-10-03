@@ -4,6 +4,7 @@ import { getCurrentTenant } from '@/lib/get-tenant';
 import { withCompany } from '@/lib/tenant';
 import { Sparkles, Clock, ShieldCheck, Phone, Mail } from '@/components/ui/icons';
 import { InquiryForm } from '@/components/sections/inquiry/inquiry-form';
+import { InquiryPageBodyT2 } from './inquiry-page-t2';
 
 const TRUST_POINTS = [
   { icon: Clock, text: 'We reply fast — usually within the hour during opening times.' },
@@ -14,6 +15,10 @@ export async function InquiryPageBody() {
   const tenant = await getCurrentTenant();
   const config = tenant.sections.inquiry_form;
   if (!config) notFound();
+
+  if (tenant.websiteTemplate === 'template_2') {
+    return <InquiryPageBodyT2 tenant={tenant} config={config} />;
+  }
 
   const co = (t: string) => withCompany(t, tenant.name);
   const phone = tenant.footer.contact.phone;

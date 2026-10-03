@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Check, Download, Info, Pencil, Swap, Close } from '@/components/ui/icons';
 import { paths } from '@/lib/paths';
+import { Dyn } from '@/components/i18n/Dyn';
 import { cn } from '@/lib/utils';
 
 function withToken(href: string, token: string | null): string {
@@ -53,11 +54,11 @@ export function BookingActions({
   ) =>
     enabled ? (
       <Link href={withToken(href, token)} className={ghost}>
-        {icon} {label}
+        {icon} <Dyn>{label}</Dyn>
       </Link>
     ) : (
       <button type="button" disabled className={ghostDisabled}>
-        {icon} {label}
+        {icon} <Dyn>{label}</Dyn>
       </button>
     );
 
@@ -71,7 +72,7 @@ export function BookingActions({
         className="no-print inline-flex min-w-[118px] items-center justify-center gap-[7px] rounded-[9px] border border-primary bg-primary px-[14px] py-[9px] text-[13px] font-semibold text-white"
         title="Save or print this booking as a PDF"
       >
-        <Download size={14} /> Download PDF
+        <Download size={14} /> <Dyn>Download PDF</Dyn>
       </button>
     </div>
   );
@@ -84,9 +85,9 @@ export function ConfirmedBanner({ email }: { email: string }) {
         <Check size={22} strokeWidth={2.6} className="text-primary" />
       </span>
       <div className="flex-1">
-        <div className="text-[15px] font-semibold text-secondary">Booking confirmed</div>
+        <div className="text-[15px] font-semibold text-secondary"><Dyn>Booking confirmed</Dyn></div>
         <div className="mt-0.5 text-[12.5px] text-success">
-          Your confirmation &amp; rental agreement have been sent to <span className="font-semibold">{email}</span>
+          <Dyn>Your confirmation &amp; rental agreement have been sent to</Dyn> <span className="font-semibold">{email}</span>
         </div>
       </div>
     </div>
@@ -117,14 +118,14 @@ export function AwaitingVerificationBanner({
       </span>
       <div className="min-w-[200px] flex-1">
         <div className="text-[10px] font-semibold uppercase tracking-wide text-amber-text-2">
-          Awaiting verification
+          <Dyn>Awaiting verification</Dyn>
         </div>
-        <div className="mt-0.5 text-[13px] font-semibold text-amber-text">{message}</div>
+        <div className="mt-0.5 text-[13px] font-semibold text-amber-text"><Dyn>{message}</Dyn></div>
         <div className="mt-0.5 text-[12.5px] text-amber-text-2">
-          Your vehicle slot is held until verification is finished.
+          <Dyn>Your vehicle slot is held until verification is finished.</Dyn>
         </div>
         {payError && (
-          <div className="mt-1 text-[12px] font-medium text-danger">{payError}</div>
+          <div className="mt-1 text-[12px] font-medium text-danger"><Dyn>{payError}</Dyn></div>
         )}
       </div>
       {canPay && onPay && !expired && (
@@ -133,7 +134,7 @@ export function AwaitingVerificationBanner({
           disabled={payLoading}
           className="h-10 rounded-md bg-primary px-5 text-sm font-semibold text-white disabled:opacity-60"
         >
-          {payLoading ? 'Redirecting…' : 'Continue to payment'}
+          <Dyn>{payLoading ? 'Redirecting…' : 'Continue to payment'}</Dyn>
         </button>
       )}
       {countdown && (
@@ -143,7 +144,7 @@ export function AwaitingVerificationBanner({
             expired ? 'border-danger-border bg-danger-bg text-danger-text' : 'border-amber-border bg-white text-amber-text',
           )}
         >
-          <span className="text-[9px] font-medium uppercase tracking-wide">Hold expires in</span>
+          <span className="text-[9px] font-medium uppercase tracking-wide"><Dyn>Hold expires in</Dyn></span>
           <span className="text-sm font-semibold tabular-nums">{countdown}</span>
         </div>
       )}
@@ -158,9 +159,9 @@ export function CancelledBanner() {
         <Close size={20} strokeWidth={2.4} className="text-danger" />
       </span>
       <div className="flex-1">
-        <div className="text-[15px] font-semibold text-danger-text">Booking cancelled</div>
+        <div className="text-[15px] font-semibold text-danger-text"><Dyn>Booking cancelled</Dyn></div>
         <div className="mt-0.5 text-[12.5px] text-danger-text">
-          This booking has been cancelled and can no longer be modified.
+          <Dyn>This booking has been cancelled and can no longer be modified.</Dyn>
         </div>
       </div>
     </div>
@@ -174,9 +175,9 @@ export function PaymentDueBanner({ amount, onPay, payLoading = false }: { amount
         <Info size={20} strokeWidth={2.2} className="text-accent" />
       </span>
       <div className="min-w-[200px] flex-1">
-        <div className="text-[15px] font-semibold text-amber-text">Payment due — new charges added</div>
+        <div className="text-[15px] font-semibold text-amber-text"><Dyn>Payment due — new charges added</Dyn></div>
         <div className="mt-0.5 text-[12.5px] text-amber-text-2">
-          Your trip changes added <span className="font-semibold">{amount}</span>. Complete payment to confirm.
+          <Dyn>Your trip changes added</Dyn> <span className="font-semibold">{amount}</span>. <Dyn>Complete payment to confirm.</Dyn>
         </div>
       </div>
       <button
@@ -184,7 +185,7 @@ export function PaymentDueBanner({ amount, onPay, payLoading = false }: { amount
         disabled={payLoading || !onPay}
         className="rounded-lg bg-accent px-[18px] py-[9px] text-[13px] font-semibold whitespace-nowrap text-white disabled:opacity-50"
       >
-        {payLoading ? 'Redirecting…' : `Pay ${amount}`}
+        <Dyn>{payLoading ? 'Redirecting…' : `Pay ${amount}`}</Dyn>
       </button>
     </div>
   );

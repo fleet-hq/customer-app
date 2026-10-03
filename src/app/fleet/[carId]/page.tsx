@@ -1,869 +1,184 @@
 'use client';
 
-import { use, useEffect, useMemo, useRef, useState } from 'react';
-import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { use } from 'react';
 import { BackLink } from '@/components/ui/back-link';
 import { TextInput, FieldError } from '@/components/ui/field';
 import { PhoneInput } from '@/components/ui/phone-input';
 import { DateTimeField } from '@/components/search/date-time-field';
-import { Check, Info, Pencil, ImageIcon, Close, ChevronLeft, ChevronDown, ShieldCheck, MapPin } from '@/components/ui/icons';
+import { Check, Info, Pencil, ImageIcon, Close, ChevronLeft } from '@/components/ui/icons';
 import { Dialog } from '@/components/ui/dialog';
 import { DateDealsCallout } from '@/components/booking/date-deals-callout';
 import { RentalBreakdown } from '@/components/booking/rental-breakdown';
-import { DEFAULT_TRIP } from '@/lib/mock-data';
-import { useFleet, useInsuranceOptions, useManualInsurancePackagesForTenant, useStartBookingCheckout, useStartEmbedBookingPayment, useCompanyLocations, useFleetUnavailableRanges, usePublicPaymentProviders, useCheckoutHoldRelease } from '@/hooks';
 import { EmbedPaymentPanel } from '@/components/checkout/embed-payment-panel';
-import { SquareCardEntry, buildDepositConsentCopy, type SquareCardEntryHandle } from '@/components/checkout/square-card-entry';
+import { SquareCardEntry, buildDepositConsentCopy } from '@/components/checkout/square-card-entry';
 import ProtectionSection from '@/components/checkout/protection-section';
-import { useBookingInvoice } from '@/hooks/useBookingInvoice';
-import { useDefaultTaxProfile } from '@/hooks/useTaxProfiles';
-import { useBookingVerificationPolicy, useStartVerificationFirstBooking } from '@/hooks/useBookingPolicy';
-import { getBookingVerificationPolicy } from '@/services/bookingPolicyServices';
-import { squareCreatePaymentForPending } from '@/services/squarePaymentServices';
-import { useDefaultLocation } from '@/contexts';
-import { checkFleetAvailability, validatePromoCode } from '@/services/bookingServices';
-import type { InsuranceOption } from '@/services/bookingServices';
+import { RentalAgreementSignModal } from '@/components/booking/rental-agreement-sign-modal';
 import { toUtcIso } from '@/utils/datetime';
 import { todayISO } from '@/lib/time-slots';
-import { cn, money, rentalDays } from '@/lib/utils';
-import { buildUnavailabilityIndex, slotsBlockedOn, firstBlockInSpan } from '@/lib/unavailable-slots';
+import { cn, money } from '@/lib/utils';
+import { slotsBlockedOn, firstBlockInSpan } from '@/lib/unavailable-slots';
 import { formatInTimeZone } from 'date-fns-tz';
 import { paths } from '@/lib/paths';
-import { useEmbedBridge } from '@/hooks';
 import { useTenant } from '@/lib/tenant-context';
-import { trackVehicleView, trackBeginCheckout } from '@/lib/tracking-events';
-import { useDefaultAgreementTemplate } from '@/hooks/useAgreements';
-import { RentalAgreementSignModal } from '@/components/booking/rental-agreement-sign-modal';
-import { useAbiQuote } from '@/hooks/useAbi';
-import type { AbiQuoteAvailable } from '@/services/abiServices';
-
-const PLACEHOLDER_IMAGE = '/images/vehicles/car_placeholder.svg';
-
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-function formatTripStamp(dateIso: string, time: string): string {
-  const d = new Date(dateIso + 'T00:00:00');
-  const month = isNaN(d.getTime()) ? '' : MONTHS[d.getMonth()];
-  const day = isNaN(d.getTime()) ? dateIso : d.getDate();
-  const [hStr, mStr] = time.split(':');
-  const h = Number(hStr);
-  const m = mStr ?? '00';
-  const period = h >= 12 ? 'PM' : 'AM';
-  const h12 = h % 12 === 0 ? 12 : h % 12;
-  return `${month} ${day}, ${h12}:${m} ${period}`;
-}
-
-const SPEC_ICONS: Record<string, React.ReactNode> = {
-  seats: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="7" r="4" />
-      <path d="M5.5 21a6.5 6.5 0 0 1 13 0" />
-    </svg>
-  ),
-  transmission: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="6" cy="6" r="2" />
-      <circle cx="6" cy="18" r="2" />
-      <circle cx="18" cy="6" r="2" />
-      <path d="M6 8v8M18 8v3a3 3 0 0 1-3 3H8" />
-    </svg>
-  ),
-  fuel: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16M3 21h12" />
-      <path d="M13 9h2a2 2 0 0 1 2 2v6a1.5 1.5 0 0 0 3 0V8l-3-3" />
-    </svg>
-  ),
-  year: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="4" width="18" height="18" rx="2" />
-      <path d="M16 2v4M8 2v4M3 10h18" />
-    </svg>
-  ),
-  mileage: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="13" r="8" />
-      <path d="M12 13l3-3M12 5V3M5 5l1 1M19 5l-1 1" />
-    </svg>
-  ),
-};
-
-const EXTRA_ICON = (
-  <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
-    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-    <path d="M3.27 6.96 12 12.01l8.73-5.05M12 22.08V12" />
-  </svg>
-);
-
-type Fields = { firstName: string; lastName: string; email: string; phone: string; license: string };
-
-// Slot-blocking math lives in @/lib/unavailable-slots so the modify
-// page (and any future picker surface) shares the same TZ-aware
-// implementation. The picker uses ``slotsBlockedOn`` to grey out the
-// hours of an existing booking inside an otherwise-available day.
+import { Dyn } from '@/components/i18n/Dyn';
+import { useFleetDetail } from './use-fleet-detail';
+import {
+  SPEC_ICONS,
+  EXTRA_ICON,
+  formatTripStamp,
+  LocationDropdown,
+  InsuranceDetailModal,
+  INSURANCE_DETAILS,
+} from './fleet-detail-shared';
+import FleetDetailClientT2 from './fleet-detail-client-t2';
 
 export default function Page({ params }: { params: Promise<{ carId: string }> }) {
   const { carId } = use(params);
   // carId is the route param — either the vehicle's slug (normal case) or,
   // for older/manually-built links, its numeric id. The backend accepts
   // either at the same lookup path, so it's used as-is everywhere below.
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const embed = useEmbedBridge();
-  const squareCardRef = useRef<SquareCardEntryHandle | null>(null);
-  const [squareCardError, setSquareCardError] = useState<string | null>(null);
   const tenant = useTenant();
+  const fd = useFleetDetail(carId);
 
-  const { data: manualInsurancePackages } = useManualInsurancePackagesForTenant();
-  const { data: companyLocations } = useCompanyLocations();
-  const defaultLoc = useDefaultLocation();
-  const startCheckout = useStartBookingCheckout();
-  const startEmbedPayment = useStartEmbedBookingPayment();
-  const { registerHold, suppressRelease, releaseNow } = useCheckoutHoldRelease(carId);
-  // Single-provider policy: the tenant admin enables exactly one
-  // gateway at a time on the Integrations page — customer-central
-  // just uses whatever's on. No picker, no per-request override.
-  const { data: providersData } = usePublicPaymentProviders();
-  const activeProvider: 'stripe' | 'square' =
-    (providersData?.providers?.[0] as 'stripe' | 'square') ?? 'stripe';
-  const [embedIntent, setEmbedIntent] = useState<null | {
-    provider: 'stripe' | 'square';
-    clientSecret: string;
-    publishableKey: string;
-    stripeAccountId: string;
-    providerExtra: Record<string, string | number | boolean | null>;
-    amount: string;
-    currency: string;
-    pendingId: string;
-  }>(null);
-  const paymentAnchorRef = useRef<HTMLDivElement | null>(null);
-  useEffect(() => {
-    if (embedIntent) {
-      const t = setTimeout(() => {
-        paymentAnchorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 250);
-      return () => clearTimeout(t);
-    }
-  }, [embedIntent]);
-  const { data: verificationPolicy } = useBookingVerificationPolicy();
-  const startVerification = useStartVerificationFirstBooking();
-  const { data: defaultTaxProfile } = useDefaultTaxProfile();
-  const protectionRef = useRef<HTMLHeadingElement>(null);
-  const errorBannerRef = useRef<HTMLDivElement>(null);
+  if (tenant.websiteTemplate === 'template_2') {
+    return <FleetDetailClientT2 carId={carId} />;
+  }
 
-  const [selectedInsurance, setSelectedInsurance] = useState<Set<string>>(new Set());
-  const [selectedManualIds, setSelectedManualIds] = useState<Set<number>>(new Set());
-  const [abiOptedIn, setAbiOptedIn] = useState(false);
-  useEffect(() => {
-    const mandatoryIds = (manualInsurancePackages ?? [])
-      .filter((p) => p.isMandatory)
-      .map((p) => p.id);
-    if (mandatoryIds.length === 0) return;
-    setSelectedManualIds((prev) => {
-      const next = new Set(prev);
-      let changed = false;
-      for (const id of mandatoryIds) {
-        if (!next.has(id)) {
-          next.add(id);
-          changed = true;
-        }
-      }
-      return changed ? next : prev;
-    });
-  }, [manualInsurancePackages]);
-  const [extras, setExtras] = useState<Record<string, number>>({});
-  const [promoApplied, setPromoApplied] = useState(false);
-  const [promoCode, setPromoCode] = useState('');
-  const [promoDiscount, setPromoDiscount] = useState(0);
-  const [promoInput, setPromoInput] = useState('');
-  const [promoError, setPromoError] = useState('');
-  const [fields, setFields] = useState<Fields>({ firstName: '', lastName: '', email: '', phone: '', license: '' });
-  const [errors, setErrors] = useState<Partial<Record<keyof Fields, string>>>({});
-  const [checkoutError, setCheckoutError] = useState('');
-  const [rentalAgreementSignature, setRentalAgreementSignature] = useState<string | null>(null);
-  const [rentalAgreementModalOpen, setRentalAgreementModalOpen] = useState(false);
-  const { data: rentalAgreementTemplate } = useDefaultAgreementTemplate();
-  const rentalAgreementRequired = (rentalAgreementTemplate?.clauses?.length ?? 0) > 0;
-  const rentalAgreementSigned = !!rentalAgreementSignature;
-
-  const [galleryOpen, setGalleryOpen] = useState(false);
-  const [galleryIndex, setGalleryIndex] = useState(0);
-  const [detailId, setDetailId] = useState<string | null>(null);
-  const [tripOpen, setTripOpen] = useState(false);
-  const [tripError, setTripError] = useState<string | null>(null);
-  const [openLocDropdown, setOpenLocDropdown] = useState<'pickup' | 'dropoff' | null>(null);
-  const urlPickupLoc = searchParams.get('pickupLocId');
-  const urlDropoffLoc = searchParams.get('dropoffLocId');
-  const urlPickupDate = searchParams.get('pickupDate');
-  const urlPickupTime = searchParams.get('pickupTime');
-  const urlReturnDate = searchParams.get('returnDate');
-  const urlReturnTime = searchParams.get('returnTime');
-  const [pickupLocId, setPickupLocId] = useState<string | null>(urlPickupLoc);
-  const [dropoffLocId, setDropoffLocId] = useState<string | null>(urlDropoffLoc);
-  const [pickupDate, setPickupDate] = useState(urlPickupDate ?? DEFAULT_TRIP.pickupDate);
-  const [pickupTime, setPickupTime] = useState(urlPickupTime ?? DEFAULT_TRIP.pickupTime);
-  const [returnDate, setReturnDate] = useState(urlReturnDate ?? DEFAULT_TRIP.returnDate);
-  const [returnTime, setReturnTime] = useState(urlReturnTime ?? DEFAULT_TRIP.returnTime);
-
-  // Persist form fields to sessionStorage so a reload (or a widget parent
-  // reload that remounts the iframe) doesn't wipe what the customer just
-  // typed. sessionStorage is per-origin — same origin as this page — so
-  // it survives across iframe remounts.
-  const persistKey = `fhq-checkout-form:${carId}`;
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    try {
-      const raw = window.sessionStorage.getItem(persistKey);
-      if (!raw) return;
-      const saved = JSON.parse(raw) as {
-        fields?: Fields;
-        selectedInsurance?: string[];
-        extras?: Record<string, number>;
-        promoCode?: string;
-        promoInput?: string;
-        abiOptedIn?: boolean;
-      };
-      if (saved.fields) setFields(saved.fields);
-      if (Array.isArray(saved.selectedInsurance)) setSelectedInsurance(new Set(saved.selectedInsurance));
-      if (saved.extras) setExtras(saved.extras);
-      if (saved.promoCode) setPromoCode(saved.promoCode);
-      if (saved.promoInput) setPromoInput(saved.promoInput);
-      if (typeof saved.abiOptedIn === 'boolean') setAbiOptedIn(saved.abiOptedIn);
-    } catch {
-      /* corrupt entry — ignore */
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [persistKey]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    try {
-      window.sessionStorage.setItem(
-        persistKey,
-        JSON.stringify({
-          fields,
-          selectedInsurance: Array.from(selectedInsurance),
-          extras,
-          promoCode,
-          promoInput,
-          abiOptedIn,
-        }),
-      );
-    } catch {
-      /* quota / private mode — silently drop */
-    }
-  }, [persistKey, fields, selectedInsurance, extras, promoCode, promoInput, abiOptedIn]);
-
-  const fleetTz = useMemo(() => {
-    const fromLoc = companyLocations?.find((l) => String(l.id) === pickupLocId)?.timezone;
-    return fromLoc ?? defaultLoc?.timezone ?? null;
-  }, [companyLocations, pickupLocId, defaultLoc]);
-
-  const fleetDateArgs = useMemo(() => {
-    if (!fleetTz) return undefined;
-    return {
-      pickupDatetime: toUtcIso(pickupDate, pickupTime, fleetTz),
-      dropoffDatetime: toUtcIso(returnDate, returnTime, fleetTz),
-    };
-  }, [fleetTz, pickupDate, pickupTime, returnDate, returnTime]);
-
-  const { data: vehicle, isLoading } = useFleet(carId, true, fleetDateArgs);
-
-  // Fire once per vehicle, not per render — price and availability
-  // refetch as the trip dates change, which would otherwise re-fire
-  // ViewContent repeatedly for the same car.
-  useEffect(() => {
-    if (!vehicle) return;
-    trackVehicleView({
-      id: vehicle.id,
-      name: vehicle.name,
-      pricePerDay: vehicle.pricePerDay,
-      vehicleType: vehicle.vehicleType,
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vehicle?.id]);
-
-
-  // Keyed off the resolved fleet's numeric id, not the URL param —
-  // that param is the vehicle's slug, and the unavailable-ranges
-  // endpoint filters on the integer pk.
-  const { data: unavailableRanges = [] } = useFleetUnavailableRanges(vehicle?.id);
-  const unavailabilityIndex = useMemo(
-    () => buildUnavailabilityIndex(unavailableRanges, fleetTz),
-    [unavailableRanges, fleetTz],
-  );
-  const unavailableDates = unavailabilityIndex.fullyBlockedDates;
-  const { data: insuranceOptions, isLoading: insuranceOptionsLoading } =
-    useInsuranceOptions(fleetDateArgs);
-
-  const { data: abiQuote } = useAbiQuote({
-    fleetId: vehicle?.id,
-    startDate: pickupDate ? pickupDate.slice(0, 10) : undefined,
-    endDate: returnDate ? returnDate.slice(0, 10) : undefined,
-  });
-  const abiAvailable: AbiQuoteAvailable | null =
-    abiQuote && abiQuote.available === true ? (abiQuote as AbiQuoteAvailable) : null;
-  const abiPremium = abiAvailable && abiOptedIn ? Number(abiAvailable.total_price) : 0;
-
-  useEffect(() => {
-    if (pickupLocId || !companyLocations?.length) return;
-    const pickupLocs = companyLocations.filter((l) => l.type === 'pickup' || l.type === 'both');
-    const dropoffLocs = companyLocations.filter((l) => l.type === 'dropoff' || l.type === 'both');
-    const def =
-      pickupLocs.find((l) => String(l.id) === String(defaultLoc?.id)) ?? pickupLocs[0] ?? companyLocations[0];
-    setPickupLocId(String(def.id));
-    const dropDef =
-      dropoffLocs.find((l) => String(l.id) === String(def.id)) ?? dropoffLocs[0] ?? def;
-    setDropoffLocId(String(dropDef.id));
-  }, [companyLocations, defaultLoc, pickupLocId]);
-
-  const days = rentalDays(pickupDate, returnDate, pickupTime, returnTime);
-  const rentalHours = useMemo(() => {
-    const pickupMs = new Date(`${pickupDate}T${pickupTime || '00:00'}:00`).getTime();
-    const dropoffMs = new Date(`${returnDate}T${returnTime || '00:00'}:00`).getTime();
-    if (Number.isNaN(pickupMs) || Number.isNaN(dropoffMs)) return Math.max(1, days * 24);
-    return Math.max(1, Math.ceil((dropoffMs - pickupMs) / 3600000));
-  }, [pickupDate, pickupTime, returnDate, returnTime, days]);
-
-  const selectedExtras = useMemo<Record<string, { enabled: boolean; quantity: number }>>(() => {
-    const out: Record<string, { enabled: boolean; quantity: number }> = {};
-    Object.entries(extras).forEach(([id, qty]) => {
-      out[id] = { enabled: qty > 0, quantity: qty };
-    });
-    return out;
-  }, [extras]);
-
-  const vehicleData = useMemo(
-    () =>
-      vehicle
-        ? {
-            pricePerDay: vehicle.pricePerDay,
-            pricePerHour: vehicle.pricePerHour,
-            autoCapEnabled: vehicle.autoCapEnabled,
-            discounts: vehicle.discounts,
-            securityDeposit: vehicle.securityDeposit,
-            bookingFee: vehicle.bookingFee,
-            taxProfile: vehicle.taxProfile,
-            image: vehicle.images?.[0] ?? PLACEHOLDER_IMAGE,
-            name: vehicle.name,
-            licensePlate: vehicle.licensePlate,
-            description: vehicle.description ?? '',
-            extras: vehicle.extras ?? [],
-          }
-        : null,
-    [vehicle],
-  );
-
-  const selectedManualPackages = useMemo(() => {
-    const list = manualInsurancePackages ?? [];
-    return list.filter((p) => selectedManualIds.has(p.id));
-  }, [manualInsurancePackages, selectedManualIds]);
-
-  const { pricing, extraInvoiceItems, insuranceLabel } = useBookingInvoice({
-    vehicleData,
-    rentalDays: days,
-    rentalHours,
-    pickupDate,
-    dropoffDate: returnDate,
-    selectedInsurance,
-    insuranceOptions: insuranceOptions ?? [],
-    selectedManualPackages,
-    selectedExtras,
-    companyLocations: companyLocations ?? [],
-    pickupLocationId: pickupLocId,
-    dropoffLocationId: dropoffLocId,
-    appliedDiscount: promoApplied ? promoDiscount : 0,
-    discountCode: promoApplied ? promoCode : undefined,
-    defaultTaxProfile,
-  });
-
-  useEffect(() => {
-    if (!checkoutError) return;
-    errorBannerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }, [checkoutError]);
-
-  useEffect(() => {
-    if (!promoApplied || !promoCode) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const result = await validatePromoCode({
-          code: promoCode,
-          base_price: pricing.subtotal - pricing.insuranceCost - pricing.extrasCost,
-          extras_price: pricing.insuranceCost + pricing.extrasCost,
-          fees: pricing.bookingFee,
-          location_charges: pricing.locationCharges,
-        });
-        if (cancelled) return;
-        if (result.valid && result.discount_amount) {
-          setPromoDiscount(parseFloat(result.discount_amount));
-        } else {
-          setPromoApplied(false);
-          setPromoCode('');
-          setPromoDiscount(0);
-          setPromoError(result.error || 'Promo no longer valid');
-        }
-      } catch {
-        if (cancelled) return;
-        setPromoApplied(false);
-        setPromoCode('');
-        setPromoDiscount(0);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    promoApplied,
-    promoCode,
-    pricing.subtotal,
-    pricing.insuranceCost,
-    pricing.extrasCost,
-    pricing.bookingFee,
-    pricing.locationCharges,
-  ]);
-
-  if (isLoading || insuranceOptionsLoading) {
+  if (fd.status === 'loading') {
     return (
       <div className="flex min-h-screen flex-col bg-white text-ink">
         <div className="mx-auto flex w-full max-w-[1180px] flex-1 items-center justify-center px-6 py-24 text-center text-muted">
-          {isLoading ? 'Loading vehicle…' : 'Fetching insurance quotes…'}
+          <Dyn>{fd.isLoading ? 'Loading vehicle…' : 'Fetching insurance quotes…'}</Dyn>
         </div>
       </div>
     );
   }
 
-  if (!vehicle) {
+  if (fd.status === 'not-found') {
     return (
       <div className="flex min-h-screen flex-col bg-white text-ink">
         <div className="mx-auto flex w-full max-w-[1180px] flex-1 flex-col items-center justify-center px-6 py-24 text-center text-muted">
           <div className="mb-4">
-            <BackLink href={paths.fleet}>Back to fleet</BackLink>
+            <BackLink href={paths.fleet}><Dyn>Back to fleet</Dyn></BackLink>
           </div>
-          Vehicle not found.
+          <Dyn>Vehicle not found.</Dyn>
         </div>
       </div>
     );
   }
 
-  const plans: InsuranceOption[] = insuranceOptions ?? [];
-  const recommendedPlanId = (plans.find((p) => p.price > 0) ?? plans[0])?.id ?? null;
-  const selectedPlans = plans.filter((p) => selectedInsurance.has(p.id) && p.id !== 'own');
-  const ownSelected = selectedInsurance.has('own');
-
-  const galleryImages = vehicle.images.length > 0 ? vehicle.images : ['/images/vehicles/car_placeholder.svg'];
-
-  const discount = pricing.discount;
-  const total = pricing.total + abiPremium;
-
-  const isInsuranceDisabled = (id: string) => id === 'sli' && !selectedInsurance.has('rcli');
-  const clearOwnInsurance = () =>
-    setSelectedInsurance((prev) => {
-      if (!prev.has('own')) return prev;
-      const next = new Set(prev);
-      next.delete('own');
-      return next;
-    });
-  // Invariant: 'own' (renter brings external insurance) is mutually
-  // exclusive with every real coverage source — Bonzah tiers, ABI, and
-  // manual packages. Turning 'own' ON clears every real source below;
-  // turning any real source ON clears 'own' (handled here for Bonzah,
-  // in handleToggleAbi/handleToggleManual for the other two).
-  const toggleInsurance = (id: string) => {
-    if (id === 'own') {
-      const turningOn = !selectedInsurance.has('own');
-      setSelectedInsurance(turningOn ? new Set(['own']) : new Set());
-      if (turningOn) {
-        setAbiOptedIn(false);
-        setSelectedManualIds((prev) => (prev.size ? new Set() : prev));
-      }
-      return;
-    }
-    setSelectedInsurance((prev) => {
-      const next = new Set(prev);
-      next.delete('own');
-      if (next.has(id)) {
-        next.delete(id);
-        if (id === 'rcli') next.delete('sli');
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  };
-  const handleToggleAbi = (opted: boolean) => {
-    if (opted) clearOwnInsurance();
-    setAbiOptedIn(opted);
-  };
-  const handleToggleManual = (id: number) => {
-    setSelectedManualIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-        clearOwnInsurance();
-      }
-      return next;
-    });
-  };
-
-  const gallery = galleryImages;
-  const photoCount = galleryImages.length;
-
-  const setField = (key: keyof Fields, val: string) => {
-    setFields((f) => ({ ...f, [key]: val }));
-    setErrors((e) => {
-      const next = { ...e };
-      delete next[key];
-      return next;
-    });
-  };
-
-  const blurField = (key: keyof Fields) => {
-    const f = fields;
-    let msg = '';
-    if (key === 'email') {
-      if (f.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.email)) msg = 'Please enter a valid email address.';
-    } else if (key === 'phone') {
-      if (f.phone && f.phone.replace(/\D/g, '').length < 7) msg = 'Phone number must have at least 7 digits.';
-    }
-    if (msg) setErrors((e) => ({ ...e, [key]: msg }));
-  };
-
-  const setExtra = (id: string, delta: number) => {
-    setExtras((s) => ({ ...s, [id]: Math.max(0, (s[id] || 0) + delta) }));
-  };
-
-  const handlePickupDate = (d: string) => {
-    setPickupDate(d);
-    if (!returnDate || d > returnDate) setReturnDate(d);
-  };
-
-  const validate = () => {
-    const f = fields;
-    const e: Partial<Record<keyof Fields, string>> = {};
-    if (!f.firstName.trim()) e.firstName = 'First name is required';
-    if (!f.lastName.trim()) e.lastName = 'Last name is required';
-    if (!f.email) e.email = 'Email address is required';
-    else if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.email)) e.email = 'Enter a valid email address';
-    if (!f.phone) e.phone = 'Phone number is required';
-    else if (f.phone.replace(/\D/g, '').length < 7) e.phone = 'Enter a valid phone number';
-    return e;
-  };
-
-  const reserve = async () => {
-    const e = validate();
-    setErrors(e);
-    if (Object.keys(e).length > 0) return;
-    setCheckoutError('');
-
-    if (!pickupDate || !pickupTime || !returnDate || !returnTime) {
-      setCheckoutError('Please select a pick-up date, pick-up time, return date, and return time.');
-      return;
-    }
-
-    const hasLocations = (companyLocations?.length ?? 0) > 0;
-    if (hasLocations && !pickupLocId) {
-      setCheckoutError('Please select a pickup location for your rental.');
-      return;
-    }
-
-    const tzPickup = companyLocations?.find((l) => String(l.id) === pickupLocId)?.timezone ?? null;
-    const tz = tzPickup ?? defaultLoc?.timezone ?? null;
-    if (!tz) {
-      setCheckoutError("Couldn't determine the rental location's timezone, please refresh.");
-      return;
-    }
-
-    const toIso = (d: string, t: string) => toUtcIso(d, t, tz);
-    const pickupDatetime = toIso(pickupDate, pickupTime);
-    const dropoffDatetime = toIso(returnDate, returnTime);
-
-    const conflict = firstBlockInSpan(
-      unavailableRanges,
-      new Date(pickupDatetime).getTime(),
-      new Date(dropoffDatetime).getTime(),
-    );
-    if (conflict) {
-      const when = formatInTimeZone(new Date(conflict.start), tz, 'MMM d, h:mm a');
-      setCheckoutError(
-        `Part of your selected time isn't available — this vehicle is already booked or blocked from ${when}. Please adjust your pickup/drop-off times or dates.`,
-      );
-      return;
-    }
-
-    const isAvailable = await checkFleetAvailability(vehicle.id, pickupDatetime, dropoffDatetime);
-    if (!isAvailable) {
-      setCheckoutError('That time was just taken for this vehicle. Please pick a different time or date.');
-      return;
-    }
-
-    // Past validation, conflicts and the live availability re-check, so
-    // this reflects a booking actually proceeding rather than a failed
-    // submit attempt.
-    trackBeginCheckout({
-      vehicle: {
-        id: vehicle.id,
-        name: vehicle.name,
-        pricePerDay: vehicle.pricePerDay,
-        vehicleType: vehicle.vehicleType,
-      },
-      value: total,
-      days,
-    });
-
-    const pickupLocationId = Number(pickupLocId ?? defaultLoc?.id ?? 0);
-    const dropoffLocationId = Number(dropoffLocId ?? pickupLocId ?? defaultLoc?.id ?? 0);
-    const firstName = fields.firstName.trim();
-    const lastName = fields.lastName.trim();
-    const licenseNo = fields.license.trim();
-    const activeExtraItems = vehicle.extras
-      .filter((x) => (extras[x.id] || 0) > 0)
-      .map((x) => ({ id: Number(x.id), quantity: extras[x.id] }))
-      .filter((x) => !Number.isNaN(x.id));
-    const insuranceSelected = !selectedInsurance.has('own') && selectedInsurance.size > 0;
-    const origin = window.location.origin;
-
-    let freshPolicyMode = verificationPolicy?.mode;
-    try {
-      const fresh = await getBookingVerificationPolicy();
-      freshPolicyMode = fresh.mode;
-    } catch {
-      void 0;
-    }
-
-    const manualIds = Array.from(selectedManualIds);
-
-    if (rentalAgreementRequired && !rentalAgreementSignature) {
-      setCheckoutError('Please review and sign the rental agreement before continuing.');
-      setRentalAgreementModalOpen(true);
-      return;
-    }
-
-    const signaturePayload = rentalAgreementSignature
-      ? { signature_image: rentalAgreementSignature }
-      : {};
-
-    if (freshPolicyMode === 'before') {
-      const sharedPayload = {
-        first_name: firstName,
-        last_name: lastName,
-        email: fields.email.trim(),
-        phone: fields.phone.trim().slice(0, 15),
-        license_no: licenseNo,
-        fleet_id: Number(vehicle.id),
-        pickup_location_id: pickupLocationId,
-        dropoff_location_id: dropoffLocationId,
-        pickup_datetime: pickupDatetime,
-        dropoff_datetime: dropoffDatetime,
-        insurance_selected: insuranceSelected,
-        cdw_cover: selectedInsurance.has('cdw'),
-        rcli_cover: selectedInsurance.has('rcli'),
-        sli_cover: selectedInsurance.has('sli'),
-        pai_cover: selectedInsurance.has('pai'),
-        ...(manualIds.length > 0 ? { manual_insurance_package_ids: manualIds } : {}),
-        extras: activeExtraItems.length > 0 ? activeExtraItems : [],
-        fuel_pre_purchase: false,
-        return_car_to_different_branch: false,
-        additional_drivers: 0,
-        notes: '',
-        abi_coverage: !!abiAvailable && abiOptedIn,
-        ...(promoApplied && promoCode ? { promo_code: promoCode } : {}),
-        ...signaturePayload,
-      };
-      startVerification.mutate(sharedPayload as Record<string, unknown>, {
-        onSuccess: (data) => {
-          if (embed.embedded) embed.reportBookingComplete(data.booking_id);
-          try { window.sessionStorage.removeItem(persistKey); } catch { /* ignore */ }
-          window.location.href = `/booking/${data.booking_id}?token=${encodeURIComponent(data.access_token)}`;
-        },
-        onError: (error: unknown) => {
-          setCheckoutError(
-            extractApiErrorMessage(error, 'Could not start verification. Please try again.'),
-          );
-        },
-      });
-      return;
-    }
-
-    const commonPayload = {
-      fleet_id: Number(vehicle.id),
-      customer: {
-        first_name: firstName,
-        last_name: lastName,
-        email: fields.email.trim(),
-        phone_no: fields.phone.trim().slice(0, 15),
-        license_no: licenseNo,
-      },
-      pickup_datetime: pickupDatetime,
-      dropoff_datetime: dropoffDatetime,
-      pickup_location_id: pickupLocationId,
-      dropoff_location_id: dropoffLocationId,
-      insurance_selected: insuranceSelected,
-      cdw_cover: selectedInsurance.has('cdw'),
-      rcli_cover: selectedInsurance.has('rcli'),
-      sli_cover: selectedInsurance.has('sli'),
-      pai_cover: selectedInsurance.has('pai'),
-      ...(manualIds.length > 0 ? { manual_insurance_package_ids: manualIds } : {}),
-      extras: activeExtraItems.length > 0 ? activeExtraItems : undefined,
-      abi_coverage: !!abiAvailable && abiOptedIn,
-      ...(promoApplied && promoCode ? { promo_code: promoCode } : {}),
-      ...signaturePayload,
-    };
-
-    // Square uses the always-visible inline card entry — tokenize the
-    // card the user already filled in, THEN create the pending row +
-    // charge. Stripe/embed path keeps the two-step "reserve → panel"
-    // flow because Stripe Elements needs a client_secret from a
-    // pre-created PaymentIntent to render its PaymentElement.
-    if (!embed.embedded && activeProvider === 'square') {
-      const deposit = Number((vehicle as any)?.securityDeposit) || 0;
-      if (!squareCardRef.current || !squareCardRef.current.isReady()) {
-        setCheckoutError('Card entry is still loading — please wait a moment and try again.');
-        return;
-      }
-      if (deposit > 0 && !squareCardRef.current.consentChecked()) {
-        setCheckoutError('Please agree to the security deposit to continue.');
-        return;
-      }
-      const tokens = await squareCardRef.current.tokenize({ withSaveCard: deposit > 0 });
-      if (!tokens) {
-        // SquareCardEntry set the error via onError → surface it as
-        // the checkout error too so it lands in the banner.
-        setCheckoutError(squareCardError || 'Please check your card details and try again.');
-        return;
-      }
-      try {
-        const data = await startEmbedPayment.mutateAsync({ payload: commonPayload });
-        registerHold(data.pending_id);
-        try { window.sessionStorage.removeItem(persistKey); } catch { /* ignore */ }
-        const consentCopy = buildDepositConsentCopy({
-          tenantName: tenant?.name,
-          amount: deposit,
-          currency: data.currency,
-        });
-        const body = await squareCreatePaymentForPending({
-          pendingId: data.pending_id,
-          sourceId: tokens.paymentSourceId,
-          amount: data.amount,
-          currency: data.currency,
-          returnUrl: `${origin}/booking/success?session_id=${data.pending_id}`,
-          deposit: tokens.saveCardSourceId
-            ? { saveCardSourceId: tokens.saveCardSourceId, consentCopy }
-            : null,
-        });
-        suppressRelease({ clear: true });
-        if (body.booking_id && body.access_token) {
-          window.location.href = `/booking/${body.booking_id}?token=${encodeURIComponent(body.access_token)}`;
-          return;
-        }
-        window.location.href = `/booking/success?session_id=${encodeURIComponent(data.pending_id)}`;
-      } catch (error) {
-        setCheckoutError(
-          extractApiErrorMessage(error, 'We couldn’t start checkout. Please check your details and try again.'),
-        );
-      }
-      return;
-    }
-
-    // Widget-embed path (iframe hosts still use the two-step reveal).
-    if (embed.embedded) {
-      try {
-        const data = await startEmbedPayment.mutateAsync({ payload: commonPayload });
-        registerHold(data.pending_id);
-        try { window.sessionStorage.removeItem(persistKey); } catch { /* ignore */ }
-        setEmbedIntent({
-          provider: (data.provider as 'stripe' | 'square') || 'stripe',
-          clientSecret: data.client_secret,
-          publishableKey: data.publishable_key,
-          stripeAccountId:
-            (data as any).provider_account_id || data.stripe_account_id,
-          providerExtra: (data as any).provider_extra || {},
-          amount: data.amount,
-          currency: data.currency,
-          pendingId: data.pending_id,
-        });
-      } catch (error) {
-        setCheckoutError(
-          extractApiErrorMessage(error, 'We couldn’t start checkout. Please check your details and try again.'),
-        );
-      }
-      return;
-    }
-
-    try {
-      const data = await startCheckout.mutateAsync({
-        ...commonPayload,
-        success_url: `${origin}/booking/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${origin}/fleet/${carId}`,
-      });
-      registerHold(data.pending_id);
-      try { window.sessionStorage.removeItem(persistKey); } catch { /* ignore */ }
-      suppressRelease();
-      window.location.href = data.checkout_url;
-    } catch (error) {
-      setCheckoutError(
-        extractApiErrorMessage(error, 'We couldn’t start checkout. Please check your details and try again.'),
-      );
-    }
-  };
-
-  const applyPromo = async () => {
-    const c = promoInput.trim().toUpperCase();
-    if (!c) {
-      setPromoError('Enter a promo code');
-      return;
-    }
-    try {
-      const result = await validatePromoCode({
-        code: c,
-        base_price: pricing.subtotal - pricing.insuranceCost - pricing.extrasCost,
-        extras_price: pricing.insuranceCost + pricing.extrasCost,
-        fees: pricing.bookingFee,
-        location_charges: pricing.locationCharges,
-      });
-      if (result.valid && result.discount_amount) {
-        setPromoApplied(true);
-        setPromoCode(c);
-        setPromoDiscount(parseFloat(result.discount_amount));
-        setPromoInput('');
-        setPromoError('');
-      } else {
-        setPromoError(result.error || `“${c}” is not a valid code`);
-      }
-    } catch (err: unknown) {
-      const message =
-        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
-        `“${c}” is not a valid code`;
-      setPromoError(message);
-    }
-  };
-
-  const scrollProtection = () => {
-    const el = protectionRef.current;
-    if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 80, behavior: 'smooth' });
-  };
-
-  const hasErrors = Object.keys(errors).length > 0;
-  const locs = companyLocations ?? [];
-  const pickupLocations = locs.filter((l) => l.type === 'pickup' || l.type === 'both');
-  const dropoffLocations = locs.filter((l) => l.type === 'dropoff' || l.type === 'both');
-  const selectedPickup = locs.find((l) => String(l.id) === String(pickupLocId));
-  const selectedDropoff = locs.find((l) => String(l.id) === String(dropoffLocId));
-  const pickupCity = (selectedPickup?.name ?? '').split(',')[0];
-  const dropoffCity = (selectedDropoff?.name ?? selectedPickup?.name ?? '').split(',')[0];
-  const minTime = selectedPickup && !selectedPickup.is247 ? selectedPickup.openingTime : null;
-  const maxTime = selectedPickup && !selectedPickup.is247 ? selectedPickup.closingTime : null;
-  const dropoffMinTime = selectedDropoff && !selectedDropoff.is247 ? selectedDropoff.openingTime : null;
-  const dropoffMaxTime = selectedDropoff && !selectedDropoff.is247 ? selectedDropoff.closingTime : null;
+  const {
+    t,
+    embed,
+    squareCardRef,
+    squareCardError,
+    setSquareCardError,
+    providersData,
+    activeProvider,
+    embedIntent,
+    setEmbedIntent,
+    paymentAnchorRef,
+    verificationPolicy,
+    startCheckout,
+    startVerification,
+    startEmbedPayment,
+    protectionRef,
+    errorBannerRef,
+    selectedInsurance,
+    selectedManualIds,
+    manualInsurancePackages,
+    abiOptedIn,
+    extras,
+    promoApplied,
+    setPromoApplied,
+    promoCode,
+    promoDiscount,
+    promoInput,
+    setPromoInput,
+    promoError,
+    setPromoError,
+    fields,
+    errors,
+    checkoutError,
+    rentalAgreementSignature,
+    rentalAgreementModalOpen,
+    setRentalAgreementModalOpen,
+    rentalAgreementRequired,
+    rentalAgreementSigned,
+    galleryOpen,
+    setGalleryOpen,
+    galleryIndex,
+    setGalleryIndex,
+    detailId,
+    setDetailId,
+    tripOpen,
+    setTripOpen,
+    tripError,
+    setTripError,
+    openLocDropdown,
+    setOpenLocDropdown,
+    pickupLocId,
+    setPickupLocId,
+    dropoffLocId,
+    setDropoffLocId,
+    pickupDate,
+    setPickupDate,
+    pickupTime,
+    setPickupTime,
+    returnDate,
+    setReturnDate,
+    returnTime,
+    setReturnTime,
+    fleetTz,
+    unavailableRanges,
+    unavailabilityIndex,
+    unavailableDates,
+    abiAvailable,
+    days,
+    rentalHours,
+    minDuration,
+    meetsMinDuration,
+    tenant: tenantData,
+    vehicle,
+    plans,
+    recommendedPlanId,
+    selectedPlans,
+    ownSelected,
+    galleryImages,
+    discount,
+    total,
+    isInsuranceDisabled,
+    toggleInsurance,
+    handleToggleAbi,
+    handleToggleManual,
+    gallery,
+    photoCount,
+    setField,
+    blurField,
+    setExtra,
+    handlePickupDate,
+    reserve,
+    applyPromo,
+    scrollProtection,
+    hasErrors,
+    pickupLocations,
+    dropoffLocations,
+    pickupCity,
+    dropoffCity,
+    minTime,
+    maxTime,
+    dropoffMinTime,
+    dropoffMaxTime,
+    pricing,
+    extraInvoiceItems,
+    insuranceLabel,
+  } = fd;
 
   return (
     <div className="bg-white text-ink">
       <div className="mx-auto max-w-[1180px] px-6 pt-[22px] pb-16">
         <div className="mb-4 flex items-center justify-between gap-4">
-          <BackLink href={paths.fleet}>Back to fleet</BackLink>
+          <BackLink href={paths.fleet}><Dyn>Back to fleet</Dyn></BackLink>
         </div>
 
         <div className="mb-4 flex items-center justify-between gap-3 rounded-[12px] border border-card-border bg-subtle p-3 lg:hidden">
@@ -874,12 +189,12 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
             />
             <div className="min-w-0">
               <div className="truncate text-[13px] font-semibold text-secondary">{vehicle.name}</div>
-              <div className="text-[11px] text-muted">{days} {days === 1 ? 'day' : 'days'}</div>
+              <div className="text-[11px] text-muted">{days} <Dyn>{days === 1 ? 'day' : 'days'}</Dyn></div>
             </div>
           </div>
           <div className="text-right">
             <div className="text-[15px] font-bold text-secondary">{money(total)}</div>
-            <div className="text-[10px] text-muted">Total</div>
+            <div className="text-[10px] text-muted"><Dyn>Total</Dyn></div>
           </div>
         </div>
 
@@ -896,12 +211,12 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                   {vehicle.name}
                 </h2>
                 <div className="mt-[5px] flex items-center gap-2 text-[12.5px] text-muted">
-                  <span>Plate {vehicle.licensePlate}</span>
+                  <span><Dyn>Plate</Dyn> {vehicle.licensePlate}</span>
                 </div>
               </div>
               <div className="text-right">
                 <div className="text-[19px] font-bold text-secondary">{money(vehicle.pricePerDay)}</div>
-                <div className="text-[11px] text-muted">per day</div>
+                <div className="text-[11px] text-muted"><Dyn>per day</Dyn></div>
               </div>
             </div>
 
@@ -942,7 +257,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                 >
                   <span className="inline-flex items-center gap-[7px] text-[12.5px] font-semibold text-white">
                     <ImageIcon size={16} strokeWidth={1.8} className="text-white" />
-                    View all {photoCount} photos
+                    <Dyn>View all</Dyn> {photoCount} <Dyn>photos</Dyn>
                   </span>
                 </div>
               </div>
@@ -961,7 +276,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                   <div key={key} className="flex items-center gap-[10px]">
                     {SPEC_ICONS[key]}
                     <div>
-                      <div className="text-[10.5px] text-muted">{label}</div>
+                      <div className="text-[10.5px] text-muted"><Dyn>{label}</Dyn></div>
                       <div className="text-[13px] font-semibold">{value}</div>
                     </div>
                   </div>
@@ -970,7 +285,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
 
             {vehicle.description && (
               <>
-                <h3 className="mb-[10px] text-[15px] font-semibold text-ink">About this vehicle</h3>
+                <h3 className="mb-[10px] text-[15px] font-semibold text-ink"><Dyn>About this vehicle</Dyn></h3>
                 {/* break-words + whitespace-pre-line: long unbroken
                     tokens (URLs, model numbers, hashtags) wrap
                     inside the container instead of pushing the
@@ -1001,7 +316,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
 
             {vehicle.extras.length > 0 && (
               <>
-            <h3 className="mb-3 text-[15px] font-semibold text-ink">Add extras</h3>
+            <h3 className="mb-3 text-[15px] font-semibold text-ink"><Dyn>Add extras</Dyn></h3>
             <div className="mb-[26px] flex flex-col gap-[10px]">
               {vehicle.extras.map((x) => {
                 const count = extras[x.id] || 0;
@@ -1048,7 +363,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                         onClick={() => setExtra(x.id, 1)}
                         className="cursor-pointer rounded-[8px] border border-dash px-[18px] py-2 text-[13px] font-semibold text-secondary"
                       >
-                        Add
+                        <Dyn>Add</Dyn>
                       </span>
                     )}
                   </div>
@@ -1058,23 +373,23 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               </>
             )}
 
-            <h3 className="mb-3 text-[15px] font-semibold text-ink">Driver details</h3>
+            <h3 className="mb-3 text-[15px] font-semibold text-ink"><Dyn>Driver details</Dyn></h3>
             <div className="grid grid-cols-1 gap-x-3 gap-y-[14px] sm:grid-cols-2">
               <div>
-                <TextInput value={fields.firstName} onChange={(e) => setField('firstName', e.target.value)} placeholder="First name" error={!!errors.firstName} />
-                {errors.firstName && <FieldError>{errors.firstName}</FieldError>}
+                <TextInput value={fields.firstName} onChange={(e) => setField('firstName', e.target.value)} placeholder={t('First name')} error={!!errors.firstName} />
+                {errors.firstName && <FieldError><Dyn>{errors.firstName}</Dyn></FieldError>}
               </div>
               <div>
-                <TextInput value={fields.lastName} onChange={(e) => setField('lastName', e.target.value)} placeholder="Last name" error={!!errors.lastName} />
-                {errors.lastName && <FieldError>{errors.lastName}</FieldError>}
+                <TextInput value={fields.lastName} onChange={(e) => setField('lastName', e.target.value)} placeholder={t('Last name')} error={!!errors.lastName} />
+                {errors.lastName && <FieldError><Dyn>{errors.lastName}</Dyn></FieldError>}
               </div>
               <div>
-                <TextInput type="email" value={fields.email} onChange={(e) => setField('email', e.target.value)} onBlur={() => blurField('email')} placeholder="Email address" error={!!errors.email} />
-                {errors.email && <FieldError>{errors.email}</FieldError>}
+                <TextInput type="email" value={fields.email} onChange={(e) => setField('email', e.target.value)} onBlur={() => blurField('email')} placeholder={t('Email address')} error={!!errors.email} />
+                {errors.email && <FieldError><Dyn>{errors.email}</Dyn></FieldError>}
               </div>
               <div>
-                <PhoneInput value={fields.phone} onChange={(v) => setField('phone', v)} onBlur={() => blurField('phone')} error={!!errors.phone} placeholder="Phone number" />
-                {errors.phone && <FieldError>{errors.phone}</FieldError>}
+                <PhoneInput value={fields.phone} onChange={(v) => setField('phone', v)} onBlur={() => blurField('phone')} error={!!errors.phone} placeholder={t('Phone number')} />
+                {errors.phone && <FieldError><Dyn>{errors.phone}</Dyn></FieldError>}
               </div>
             </div>
 
@@ -1089,7 +404,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                   depositConsentCopy={
                     Number((vehicle as any)?.securityDeposit) > 0
                       ? buildDepositConsentCopy({
-                          tenantName: tenant?.name,
+                          tenantName: tenantData?.name,
                           amount: Number((vehicle as any)?.securityDeposit) || 0,
                           currency: 'usd',
                         })
@@ -1113,13 +428,13 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                 amount={embedIntent.amount}
                 currency={embedIntent.currency}
                 depositAmount={Number(vehicle?.securityDeposit) || 0}
-                tenantName={tenant?.name}
+                tenantName={tenantData?.name}
                 onCancel={() => {
-                  releaseNow();
+                  fd.releaseNow();
                   setEmbedIntent(null);
                 }}
                 onSuccess={() => {
-                  suppressRelease({ clear: true });
+                  fd.suppressRelease({ clear: true });
                   if (embed.embedded) embed.reportBookingComplete(0);
                   setEmbedIntent(null);
                 }}
@@ -1130,18 +445,18 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
           </div>
 
           <div className="rounded-2xl border border-card-border bg-subtle p-4 sm:p-[22px] lg:sticky lg:top-[88px]">
-            <div className="mb-3 text-sm font-semibold text-ink">Your trip</div>
+            <div className="mb-3 text-sm font-semibold text-ink"><Dyn>Your trip</Dyn></div>
             <div className="flex flex-col gap-2">
               <div
                 onClick={() => setTripOpen(true)}
                 className="flex cursor-pointer items-center justify-between rounded-[10px] border border-card-border bg-white px-[13px] py-[11px]"
               >
                 <div>
-                  <div className="text-[10px] uppercase tracking-[0.03em] text-muted">Pick-up</div>
+                  <div className="text-[10px] uppercase tracking-[0.03em] text-muted"><Dyn>Pick-up</Dyn></div>
                   <div className="mt-[2px] text-[12.5px] font-semibold text-secondary">{pickupCity} · {formatTripStamp(pickupDate, pickupTime)}</div>
                 </div>
                 <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary">
-                  Edit <Pencil size={12} strokeWidth={2} />
+                  <Dyn>Edit</Dyn> <Pencil size={12} strokeWidth={2} />
                 </span>
               </div>
               <div
@@ -1149,19 +464,19 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                 className="flex cursor-pointer items-center justify-between rounded-[10px] border border-card-border bg-white px-[13px] py-[11px]"
               >
                 <div>
-                  <div className="text-[10px] uppercase tracking-[0.03em] text-muted">Drop-off</div>
+                  <div className="text-[10px] uppercase tracking-[0.03em] text-muted"><Dyn>Drop-off</Dyn></div>
                   <div className="mt-[2px] text-[12.5px] font-semibold text-secondary">{dropoffCity} · {formatTripStamp(returnDate, returnTime)}</div>
                 </div>
                 <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary">
-                  Edit <Pencil size={12} strokeWidth={2} />
+                  <Dyn>Edit</Dyn> <Pencil size={12} strokeWidth={2} />
                 </span>
               </div>
             </div>
             <div className="my-[18px] h-px bg-card-border" />
 
             <div className="mb-4 flex items-center justify-between">
-              <span className="text-sm font-semibold text-ink">Price details</span>
-              <span className="rounded-full border border-line bg-white px-[10px] py-[3px] text-[11px] font-medium text-muted">{days} days</span>
+              <span className="text-sm font-semibold text-ink"><Dyn>Price details</Dyn></span>
+              <span className="rounded-full border border-line bg-white px-[10px] py-[3px] text-[11px] font-medium text-muted">{days} <Dyn>days</Dyn></span>
             </div>
 
             <DateDealsCallout
@@ -1171,7 +486,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               isPromoPricing={vehicle.isPromoPricing}
             />
 
-            <div className="mb-[11px] text-[11px] font-semibold uppercase tracking-[0.05em] text-muted">Rental</div>
+            <div className="mb-[11px] text-[11px] font-semibold uppercase tracking-[0.05em] text-muted"><Dyn>Rental</Dyn></div>
             <RentalBreakdown
               rateUnit={pricing.rateUnit}
               pricePerHour={vehicle.pricePerHour}
@@ -1184,25 +499,25 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
             <div className="my-[14px] h-px bg-card-border" />
 
             <div className="mb-[11px] flex items-center justify-between">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-muted">Insurance{insuranceLabel ? ` (${insuranceLabel})` : ''}</span>
-              <span onClick={scrollProtection} className="cursor-pointer text-[11px] font-semibold text-primary">Change</span>
+              <span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-muted"><Dyn>Insurance</Dyn>{insuranceLabel ? ` (${insuranceLabel})` : ''}</span>
+              <span onClick={scrollProtection} className="cursor-pointer text-[11px] font-semibold text-primary"><Dyn>Change</Dyn></span>
             </div>
-            {selectedPlans.length > 0 || selectedManualPackages.length > 0 || (abiAvailable && abiOptedIn) ? (
+            {selectedPlans.length > 0 || (fd.selectedManualPackages?.length ?? 0) > 0 || (abiAvailable && abiOptedIn) ? (
               <div className="flex flex-col gap-[10px]">
                 {selectedPlans.map((p) => (
                   <div key={`bonzah-${p.id}`} className="flex items-start justify-between text-[13px]">
                     <div>
-                      <div className="font-medium text-ink">{p.title}</div>
-                      <div className="mt-px text-[11.5px] text-muted">{money(p.price)} × {days} days</div>
+                      <div className="font-medium text-ink"><Dyn>{p.title}</Dyn></div>
+                      <div className="mt-px text-[11.5px] text-muted">{money(p.price)} × {days} <Dyn>days</Dyn></div>
                     </div>
                     <span className="font-medium text-ink">{money(p.totalPrice ?? p.price * days)}</span>
                   </div>
                 ))}
-                {selectedManualPackages.map((pkg) => (
+                {fd.selectedManualPackages?.map((pkg) => (
                   <div key={`manual-${pkg.id}`} className="flex items-start justify-between text-[13px]">
                     <div>
-                      <div className="font-medium text-ink">{pkg.title}</div>
-                      <div className="mt-px text-[11.5px] text-muted">{money(pkg.dailyRate)} × {days} days</div>
+                      <div className="font-medium text-ink"><Dyn>{pkg.title}</Dyn></div>
+                      <div className="mt-px text-[11.5px] text-muted">{money(pkg.dailyRate)} × {days} <Dyn>days</Dyn></div>
                     </div>
                     <span className="font-medium text-ink">{money(pkg.dailyRate * days)}</span>
                   </div>
@@ -1210,8 +525,8 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                 {abiAvailable && abiOptedIn && (
                   <div className="flex items-start justify-between text-[13px]">
                     <div>
-                      <div className="font-medium text-ink">Rental Coverage</div>
-                      <div className="mt-px text-[11.5px] text-muted">{money(Number(abiAvailable.daily_price))} × {abiAvailable.days} days</div>
+                      <div className="font-medium text-ink"><Dyn>Rental Coverage</Dyn></div>
+                      <div className="mt-px text-[11.5px] text-muted">{money(Number(abiAvailable.daily_price))} × {abiAvailable.days} <Dyn>days</Dyn></div>
                     </div>
                     <span className="font-medium text-ink">{money(Number(abiAvailable.total_price))}</span>
                   </div>
@@ -1219,13 +534,13 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               </div>
             ) : (
               <div className="flex items-start justify-between text-[13px]">
-                <div className="font-medium text-ink">{ownSelected ? 'Own insurance' : 'No protection selected'}</div>
+                <div className="font-medium text-ink"><Dyn>{ownSelected ? 'Own insurance' : 'No protection selected'}</Dyn></div>
                 <span className="font-medium text-ink">{money(0)}</span>
               </div>
             )}
             <div className="my-[14px] h-px bg-card-border" />
 
-            <div className="mb-[11px] text-[11px] font-semibold uppercase tracking-[0.05em] text-muted">Add-ons</div>
+            <div className="mb-[11px] text-[11px] font-semibold uppercase tracking-[0.05em] text-muted"><Dyn>Add-ons</Dyn></div>
             {extraInvoiceItems.length > 0 ? (
               <div className="flex flex-col gap-[10px]">
                 {extraInvoiceItems.map((a) => (
@@ -1237,13 +552,13 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               </div>
             ) : (
               <div className="flex items-center justify-between text-[13px]">
-                <span className="text-placeholder">None added yet</span>
+                <span className="text-placeholder"><Dyn>None added yet</Dyn></span>
                 <span className="font-medium text-muted">$0.00</span>
               </div>
             )}
             <div className="my-[14px] h-px bg-card-border" />
 
-            <div className="mb-[11px] text-[11px] font-semibold uppercase tracking-[0.05em] text-muted">Discounts</div>
+            <div className="mb-[11px] text-[11px] font-semibold uppercase tracking-[0.05em] text-muted"><Dyn>Discounts</Dyn></div>
             {/* Duration-based fleet discount — shown when a daily,
                 weekly or hourly tier has fired. Distinct from the
                 promo-code row below so the customer sees exactly where
@@ -1252,14 +567,14 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               <div className="flex items-center justify-between text-[13px]">
                 <div className="flex items-center gap-[7px]">
                   <span className="font-medium text-primary">
-                    {pricing.fleetDiscountTier.unitType === 'week'
+                    <Dyn>{pricing.fleetDiscountTier.unitType === 'week'
                       ? 'Weekly discount'
                       : pricing.fleetDiscountTier.unitType === 'hour'
                         ? 'Hourly discount'
-                        : 'Long-rental discount'}
+                        : 'Long-rental discount'}</Dyn>
                   </span>
                   <span className="inline-flex items-center rounded-[5px] bg-primary-soft px-[7px] py-[2px] text-[10px] font-semibold text-primary">
-                    {pricing.fleetDiscountTier.percentage}% OFF
+                    {pricing.fleetDiscountTier.percentage}% <Dyn>OFF</Dyn>
                   </span>
                 </div>
                 <span className="font-semibold text-primary">−{money(pricing.fleetDiscount)}</span>
@@ -1271,12 +586,12 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                 pricing.fleetDiscount > 0 ? 'mt-2' : '',
               )}>
                 <div className="flex items-center gap-[7px]">
-                  <span className="font-medium text-primary">Promo</span>
+                  <span className="font-medium text-primary"><Dyn>Promo</Dyn></span>
                   <span className="inline-flex items-center gap-[5px] rounded-[5px] bg-primary-soft py-[2px] pl-[7px] pr-[5px] text-[10px] font-semibold text-primary">
                     {promoCode}
                     <button
                       type="button"
-                      aria-label="Remove promo code"
+                      aria-label={t('Remove promo code')}
                       onClick={() => setPromoApplied(false)}
                       className="cursor-pointer text-[11px] leading-none"
                     >
@@ -1303,38 +618,38 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                   setPromoInput(e.target.value);
                   setPromoError('');
                 }}
-                placeholder="Enter promo code"
+                placeholder={t('Enter promo code')}
                 className="flex-1 border-none bg-transparent text-[12.5px] text-ink outline-none"
               />
               <button type="button" onClick={applyPromo} className="cursor-pointer rounded-[7px] bg-secondary px-4 py-2 text-[12px] font-semibold text-white">
-                Apply
+                <Dyn>Apply</Dyn>
               </button>
             </div>
-            {promoError && <FieldError>{promoError}</FieldError>}
+            {promoError && <FieldError><Dyn>{promoError}</Dyn></FieldError>}
             <div className="my-[14px] h-px bg-card-border" />
 
-            <div className="mb-[11px] text-[11px] font-semibold uppercase tracking-[0.05em] text-muted">Charges &amp; taxes</div>
+            <div className="mb-[11px] text-[11px] font-semibold uppercase tracking-[0.05em] text-muted"><Dyn>Charges &amp; taxes</Dyn></div>
             <div className="flex flex-col gap-[10px] text-[13px]">
               {pricing.locationCharges > 0 && (
                 <div className="flex items-center justify-between">
-                  <span className="text-muted">Location charges</span>
+                  <span className="text-muted"><Dyn>Location charges</Dyn></span>
                   <span className="font-medium text-ink">{money(pricing.locationCharges)}</span>
                 </div>
               )}
               {pricing.bookingFee > 0 && (
                 <div className="flex items-center justify-between">
-                  <span className="text-muted">Booking fees</span>
+                  <span className="text-muted"><Dyn>Booking fees</Dyn></span>
                   <span className="font-medium text-ink">{money(pricing.bookingFee)}</span>
                 </div>
               )}
               <div className="flex items-center justify-between">
-                <span className="text-muted">Tax</span>
+                <span className="text-muted"><Dyn>Tax</Dyn></span>
                 <span className="font-medium text-ink">{money(pricing.tax)}</span>
               </div>
               {pricing.deposit > 0 && (
                 <div className="flex items-center justify-between">
                   <span className="text-muted">
-                    Security deposit <span className="text-[11px]">(refundable)</span>
+                    <Dyn>Security deposit</Dyn> <span className="text-[11px]"><Dyn>(refundable)</Dyn></span>
                   </span>
                   <span className="font-medium text-ink">{money(pricing.deposit)}</span>
                 </div>
@@ -1344,11 +659,11 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
 
             <div className="flex items-baseline justify-between">
               <div>
-                <div className="text-[15px] font-bold text-ink">Total</div>
+                <div className="text-[15px] font-bold text-ink"><Dyn>Total</Dyn></div>
                 {promoApplied && (
                   <div className="mt-[2px] inline-flex items-center gap-1 text-[11px] font-semibold text-primary">
                     <Check size={12} strokeWidth={2.4} />
-                    You&apos;re saving {money(discount)}
+                    <Dyn>You&apos;re saving</Dyn> {money(discount)}
                   </div>
                 )}
               </div>
@@ -1360,7 +675,14 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
 
             {pricing.deposit > 0 && (
               <div className="mt-[6px] text-[11px] leading-[1.5] text-muted">
-                Includes a refundable {money(pricing.deposit)} security deposit, refunded after your trip minus any damage claims.
+                <Dyn>Includes a refundable</Dyn> {money(pricing.deposit)} <Dyn>security deposit, refunded after your trip minus any damage claims.</Dyn>
+              </div>
+            )}
+
+            {!meetsMinDuration && (
+              <div className="mt-4 flex items-center gap-[7px] rounded-[9px] border border-danger-border bg-danger-bg px-3 py-[9px] text-[11.5px] leading-[1.4] text-danger-text">
+                <Info size={14} strokeWidth={2} className="flex-shrink-0 text-danger" />
+                <Dyn>This vehicle has a minimum rental of</Dyn> {minDuration} <Dyn>{minDuration === 1 ? 'day' : 'days'}</Dyn>. <Dyn>Choose a longer trip to continue.</Dyn>
               </div>
             )}
 
@@ -1370,7 +692,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                 className="mt-4 flex items-center gap-[7px] rounded-[9px] border border-danger-border bg-danger-bg px-3 py-[9px] text-[11.5px] leading-[1.4] text-danger-text"
               >
                 <Info size={14} strokeWidth={2} className="flex-shrink-0 text-danger" />
-                {checkoutError || 'Please fix the highlighted fields to continue.'}
+                <Dyn>{checkoutError || 'Please fix the highlighted fields to continue.'}</Dyn>
               </div>
             )}
 
@@ -1380,13 +702,14 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                 startCheckout.isPending ||
                 startVerification.isPending ||
                 startEmbedPayment.isPending ||
+                !meetsMinDuration ||
                 (rentalAgreementRequired && !rentalAgreementSigned)
               }
               className="mt-[14px] block w-full cursor-pointer rounded-[10px] bg-primary py-[13px] text-center text-sm font-bold text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {startCheckout.isPending || startVerification.isPending || startEmbedPayment.isPending
+              <Dyn>{startCheckout.isPending || startVerification.isPending || startEmbedPayment.isPending
                 ? 'Starting checkout…'
-                : 'Reserve Now'}
+                : 'Reserve Now'}</Dyn>
             </button>
 
             {rentalAgreementRequired && (
@@ -1419,24 +742,24 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                       rentalAgreementSigned ? 'text-success' : 'text-ink',
                     )}
                   >
-                    {rentalAgreementSigned
+                    <Dyn>{rentalAgreementSigned
                       ? 'Rental Agreement signed'
-                      : 'Sign Rental Agreement · required'}
+                      : 'Sign Rental Agreement · required'}</Dyn>
                   </span>
                 </span>
                 {rentalAgreementSigned && (
                   <span className="flex-shrink-0 whitespace-nowrap text-[11.5px] font-semibold text-success underline">
-                    Review
+                    <Dyn>Review</Dyn>
                   </span>
                 )}
               </button>
             )}
 
             <div className="mt-4 flex flex-col gap-[9px]">
-              {['No hidden fees, price you see is final', 'Encrypted, secure payment'].map((t) => (
-                <div key={t} className="flex items-center gap-2 text-[11.5px] text-muted">
+              {['No hidden fees, price you see is final', 'Encrypted, secure payment'].map((line) => (
+                <div key={line} className="flex items-center gap-2 text-[11.5px] text-muted">
                   <Check size={14} strokeWidth={2} className="text-primary" />
-                  {t}
+                  <Dyn>{line}</Dyn>
                 </div>
               ))}
             </div>
@@ -1515,10 +838,10 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
         panelClassName="max-w-[460px] p-[26px]"
       >
             <div className="mb-5 flex items-start justify-between gap-4">
-              <h3 id="trip-edit-title" className="text-[18px] font-semibold text-secondary">Edit your trip</h3>
+              <h3 id="trip-edit-title" className="text-[18px] font-semibold text-secondary"><Dyn>Edit your trip</Dyn></h3>
               <button
                 type="button"
-                aria-label="Close"
+                aria-label={t('Close')}
                 onClick={() => setTripOpen(false)}
                 className="text-muted"
               >
@@ -1527,7 +850,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
             </div>
             <div className="flex flex-col gap-4">
               <div>
-                <div className="mb-[7px] text-[11px] uppercase tracking-[0.03em] text-muted">Pick-up location</div>
+                <div className="mb-[7px] text-[11px] uppercase tracking-[0.03em] text-muted"><Dyn>Pick-up location</Dyn></div>
                 <LocationDropdown
                   open={openLocDropdown === 'pickup'}
                   onToggle={() => setOpenLocDropdown((o) => (o === 'pickup' ? null : 'pickup'))}
@@ -1546,7 +869,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                 />
               </div>
               <div>
-                <div className="mb-[7px] text-[11px] uppercase tracking-[0.03em] text-muted">Drop-off location</div>
+                <div className="mb-[7px] text-[11px] uppercase tracking-[0.03em] text-muted"><Dyn>Drop-off location</Dyn></div>
                 <LocationDropdown
                   open={openLocDropdown === 'dropoff'}
                   onToggle={() => setOpenLocDropdown((o) => (o === 'dropoff' ? null : 'dropoff'))}
@@ -1561,7 +884,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                 />
               </div>
               <div>
-                <div className="mb-[7px] text-[11px] uppercase tracking-[0.03em] text-muted">Pick-up date &amp; time</div>
+                <div className="mb-[7px] text-[11px] uppercase tracking-[0.03em] text-muted"><Dyn>Pick-up date &amp; time</Dyn></div>
                 <div className="rounded-[9px] border border-line px-[14px] py-3">
                   <DateTimeField
                     date={pickupDate}
@@ -1573,12 +896,12 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                     maxTime={maxTime}
                     unavailableDates={unavailableDates}
                     disabledSlots={slotsBlockedOn(unavailabilityIndex, pickupDate, 'pickup')}
-                    label="Pick-up"
+                    label={t('Pick-up')}
                   />
                 </div>
               </div>
               <div>
-                <div className="mb-[7px] text-[11px] uppercase tracking-[0.03em] text-muted">Return date &amp; time</div>
+                <div className="mb-[7px] text-[11px] uppercase tracking-[0.03em] text-muted"><Dyn>Return date &amp; time</Dyn></div>
                 <div className="rounded-[9px] border border-line px-[14px] py-3">
                   <DateTimeField
                     date={returnDate}
@@ -1591,7 +914,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                     highlightDate={pickupDate}
                     unavailableDates={unavailableDates}
                     disabledSlots={slotsBlockedOn(unavailabilityIndex, returnDate, 'dropoff')}
-                    label="Return"
+                    label={t('Return')}
                   />
                 </div>
               </div>
@@ -1626,7 +949,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               }}
               className="mt-[22px] w-full rounded-[9px] bg-primary py-3 text-center text-sm font-semibold text-white"
             >
-              Update trip
+              <Dyn>Update trip</Dyn>
             </button>
       </Dialog>
 
@@ -1636,304 +959,11 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
         initialSignature={rentalAgreementSignature}
         showBonzahAddendum={selectedInsurance.size > 0}
         onSigned={(dataUri) => {
-          setRentalAgreementSignature(dataUri);
+          fd.setRentalAgreementSignature(dataUri);
           setRentalAgreementModalOpen(false);
         }}
       />
 
     </div>
   );
-}
-
-function LocationDropdown({
-  open,
-  onToggle,
-  onClose,
-  options,
-  value,
-  placeholder,
-  onSelect,
-}: {
-  open: boolean;
-  onToggle: () => void;
-  onClose: () => void;
-  options: { id: string; name: string; address: string; price: number }[];
-  value: string | null;
-  placeholder: string;
-  onSelect: (id: string) => void;
-}) {
-  const selected = options.find((l) => String(l.id) === value);
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const onDoc = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
-    };
-    document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
-  }, [open, onClose]);
-  return (
-    <div ref={ref} className="relative">
-      <button
-        type="button"
-        onClick={onToggle}
-        className="flex h-[46px] w-full items-center gap-2 rounded-[10px] border border-line bg-white px-[14px] text-left text-sm text-ink transition-colors focus:border-primary focus:outline-none"
-      >
-        <MapPin size={16} className="flex-shrink-0 text-primary" />
-        <span className="min-w-0 flex-1 truncate">
-          {selected ? selected.name : <span className="text-placeholder">{placeholder}</span>}
-        </span>
-        {selected && selected.price > 0 && (
-          <span className="flex-shrink-0 rounded-[5px] bg-primary-soft px-[7px] py-[2px] text-[11px] font-semibold text-primary">
-            +{money(selected.price)}
-          </span>
-        )}
-        <ChevronDown size={13} className="flex-shrink-0 text-faint" />
-      </button>
-      {open && (
-        <div className="absolute left-0 right-0 top-full z-40 mt-[6px] max-h-[260px] overflow-y-auto rounded-[11px] border border-line bg-white p-[6px] shadow-[var(--shadow-pop)]">
-          {options.length === 0 ? (
-            <div className="px-[11px] py-[10px] text-[13px] text-faint">No locations available</div>
-          ) : (
-            options.map((loc) => (
-              <button
-                key={loc.id}
-                type="button"
-                onClick={() => onSelect(String(loc.id))}
-                className="flex w-full items-start gap-[9px] rounded-lg px-[11px] py-[10px] text-left text-[13.5px] text-label hover:bg-primary-soft hover:text-secondary"
-              >
-                <MapPin size={15} className="mt-px flex-shrink-0 text-primary" />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate">{loc.name}</span>
-                  {loc.address && <span className="block truncate text-[11.5px] text-faint">{loc.address}</span>}
-                </span>
-                {loc.price > 0 && (
-                  <span className="flex-shrink-0 rounded-[5px] bg-primary-soft px-[7px] py-[2px] text-[11px] font-semibold text-primary">
-                    +{money(loc.price)}
-                  </span>
-                )}
-              </button>
-            ))
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-interface InsuranceDetailContent {
-  fullTitle: string;
-  description: string;
-  whyBuyTitle: string;
-  whyBuyPoints: string[];
-  coverageTitle: string;
-  coverageFeatures: string[];
-  brochureUrl: string;
-}
-
-const INSURANCE_DETAILS: Record<string, InsuranceDetailContent> = {
-  cdw: {
-    fullTitle: 'Collision Damage Warranty (CDW)',
-    description: 'Covers physical damages to the rental vehicle when there is an accident with another vehicle.',
-    whyBuyTitle: 'Why buy primary damage?',
-    whyBuyPoints: [
-      'If you have an auto policy, though prefer not to risk a premium increase in case you damage the rental car. Or..',
-      "If you don't have an auto and/or normally use a credit card that only provides secondary damage insurance. Or..",
-      'If you normally drive a commercial vehicle, which has insurance that does not cover you for damage to the rental car.',
-    ],
-    coverageTitle: 'Affordable Rental Vehicle Damage Insurance',
-    coverageFeatures: [
-      'Up to $35,000 Damage',
-      '$1,000 Deductible',
-      'Primary Insurance for accidents between vehicles',
-      'Does not cover non-rental vehicle damage',
-      'Excludes comprehensive coverage, such as mechanical issues caused by misuse, theft, vandalism, single car accident',
-      'Not for commercial use. Not compatible with cars for hire and delivery services such as Uber, Lyft, DoorDash.',
-    ],
-    brochureUrl: '/bonzah/bonzah-cdw-brochure.pdf',
-  },
-  rcli: {
-    fullTitle: "Renter's Contingent Liability Insurance (RCLI)",
-    description: "Covers damage to 3rd parties' property and injury when renter is at fault in accident. Does not cover rental vehicle.",
-    whyBuyTitle: 'Why buy primary liability?',
-    whyBuyPoints: [
-      'If you have an auto policy, though prefer not to risk a premium increase in case of a liability claim up to the state minimum requirement. Or..',
-      "If you don't have an auto policy and don't want to be financially responsible for injuries to persons and property up to the state minimum requirement. Or..",
-      'If you normally drive a commercial vehicle, which has insurance that does not cover you for liability to other persons or property while driving a rented vehicle.',
-    ],
-    coverageTitle: 'Primary State Minimum Liability Insurance',
-    coverageFeatures: [
-      'Bodily Injury - Per Person',
-      'Bodily Injury - Aggregate',
-      'Property Damage',
-    ],
-    brochureUrl: '/bonzah/bonzah-rcli-brochure.pdf',
-  },
-  sli: {
-    fullTitle: 'Supplemental Liability Insurance (SLI)',
-    description: 'Supplements RCLI coverage to enhanced levels of coverage. Not a standalone or primary policy, must be purchased with RCLI.',
-    whyBuyTitle: 'Why buy supplemental liability?',
-    whyBuyPoints: [
-      'If you have an auto policy with low liability coverage, and want to increase it up to an aggregate of $500,000. Or..',
-      'If you have selected the above primary liability insurance (RCLI), and want to increase your coverage beyond the state minimum for injuries to persons and property up to an aggregate of $500,000.',
-    ],
-    coverageTitle: 'Coverage is in Excess of Any Primary Liability Coverage',
-    coverageFeatures: [
-      'Bodily Injury - Per Person - Up to $100,000 in total',
-      'Bodily Injury - Aggregate - Up to $500,000 in total',
-      'Property Damage - $10,000 additional coverage',
-    ],
-    brochureUrl: '/bonzah/bonzah-sli-brochure.pdf',
-  },
-  pai: {
-    fullTitle: 'Personal Accident / Personal Effects Insurance',
-    description: 'Covers life, medical expenses, and lost or damaged items. Not rental vehicle coverage.',
-    whyBuyTitle: 'Why buy personal accident & effects coverage?',
-    whyBuyPoints: [
-      'If there is an accidental death or accidental medical expense, these insurances protect the specified losses.',
-      'If you do not have death protection this coverage protects the primary Renter or Sharer and their immediate family for a death while traveling.',
-      'Personal Effects Coverage protects Your personal belongings as the primary Renter or Sharer and those of Your immediate family traveling with You.',
-    ],
-    coverageTitle: 'Accident, Medical & Personal Effects Insurance',
-    coverageFeatures: [
-      'Renter Loss of Life - $50,000',
-      'Passenger Loss of Life - $5,000',
-      'Accidental Medical Expense - $1,000',
-      'Personal Effects Coverage - $500 with up to $25 deductible will be applied',
-    ],
-    brochureUrl: '/bonzah/bonzah-pai-brochure.pdf',
-  },
-};
-
-function InsuranceDetailModal({
-  option,
-  selected,
-  disabled,
-  onToggle,
-  onClose,
-}: {
-  option: InsuranceOption | null;
-  selected: boolean;
-  disabled: boolean;
-  onToggle: () => void;
-  onClose: () => void;
-}) {
-  const [whyBuyOpen, setWhyBuyOpen] = useState(false);
-  if (!option) return null;
-  const detail = INSURANCE_DETAILS[option.id];
-  if (!detail) return null;
-  return (
-    <Dialog
-      isOpen={true}
-      onClose={onClose}
-      labelledBy="insurance-detail-title"
-      className="items-end sm:items-center"
-      panelClassName="max-h-[90vh] max-w-[560px] overflow-y-auto rounded-t-2xl sm:rounded-2xl"
-    >
-        <div className="sticky top-0 z-10 border-b border-hairline bg-white px-[26px] pb-4 pt-[22px]">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-center gap-[10px]">
-              <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary-soft">
-                <ShieldCheck size={15} className="text-primary" />
-              </span>
-              <h3 id="insurance-detail-title" className="text-[17px] font-semibold leading-tight text-secondary">{detail.fullTitle}</h3>
-            </div>
-            <button type="button" aria-label="Close" onClick={onClose} className="flex-shrink-0 text-muted">
-              <Close size={20} strokeWidth={2} />
-            </button>
-          </div>
-          <div className="mt-[10px] flex items-baseline gap-1">
-            <span className="text-[24px] font-bold text-primary">{money(option.price)}</span>
-            <span className="text-[13px] text-muted">/ 24 hours</span>
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-5 px-[26px] py-5">
-          <p className="text-[13.5px] leading-[1.6] text-muted">{detail.description}</p>
-
-          <div className="overflow-hidden rounded-[10px] border border-line">
-            <button
-              type="button"
-              onClick={() => setWhyBuyOpen((o) => !o)}
-              className="flex w-full items-center justify-between px-4 py-3 text-left"
-            >
-              <span className="text-[13.5px] font-semibold text-primary">{detail.whyBuyTitle}</span>
-              <ChevronDown size={16} className={cn('text-primary transition-transform', whyBuyOpen && 'rotate-180')} />
-            </button>
-            {whyBuyOpen && (
-              <div className="border-t border-hairline px-4 pb-4">
-                <ul className="mt-3 flex flex-col gap-3">
-                  {detail.whyBuyPoints.map((point, i) => (
-                    <li key={i} className="flex gap-2 text-[13px] leading-[1.55] text-muted">
-                      <span className="mt-[7px] h-[5px] w-[5px] flex-shrink-0 rounded-full bg-faint" />
-                      <span>{point}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-
-          <div>
-            <h4 className="mb-3 text-[13.5px] font-semibold text-ink">{detail.coverageTitle}</h4>
-            <ul className="flex flex-col gap-[10px]">
-              {detail.coverageFeatures.map((feature, i) => (
-                <li key={i} className="flex items-start gap-[10px]">
-                  <span className="mt-px inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-green-bg-2">
-                    <Check size={12} strokeWidth={3} className="text-success" />
-                  </span>
-                  <span className="text-[13px] leading-[1.5] text-label">{feature}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <a
-            href={detail.brochureUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-[6px] text-[13px] font-semibold text-primary"
-          >
-            Description of Coverage
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-              <path d="M15 3h6v6M10 14 21 3" />
-            </svg>
-          </a>
-        </div>
-
-        <div className="sticky bottom-0 border-t border-hairline bg-white px-[26px] py-4">
-          <button
-            type="button"
-            disabled={disabled}
-            onClick={() => {
-              onToggle();
-              onClose();
-            }}
-            className={cn(
-              'w-full rounded-[10px] py-3 text-sm font-semibold transition-colors',
-              disabled
-                ? 'cursor-not-allowed bg-subtle text-faint'
-                : selected
-                  ? 'bg-subtle text-ink hover:bg-chip'
-                  : 'bg-primary text-white hover:bg-primary-hover',
-            )}
-          >
-            {disabled ? 'Requires RCLI' : selected ? 'Remove Coverage' : 'Add Coverage'}
-          </button>
-        </div>
-    </Dialog>
-  );
-}
-
-function extractApiErrorMessage(error: unknown, fallback: string): string {
-  if (!error || typeof error !== 'object' || !('response' in error)) return fallback;
-  const body = (error as { response?: { data?: unknown } }).response?.data;
-  if (!body || typeof body !== 'object') return fallback;
-  const nested = (body as { errors?: unknown }).errors;
-  const source = (nested && typeof nested === 'object' ? nested : body) as Record<string, unknown>;
-  const messages = Object.values(source)
-    .flat()
-    .filter((v): v is string => typeof v === 'string');
-  return messages.length > 0 ? messages.join(' ') : fallback;
 }

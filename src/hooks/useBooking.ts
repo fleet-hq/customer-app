@@ -67,6 +67,11 @@ export const useBookingDetails = (bookingId?: string | number) =>
     enabled: !!bookingId,
     refetchOnWindowFocus: true,
     staleTime: 0,
+    retry: (failureCount, error) => {
+      const status = (error as { response?: { status?: number } })?.response?.status;
+      if (status && status >= 400 && status < 500) return false;
+      return failureCount < 3;
+    },
   });
 
 export const useCreateBooking = () =>

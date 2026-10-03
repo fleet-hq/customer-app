@@ -1,6 +1,7 @@
 'use client';
 
 import { money } from '@/lib/utils';
+import { Dyn } from '@/components/i18n/Dyn';
 import type { DailyRate } from '@/types/vehicle';
 
 interface RentalBreakdownProps {
@@ -29,7 +30,7 @@ export function RentalBreakdown({
     return (
       <div>
         <div className="flex items-start justify-between text-[13px]">
-          <div className="font-medium text-ink">Car rental</div>
+          <div className="font-medium text-ink"><Dyn>Car rental</Dyn></div>
           <span className="font-medium text-ink">{money(total)}</span>
         </div>
         <div className="mt-[8px] flex flex-col gap-[6px]">
@@ -38,7 +39,7 @@ export function RentalBreakdown({
               <span className="text-muted">
                 {d.weekday} {formatShort(d.date)}
                 {d.isDynamic && (
-                  <span className="ml-1.5 text-[10.5px] text-faint">(custom rate)</span>
+                  <span className="ml-1.5 text-[10.5px] text-faint"><Dyn>(custom rate)</Dyn></span>
                 )}
               </span>
               <span className="font-medium text-ink tabular-nums">{money(d.rate)}</span>
@@ -52,8 +53,8 @@ export function RentalBreakdown({
   return (
     <div className="flex items-start justify-between text-[13px]">
       <div>
-        <div className="font-medium text-ink">Car rental</div>
-        <div className="mt-px text-[11.5px] text-muted">{summary}</div>
+        <div className="font-medium text-ink"><Dyn>Car rental</Dyn></div>
+        <div className="mt-px text-[11.5px] text-muted"><Dyn>{summary}</Dyn></div>
       </div>
       <span className="font-medium text-ink">{money(total)}</span>
     </div>

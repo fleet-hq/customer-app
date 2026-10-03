@@ -1,4 +1,5 @@
 import { Download } from '@/components/ui/icons';
+import { Dyn } from '@/components/i18n/Dyn';
 import { money } from '@/lib/utils';
 import { insuranceCoverageLines } from '@/lib/insurance-lines';
 import type { BookingDetails } from '@/services/bookingServices';
@@ -42,15 +43,15 @@ export function VehicleDriverCard({ booking }: { booking: BookingDetails }) {
             style={{ backgroundImage: `url('${image}')` }}
           />
           <div>
-            <div className="text-[11px] text-faint">Booking #{booking.invoice.number}</div>
+            <div className="text-[11px] text-faint"><Dyn>Booking</Dyn> #{booking.invoice.number}</div>
             <div className="my-[3px] text-[19px] font-semibold text-secondary">{booking.vehicle.name}</div>
             <div className="inline-flex items-center gap-[5px] text-xs font-semibold text-primary">
-              Plate {booking.vehicle.licensePlate}
+              <Dyn>Plate</Dyn> {booking.vehicle.licensePlate}
             </div>
           </div>
         </div>
         <div className="text-right">
-          <div className="text-[11px] text-faint">Booked on</div>
+          <div className="text-[11px] text-faint"><Dyn>Booked on</Dyn></div>
           <div className="mt-[3px] text-sm font-semibold text-ink">{booking.bookedOn}</div>
         </div>
       </div>
@@ -78,7 +79,7 @@ function Detail({
   // own column instead of pushing into the neighbouring field.
   return (
     <div className="min-w-0">
-      <div className="mb-[5px] text-[11px] text-faint">{label}</div>
+      <div className="mb-[5px] text-[11px] text-faint"><Dyn>{label}</Dyn></div>
       <div
         className={`text-[13.5px] font-semibold text-ink ${breakAll ? 'break-all' : 'break-words'}`}
       >
@@ -102,7 +103,7 @@ export function TripDetails({ booking }: { booking: BookingDetails }) {
         />
         <div className="flex flex-shrink-0 items-center justify-center sm:justify-start">
           <span className="rounded-full bg-chip px-[10px] py-[5px] text-[10px] font-semibold whitespace-nowrap text-muted">
-            {rentalDays(booking)} DAYS
+            {rentalDays(booking)} <Dyn>DAYS</Dyn>
           </span>
         </div>
         <TripEnd
@@ -134,7 +135,7 @@ function TripEnd({
     <div className="flex-1 rounded-[11px] border border-hairline bg-subtle px-4 py-[14px]">
       <div className="flex items-center gap-2">
         <span className={`h-2 w-2 rounded-full ${dotClass}`} />
-        <span className={`text-[10px] font-semibold tracking-[0.05em] uppercase ${labelClass}`}>{kind}</span>
+        <span className={`text-[10px] font-semibold tracking-[0.05em] uppercase ${labelClass}`}><Dyn>{kind}</Dyn></span>
       </div>
       <div className="mt-[9px] mb-[3px] text-[14.5px] font-semibold text-secondary">{location}</div>
       <div className="text-[12.5px] text-muted">{when}</div>
@@ -156,7 +157,7 @@ function InvoiceRow({ label, sub, amount, accent }: { label: string; sub?: strin
 
 function Group({ title }: { title: string }) {
   return (
-    <div className="mb-[11px] text-[11px] font-semibold tracking-[0.05em] text-faint uppercase">{title}</div>
+    <div className="mb-[11px] text-[11px] font-semibold tracking-[0.05em] text-faint uppercase"><Dyn>{title}</Dyn></div>
   );
 }
 
@@ -288,18 +289,18 @@ export function Invoice({
     <div className="rounded-2xl border border-card-border bg-white p-4 sm:p-6">
       <div className="mb-[18px] flex items-center justify-between">
         <div className="flex items-baseline gap-2">
-          <span className="text-[15px] font-semibold text-ink">Invoice</span>
+          <span className="text-[15px] font-semibold text-ink"><Dyn>Invoice</Dyn></span>
           <span className="text-xs text-faint">#{inv.number}</span>
         </div>
         {paid ? (
           <span className="inline-flex items-center gap-[6px] rounded-full bg-green-bg-2 px-[11px] py-[5px] text-[11px] font-semibold text-success">
             <span className="h-[6px] w-[6px] rounded-full bg-success" />
-            Paid
+            <Dyn>Paid</Dyn>
           </span>
         ) : (
           <span className="inline-flex items-center gap-[6px] rounded-full bg-amber-bg px-[11px] py-[5px] text-[11px] font-semibold text-amber-text-2">
             <span className="h-[6px] w-[6px] rounded-full bg-accent" />
-            Payment pending
+            <Dyn>Payment pending</Dyn>
           </span>
         )}
       </div>
@@ -322,7 +323,7 @@ export function Invoice({
         return (
           <div key={m.id} className="mt-2 flex items-start justify-between text-[13px]">
             <div className="min-w-0">
-              <div className="font-medium text-ink">{label}</div>
+              <div className="font-medium text-ink"><Dyn>{label}</Dyn></div>
               {m.createdAt && (
                 <div className="mt-px text-[11.5px] text-faint">
                   {new Date(m.createdAt).toLocaleDateString('en-US', {
@@ -406,7 +407,7 @@ export function Invoice({
                         : 'rounded-full bg-amber-bg px-[7px] py-[2px] text-[10px] font-semibold text-amber-text-2'
                     }
                   >
-                    {c.status === 'paid' ? 'Paid' : 'Partial'}
+                    <Dyn>{c.status === 'paid' ? 'Paid' : 'Partial'}</Dyn>
                   </span>
                 </div>
                 <span className="font-semibold text-ink tabular-nums">
@@ -424,7 +425,7 @@ export function Invoice({
           <Group title="Discounts" />
           <div className="flex items-center justify-between text-[13px]">
             <div className="flex items-center gap-[7px]">
-              <span className="font-medium text-primary">Discount</span>
+              <span className="font-medium text-primary"><Dyn>Discount</Dyn></span>
               {inv.discountCode && (
                 <span className="rounded-[5px] bg-primary-soft px-[7px] py-[2px] text-[10px] font-semibold text-primary">
                   {inv.discountCode}
@@ -439,14 +440,14 @@ export function Invoice({
       {divider}
       <Group title="Taxes & fees" />
       <div className="flex items-center justify-between text-[13px]">
-        <span className="text-muted">Sales tax &amp; surcharges</span>
+        <span className="text-muted"><Dyn>Sales tax &amp; surcharges</Dyn></span>
         <span className="font-medium text-ink">
-          {displayTaxAndFees > 0 ? money(displayTaxAndFees) : 'Included'}
+          {displayTaxAndFees > 0 ? money(displayTaxAndFees) : <Dyn>Included</Dyn>}
         </span>
       </div>
       <div className="my-4 h-px bg-card-border" />
       <div className="flex items-baseline justify-between">
-        <span className="text-[15px] font-bold text-ink">Total</span>
+        <span className="text-[15px] font-bold text-ink"><Dyn>Total</Dyn></span>
         <span>
           <span className="mr-[3px] text-[11px] text-faint">USD</span>
           <span className="text-[22px] font-bold text-secondary">{money(grandTotal)}</span>

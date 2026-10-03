@@ -2,6 +2,8 @@
 
 import { useRef, useState, useEffect } from 'react';
 import SignatureCanvas from 'react-signature-canvas';
+import { cn } from '@/lib/utils';
+import { useTenant } from '@/lib/tenant-context';
 
 interface SignaturePadProps {
   label?: string;
@@ -16,6 +18,8 @@ export function SignaturePad({
   initialSignature = null,
   height = 120,
 }: SignaturePadProps) {
+  const tenant = useTenant();
+  const isT2 = tenant.websiteTemplate === 'template_2';
   const canvasRef = useRef<SignatureCanvas>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [hasSignature, setHasSignature] = useState<boolean>(!!initialSignature);
@@ -31,8 +35,11 @@ export function SignaturePad({
     return () => obs.disconnect();
   }, []);
 
+  const appliedSignatureRef = useRef<string | null>(null);
   useEffect(() => {
     if (!canvasRef.current || !containerWidth) return;
+    if (appliedSignatureRef.current === initialSignature) return;
+    appliedSignatureRef.current = initialSignature;
     canvasRef.current.clear();
     if (initialSignature) {
       canvasRef.current.fromDataURL(initialSignature, {
@@ -66,10 +73,18 @@ export function SignaturePad({
 
   return (
     <div className="flex w-full flex-col gap-2">
-      {label && <span className="text-[12px] font-bold text-ink">{label}</span>}
+      {label && (
+        <span className={cn('text-[12px] font-bold', isT2 ? 'text-[var(--text)]' : 'text-ink')}>{label}</span>
+      )}
+      {/* The drawing surface itself stays white in both templates: react-signature-canvas
+          draws in black ink, so on a dark T2 card the strokes would be invisible while
+          signing. Only the surrounding chrome (border, label, clear button) is themed. */}
       <div
         ref={containerRef}
-        className="relative w-full overflow-hidden rounded-[10px] border border-dashed border-primary/50 bg-white"
+        className={cn(
+          'relative w-full overflow-hidden border border-dashed bg-white',
+          isT2 ? 'rounded-[3px] border-[var(--brass)]/50' : 'rounded-[10px] border-primary/50',
+        )}
         style={{ height }}
       >
         {containerWidth > 0 && (
@@ -94,7 +109,12 @@ export function SignaturePad({
           type="button"
           onClick={handleClear}
           disabled={!hasSignature}
-          className="rounded-md border border-primary/40 px-3 py-1 text-[11.5px] font-semibold text-primary transition-colors hover:bg-primary-soft disabled:cursor-not-allowed disabled:border-line disabled:text-faint disabled:hover:bg-transparent"
+          className={cn(
+            'rounded-md border px-3 py-1 text-[11.5px] font-semibold transition-colors disabled:cursor-not-allowed disabled:hover:bg-transparent',
+            isT2
+              ? 'border-[var(--brass)]/40 text-[var(--brass)] hover:bg-[color-mix(in_srgb,var(--brass)_10%,transparent)] disabled:border-[var(--line)] disabled:text-[var(--text-muted)]'
+              : 'border-primary/40 text-primary hover:bg-primary-soft disabled:border-line disabled:text-faint',
+          )}
         >
           Clear
         </button>

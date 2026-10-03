@@ -1,6 +1,8 @@
 'use client';
 
 import { useFleetDiscountsSummary } from '@/hooks/useFleetDiscounts';
+import { Dyn } from '@/components/i18n/Dyn';
+import { useTenant } from '@/lib/tenant-context';
 
 const WEEK_DAYS = 7;
 
@@ -17,6 +19,8 @@ export function DateDealsCallout({
   isPromoPricing,
   className,
 }: DateDealsCalloutProps) {
+  const tenant = useTenant();
+  const isT2 = tenant.websiteTemplate === 'template_2';
   const { data: discountsSummary } = useFleetDiscountsSummary();
   const bestWeeklyPct = (discountsSummary?.tiers ?? [])
     .filter((t) => t.unit_type === 'week')
@@ -33,12 +37,14 @@ export function DateDealsCallout({
         <CalloutLine
           tone="amber"
           text="Peak-day pricing is in effect for the selected dates."
+          isT2={isT2}
         />
       )}
       {isPromoPricing && (
         <CalloutLine
           tone="success"
           text="Promo pricing is in effect for the selected dates."
+          isT2={isT2}
         />
       )}
       {hasWeekly &&
@@ -47,12 +53,14 @@ export function DateDealsCallout({
             tone="success"
             title="You've unlocked our best weekly rate."
             text={`Up to ${bestWeeklyPct}% off the daily rate on this ${days}-day rental.`}
+            isT2={isT2}
           />
         ) : (
           <CalloutLine
             tone="primary"
             title={`Add ${WEEK_DAYS - days} more ${WEEK_DAYS - days === 1 ? 'day' : 'days'} to save up to ${bestWeeklyPct}% per day.`}
             text={`Rent 1+ weeks and up to ${bestWeeklyPct}% comes off the daily rate.`}
+            isT2={isT2}
           />
         ))}
     </div>
@@ -65,21 +73,33 @@ const TONE_CLASSES: Record<'amber' | 'success' | 'primary', string> = {
   primary: 'border-primary-border bg-primary-soft text-primary',
 };
 
+const TONE_CLASSES_T2: Record<'amber' | 'success' | 'primary', string> = {
+  amber: 'border-[color-mix(in_srgb,var(--danger)_35%,var(--line-strong))] bg-[color-mix(in_srgb,var(--danger)_8%,var(--card))] text-[var(--danger)]',
+  success: 'border-[color-mix(in_srgb,var(--success)_35%,var(--line-strong))] bg-[color-mix(in_srgb,var(--success)_8%,var(--card))] text-[var(--success)]',
+  primary: 'border-[color-mix(in_srgb,var(--brass)_35%,var(--line-strong))] bg-[color-mix(in_srgb,var(--brass)_8%,var(--card))] text-[var(--brass)]',
+};
+
 function CalloutLine({
   tone,
   title,
   text,
+  isT2,
 }: {
   tone: 'amber' | 'success' | 'primary';
   title?: string;
   text: string;
+  isT2: boolean;
 }) {
   return (
     <div
-      className={`rounded-[9px] border px-3 py-[9px] text-[11.5px] leading-[1.45] font-medium ${TONE_CLASSES[tone]}`}
+      className={`rounded-[9px] border px-3 py-[9px] text-[11.5px] leading-[1.45] font-medium ${isT2 ? TONE_CLASSES_T2[tone] : TONE_CLASSES[tone]}`}
     >
-      {title && <div className="font-semibold text-secondary">{title}</div>}
-      <div className={title ? 'mt-px' : ''}>{text}</div>
+      {title && (
+        <div className={isT2 ? 'font-semibold text-[var(--text)]' : 'font-semibold text-secondary'}>
+          <Dyn>{title}</Dyn>
+        </div>
+      )}
+      <div className={title ? 'mt-px' : ''}><Dyn>{text}</Dyn></div>
     </div>
   );
 }

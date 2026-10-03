@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
+import { useDynamicTranslation } from '@/hooks/useDynamicTranslation';
 
 interface FleetPaginationProps {
   page: number;
@@ -34,6 +35,7 @@ const box = 'flex h-10 items-center justify-center rounded-[9px] text-sm font-me
 
 export function FleetPagination({ page, totalPages, onPage }: FleetPaginationProps) {
   const compact = useIsCompact();
+  const { t } = useDynamicTranslation(['Previous page', 'Next page', 'Last page']);
   const nums = pageWindow(page, totalPages, compact ? 3 : 5);
   const atStart = page <= 1;
   const atEnd = page >= totalPages;
@@ -43,7 +45,7 @@ export function FleetPagination({ page, totalPages, onPage }: FleetPaginationPro
       <button
         onClick={() => onPage(page - 1)}
         disabled={atStart}
-        aria-label="Previous page"
+        aria-label={t('Previous page')}
         className={cn(box, 'w-10 border border-line bg-white text-faint disabled:cursor-not-allowed disabled:opacity-40')}
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -68,7 +70,7 @@ export function FleetPagination({ page, totalPages, onPage }: FleetPaginationPro
       <button
         onClick={() => onPage(page + 1)}
         disabled={atEnd}
-        aria-label="Next page"
+        aria-label={t('Next page')}
         className={cn(box, 'w-10 border border-line bg-white text-ink disabled:cursor-not-allowed disabled:opacity-40')}
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -78,7 +80,7 @@ export function FleetPagination({ page, totalPages, onPage }: FleetPaginationPro
       <button
         onClick={() => onPage(totalPages)}
         disabled={atEnd}
-        aria-label="Last page"
+        aria-label={t('Last page')}
         className={cn(box, 'w-10 border border-line bg-white text-ink disabled:cursor-not-allowed disabled:opacity-40')}
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">

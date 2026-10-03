@@ -1,14 +1,14 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { use } from 'react';
 import { BackLink } from '@/components/ui/back-link';
 import { Download, Check } from '@/components/ui/icons';
 import { cn } from '@/lib/utils';
 import { paths } from '@/lib/paths';
-import { useAgreement, useAcceptAgreement } from '@/hooks/useAgreements';
+import { useTenant } from '@/lib/tenant-context';
 import { RentalAgreementPreview } from '@/components/booking/rental-agreement-preview';
-import type { AgreementData } from '@/services/agreementServices';
+import { useAgreementDetail } from './use-agreement-detail';
+import AgreementDetailClientT2 from './agreement-detail-client-t2';
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
@@ -20,66 +20,26 @@ function Shell({ children }: { children: React.ReactNode }) {
 
 export default function RentalAgreementPage({ params }: { params: Promise<{ agreementId: string }> }) {
   const { agreementId } = use(params);
-  const router = useRouter();
+  const tenant = useTenant();
 
-  const isTemp = agreementId.startsWith('temp-agreement-');
-
-  const [localData, setLocalData] = useState<AgreementData | null>(null);
-  const [localLoaded, setLocalLoaded] = useState(false);
-  const [localError, setLocalError] = useState('');
-
-  useEffect(() => {
-    if (!isTemp) return;
-    const stored = localStorage.getItem('pendingAgreement');
-    if (stored) {
-      try {
-        setLocalData(JSON.parse(stored) as AgreementData);
-      } catch {
-        setLocalError('The stored agreement data is corrupted. Please create a new booking.');
-      }
-    }
-    setLocalLoaded(true);
-  }, [isTemp]);
-
-  const [agree, setAgree] = useState(false);
-  const [signature, setSignature] = useState<string | null>(null);
-  const [error, setError] = useState('');
+  if (tenant.websiteTemplate === 'template_2') {
+    return <AgreementDetailClientT2 agreementId={agreementId} />;
+  }
 
   const {
-    data: apiAgreement,
-    isLoading: apiLoading,
-    isError: apiError,
-  } = useAgreement(isTemp ? undefined : agreementId);
-  const { mutate: accept, isPending: accepting } = useAcceptAgreement();
-
-  const agreement = isTemp ? localData : apiAgreement;
-  const isLoading = isTemp ? !localLoaded : apiLoading;
-  const isError = isTemp ? (localLoaded && !localData) || !!localError : apiError;
-
-  const handleAccept = () => {
-    if (!signature || !agree || accepting) return;
-    setError('');
-
-    if (isTemp && localData) {
-      const signed = {
-        ...localData,
-        status: 'signed',
-        signatureImage: signature,
-        signedAt: new Date().toISOString(),
-      };
-      localStorage.setItem('pendingAgreement', JSON.stringify(signed));
-      router.back();
-      return;
-    }
-
-    accept(
-      { agreementId, signatureData: signature },
-      {
-        onSuccess: () => router.back(),
-        onError: () => setError('Failed to sign agreement. Please try again.'),
-      },
-    );
-  };
+    agreement,
+    isLoading,
+    isError,
+    localError,
+    agree,
+    setAgree,
+    signature,
+    setSignature,
+    error,
+    accepting,
+    handleAccept,
+    isSigned,
+  } = useAgreementDetail(agreementId);
 
   if (isLoading) {
     return (
@@ -104,8 +64,6 @@ export default function RentalAgreementPage({ params }: { params: Promise<{ agre
       </Shell>
     );
   }
-
-  const isSigned = agreement.status === 'signed' || !!agreement.signatureImage;
 
   return (
     <Shell>

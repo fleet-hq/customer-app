@@ -3,6 +3,8 @@
 import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { Check, Plus, Close, ChevronLeft } from '@/components/ui/icons';
+import { Dyn } from '@/components/i18n/Dyn';
+import { useDynamicTranslation } from '@/hooks/useDynamicTranslation';
 import { cn } from '@/lib/utils';
 import { Dialog } from '@/components/ui/dialog';
 import { MAX_IMAGE_UPLOAD_MB, MAX_IMAGE_UPLOAD_BYTES } from '@/lib/constants';
@@ -82,7 +84,7 @@ export function buildNextSteps(args: {
 export function NextSteps({ steps }: { steps: NextStep[] }) {
   return (
     <div className="rounded-2xl border border-card-border bg-white px-5 py-[18px]">
-      <h3 className="mb-[6px] text-sm font-semibold text-ink">Next steps</h3>
+      <h3 className="mb-[6px] text-sm font-semibold text-ink"><Dyn>Next steps</Dyn></h3>
       <div className="flex flex-col">
         {steps.map((st, i) => (
           <div
@@ -99,24 +101,24 @@ export function NextSteps({ steps }: { steps: NextStep[] }) {
                 >
                   {st.done && <Check size={11} strokeWidth={3} className="text-white" />}
                 </span>
-                <span className="text-[13px] font-semibold text-ink">{st.title}</span>
+                <span className="text-[13px] font-semibold text-ink"><Dyn>{st.title}</Dyn></span>
                 <span
                   className={cn(
                     'rounded-full px-[7px] py-[2px] text-[10px] font-semibold',
                     st.done ? 'bg-green-bg-2 text-success' : 'bg-amber-bg text-amber-text-2',
                   )}
                 >
-                  {st.done ? 'Done' : 'Pending'}
+                  <Dyn>{st.done ? 'Done' : 'Pending'}</Dyn>
                 </span>
               </div>
-              <div className="mt-1 pl-[26px] text-[11.5px] leading-[1.45] text-faint">{st.desc}</div>
+              <div className="mt-1 pl-[26px] text-[11.5px] leading-[1.45] text-faint"><Dyn>{st.desc}</Dyn></div>
               {st.sent && (
                 <div className="mt-1 pl-[26px] text-[11.5px] font-medium leading-[1.45] text-success">
-                  {st.sentLabel}
+                  <Dyn>{st.sentLabel}</Dyn>
                 </div>
               )}
               {st.error && (
-                <div className="mt-1 pl-[26px] text-[11.5px] leading-[1.45] text-danger-text">{st.error}</div>
+                <div className="mt-1 pl-[26px] text-[11.5px] leading-[1.45] text-danger-text"><Dyn>{st.error}</Dyn></div>
               )}
             </div>
             {st.onAction ? (
@@ -126,7 +128,7 @@ export function NextSteps({ steps }: { steps: NextStep[] }) {
                 disabled={st.pending || st.sent}
                 className="min-w-[112px] flex-shrink-0 rounded-[7px] bg-primary px-4 py-2 text-center text-xs font-semibold whitespace-nowrap text-white disabled:opacity-50"
               >
-                {st.pending ? st.pendingLabel : st.sent ? 'Sent' : st.cta}
+                <Dyn>{st.pending ? st.pendingLabel : st.sent ? 'Sent' : st.cta}</Dyn>
               </button>
             ) : (
               <Link
@@ -136,7 +138,7 @@ export function NextSteps({ steps }: { steps: NextStep[] }) {
                   st.done ? 'border border-line text-ink' : 'bg-primary text-white',
                 )}
               >
-                {st.cta}
+                <Dyn>{st.cta}</Dyn>
               </Link>
             )}
           </div>
@@ -166,8 +168,8 @@ export function TripPhotos({
 }) {
   return (
     <div className="rounded-2xl border border-card-border bg-white px-5 py-[18px]">
-      <h3 className="mb-1 text-sm font-semibold text-ink">Trip photos</h3>
-      <p className="mb-4 text-[11.5px] leading-[1.45] text-faint">{note}</p>
+      <h3 className="mb-1 text-sm font-semibold text-ink"><Dyn>Trip photos</Dyn></h3>
+      <p className="mb-4 text-[11.5px] leading-[1.45] text-faint"><Dyn>{note}</Dyn></p>
       <div className="flex flex-col gap-4">
         {groups.map((g) => (
           <PhotoGroupRow key={g.title} group={g} bookingId={bookingId} canUpload={canUpload} />
@@ -192,6 +194,7 @@ function PhotoGroupRow({
   const [pendingCount, setPendingCount] = useState(0);
   const [sizeError, setSizeError] = useState<string | null>(null);
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
+  const { t } = useDynamicTranslation(['Close', 'Previous photo', 'Next photo']);
 
   const count = group.photos.length;
   const pendingLabel =
@@ -236,14 +239,14 @@ function PhotoGroupRow({
     <div>
       <div className="mb-2 flex items-center justify-between gap-2">
         <div className="text-xs font-semibold text-ink">
-          {group.title} <span className="font-medium text-placeholder">· {meta}</span>
+          <Dyn>{group.title}</Dyn> <span className="font-medium text-placeholder">· <Dyn>{meta}</Dyn></span>
         </div>
         <span className="shrink-0 text-[10px] font-medium text-placeholder">
-          Max {MAX_IMAGE_UPLOAD_MB}MB per photo
+          <Dyn>Max</Dyn> {MAX_IMAGE_UPLOAD_MB}<Dyn>MB per photo</Dyn>
         </span>
       </div>
       {sizeError && (
-        <p className="mb-2 text-[11px] font-medium text-danger">{sizeError}</p>
+        <p className="mb-2 text-[11px] font-medium text-danger"><Dyn>{sizeError}</Dyn></p>
       )}
       <div
         className="grid gap-[6px]"
@@ -294,7 +297,7 @@ function PhotoGroupRow({
           className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-[2px] rounded-[7px] border-[1.5px] border-dashed border-dash text-primary disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Plus size={14} />
-          <span className="text-[9px] font-semibold text-faint">Add</span>
+          <span className="text-[9px] font-semibold text-faint"><Dyn>Add</Dyn></span>
         </button>
         {Array.from({ length: emptyPlaceholders }).map((_, i) => (
           <div
@@ -319,7 +322,7 @@ function PhotoGroupRow({
             />
             <button
               type="button"
-              aria-label="Close"
+              aria-label={t('Close')}
               onClick={() => setLightboxIdx(null)}
               className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white"
             >
@@ -329,7 +332,7 @@ function PhotoGroupRow({
               <>
                 <button
                   type="button"
-                  aria-label="Previous photo"
+                  aria-label={t('Previous photo')}
                   onClick={() =>
                     setLightboxIdx((n) =>
                       n === null
@@ -343,7 +346,7 @@ function PhotoGroupRow({
                 </button>
                 <button
                   type="button"
-                  aria-label="Next photo"
+                  aria-label={t('Next photo')}
                   onClick={() =>
                     setLightboxIdx((n) =>
                       n === null ? n : (n + 1) % group.photos.length,

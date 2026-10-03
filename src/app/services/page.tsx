@@ -11,6 +11,7 @@ import { notFound } from 'next/navigation';
 import { BrandCta } from '@/components/sections/shared/brand-cta';
 import { NapBlock } from '@/components/sections/shared/nap-block';
 import { ArrowRight } from '@/components/ui/icons';
+import { ServicesPageT2 } from './services-page-t2';
 
 const SERVICES_TRAIL = [
   { label: 'Home', href: '/' },
@@ -48,56 +49,44 @@ export default async function ServicesPage() {
   const cta = s!.cta;
   const blocks = s!.blocks ?? [];
   const isDirectory = blocks.filter((b) => b.href).length >= 2;
-  const onImage = !!s!.hero_image;
+
+  if (tenant.websiteTemplate === 'template_2') {
+    return (
+      <ServicesPageT2
+        tenant={tenant}
+        h1={s!.h1 || ''}
+        intro={s!.intro ?? []}
+        blocks={blocks}
+        cta={cta}
+      />
+    );
+  }
 
   return (
     <div className="bg-white text-ink">
       <JsonLd data={serviceOverviewSchema(tenant, blocks, SERVICES_TRAIL)} />
-      <section className={'relative overflow-hidden border-b border-hairline ' + (onImage ? 'bg-secondary' : 'bg-subtle')}>
-        {onImage ? (
-          <>
-            <div
-              className="absolute inset-0 bg-cover bg-center"
-              aria-hidden="true"
-              style={{ backgroundImage: `url('${s!.hero_image}')` }}
-            />
-            <div className="absolute inset-0 bg-black/55" aria-hidden="true" />
-          </>
-        ) : (
-          <div
-            className="pointer-events-none absolute inset-0 opacity-60"
-            aria-hidden="true"
-            style={{
-              background:
-                'radial-gradient(85% 120% at 88% -10%, color-mix(in srgb, var(--color-primary) 12%, transparent) 0%, transparent 58%)',
-            }}
-          />
-        )}
+      <section className="relative overflow-hidden border-b border-hairline bg-subtle">
         <div
-          className={
-            'relative mx-auto w-full max-w-[860px] px-4 pt-[52px] pb-[44px] sm:px-6 sm:pt-[68px] sm:pb-[52px] ' +
-            (onImage ? 'flex min-h-[500px] flex-col justify-center sm:min-h-[560px]' : '')
-          }
-        >
-          <span
-            className={
-              'inline-flex items-center rounded-full px-[13px] py-[6px] text-[11.5px] font-semibold uppercase tracking-[0.06em] ' +
-              (onImage
-                ? 'border border-white/25 bg-white/10 text-white backdrop-blur-sm'
-                : 'border border-primary-border bg-white text-primary')
-            }
-          >
+          className="pointer-events-none absolute inset-0 opacity-60"
+          aria-hidden="true"
+          style={{
+            background:
+              'radial-gradient(85% 120% at 88% -10%, color-mix(in srgb, var(--color-primary) 12%, transparent) 0%, transparent 58%)',
+          }}
+        />
+        <div className="relative mx-auto w-full max-w-[860px] px-4 pt-[52px] pb-[44px] sm:px-6 sm:pt-[68px] sm:pb-[52px]">
+          <span className="inline-flex items-center rounded-full border border-primary-border bg-white px-[13px] py-[6px] text-[11.5px] font-semibold uppercase tracking-[0.06em] text-primary">
             {tenant.name}
           </span>
           {s!.h1 ? (
-            <h1 className={'mt-[18px] font-manrope text-[34px] font-bold leading-[1.1] tracking-[-0.02em] text-balance sm:text-[46px] ' + (onImage ? 'text-white' : 'text-ink')}>
+            <h1 className="mt-[18px] font-manrope text-[34px] font-bold leading-[1.1] tracking-[-0.02em] text-ink text-balance sm:text-[46px]">
               {co(s!.h1)}
             </h1>
           ) : null}
           {s!.intro?.length ? (
             <div className="mt-[16px] flex max-w-[640px] flex-col gap-[12px]">
               {s!.intro.map((p, i) => (
-                <p key={i} className={'text-[16.5px] leading-[1.7] ' + (onImage ? 'text-white/85' : 'text-muted')}>
+                <p key={i} className="text-[16.5px] leading-[1.7] text-muted">
                   {co(p)}
                 </p>
               ))}
@@ -105,16 +94,6 @@ export default async function ServicesPage() {
           ) : null}
         </div>
       </section>
-
-      {s!.image ? (
-        <div className="mx-auto w-full max-w-[960px] px-4 pt-[36px] sm:px-6 sm:pt-[44px]">
-          <img
-            src={s!.image}
-            alt={co(s!.h1 || 'Services')}
-            className="h-auto w-full rounded-[20px] border border-card-border object-cover"
-          />
-        </div>
-      ) : null}
 
       <section className="mx-auto w-full max-w-[960px] px-4 pt-[44px] pb-[24px] sm:px-6 sm:pt-[56px]">
         {isDirectory ? (

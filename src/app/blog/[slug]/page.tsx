@@ -13,6 +13,7 @@ import { Clock } from '@/components/ui/icons';
 import { BlogBody } from '@/components/sections/blog/blog-body';
 import { BlogCard } from '@/components/sections/blog/blog-card';
 import { BrandCta } from '@/components/sections/shared/brand-cta';
+import { BlogPostT2 } from './blog-post-t2';
 
 export async function generateMetadata({
   params,
@@ -52,6 +53,10 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
   const date = formatBlogDate(post.publishedAt);
   const more = all.filter((p) => p.slug !== post.slug).slice(0, 3);
+
+  if (tenant.websiteTemplate === 'template_2') {
+    return <BlogPostT2 tenant={tenant} post={post} more={more} />;
+  }
 
   return (
     <div className="bg-white text-ink">

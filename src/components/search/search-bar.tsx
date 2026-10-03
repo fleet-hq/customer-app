@@ -1,16 +1,12 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { paths } from '@/lib/paths';
-import { isEmbedded, requestHandoff } from '@/lib/embed-bridge';
-import { DEFAULT_TRIP } from '@/lib/mock-data';
 import { todayISO } from '@/lib/time-slots';
-import { useCompanyLocations } from '@/hooks';
-import { useFleetDiscountsSummary } from '@/hooks/useFleetDiscounts';
-import { cn, rentalDays } from '@/lib/utils';
+import { cn } from '@/lib/utils';
+import { useSearchBar } from './use-search-bar';
 import { ArrowRight, Check, ChevronDown, MapPin, Search, Swap } from '@/components/ui/icons';
 import { DateTimeField } from './date-time-field';
+import { Dyn } from '@/components/i18n/Dyn';
+import { useDynamicTranslation } from '@/hooks/useDynamicTranslation';
 
 interface SearchBarProps {
   variant?: 'hero' | 'compact';
@@ -23,131 +19,39 @@ interface SearchBarProps {
 }
 
 export function SearchBar({ variant = 'hero', bareContainer = false }: SearchBarProps) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const rootRef = useRef<HTMLDivElement>(null);
-
-  const { data: apiLocations } = useCompanyLocations();
-  const pickupLocations = useMemo(
-    () => (apiLocations ?? []).filter((l) => l.type === 'pickup' || l.type === 'both'),
-    [apiLocations],
-  );
-  const dropoffLocations = useMemo(
-    () => (apiLocations ?? []).filter((l) => l.type === 'dropoff' || l.type === 'both'),
-    [apiLocations],
-  );
-
-  const [pickupLocId, setPickupLocId] = useState<string>(() => searchParams.get('pickupLocId') ?? '');
-  const [dropLocId, setDropLocId] = useState<string>(() => searchParams.get('dropoffLocId') ?? '');
-  const [pickupDate, setPickupDate] = useState(() => searchParams.get('pickupDate') ?? DEFAULT_TRIP.pickupDate);
-  const [returnDate, setReturnDate] = useState(() => searchParams.get('returnDate') ?? DEFAULT_TRIP.returnDate);
-  const [pickupTime, setPickupTime] = useState(() => searchParams.get('pickupTime') ?? DEFAULT_TRIP.pickupTime);
-  const [returnTime, setReturnTime] = useState(() => searchParams.get('returnTime') ?? DEFAULT_TRIP.returnTime);
-  const [diffLocation, setDiffLocation] = useState(() => {
-    const drop = searchParams.get('dropoffLocId');
-    const pick = searchParams.get('pickupLocId');
-    return !!drop && drop !== pick;
-  });
-  const [openLoc, setOpenLoc] = useState<null | 'pickup' | 'drop'>(null);
-
-  useEffect(() => {
-    if (pickupLocations.length && !pickupLocId) setPickupLocId(pickupLocations[0].id);
-    if (dropoffLocations.length && !dropLocId) setDropLocId(dropoffLocations[0].id);
-  }, [pickupLocations, dropoffLocations, pickupLocId, dropLocId]);
-
-  const selectedPickup = pickupLocations.find((l) => l.id === pickupLocId);
-  const selectedDrop = dropoffLocations.find((l) => l.id === dropLocId);
-  const minTime = selectedPickup && !selectedPickup.is247 ? selectedPickup.openingTime : null;
-  const maxTime = selectedPickup && !selectedPickup.is247 ? selectedPickup.closingTime : null;
-
-  const handlePickupDate = (d: string) => {
-    setPickupDate(d);
-    if (!returnDate || d > returnDate) setReturnDate(d);
-  };
-
-  useEffect(() => {
-    const onDoc = (e: MouseEvent) => {
-      if (openLoc && rootRef.current && !rootRef.current.contains(e.target as Node)) setOpenLoc(null);
-    };
-    document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
-  }, [openLoc]);
-
-  const days = rentalDays(pickupDate, returnDate, pickupTime, returnTime);
-
-  // Weekly discount banner — every weekly tier has an implicit
-  // 1-week threshold (7 days), so the banner has two states:
-  //  • Picked < 7 days → "Add N more days to save X% per day."
-  //  • Picked ≥ 7 days → "You're getting our best weekly rate. X% off…"
-  // The headline percentage is the highest configured weekly tier.
-  const { data: discountsSummary } = useFleetDiscountsSummary();
-  const bestWeeklyPct = useMemo(() => {
-    const weekly = (discountsSummary?.tiers ?? []).filter(
-      (t) => t.unit_type === 'week',
-    );
-    return weekly.reduce((m, t) => (t.percentage > m ? t.percentage : m), 0);
-  }, [discountsSummary]);
-  const WEEK_DAYS = 7;
-  const earnedWeekly = bestWeeklyPct > 0 && days >= WEEK_DAYS;
-  const showDisc = bestWeeklyPct > 0;
-  let discTitle = '';
-  let discSub = '';
-  if (showDisc) {
-    if (earnedWeekly) {
-      discTitle = "You've unlocked our best weekly rate.";
-      discSub = `Up to ${bestWeeklyPct}% off the daily rate on this ${days}-day rental depending on the car you pick.`;
-    } else {
-      const d = WEEK_DAYS - days;
-      discTitle = `Add ${d} more ${d === 1 ? 'day' : 'days'} to save up to ${bestWeeklyPct}% per day.`;
-      discSub = `Rent 1+ weeks and up to ${bestWeeklyPct}% comes off the daily rate.`;
-    }
-  }
-
-  const goSearch = () => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (pickupLocId) params.set('pickupLocId', pickupLocId);
-    else params.delete('pickupLocId');
-    if (diffLocation && dropLocId) params.set('dropoffLocId', dropLocId);
-    else params.delete('dropoffLocId');
-    params.set('pickupDate', pickupDate);
-    params.set('pickupTime', pickupTime);
-    params.set('returnDate', returnDate);
-    params.set('returnTime', returnTime);
-
-    // Widget context: when rendered inside a partner's iframe with an
-    // embed_redirect param, hand off to that URL in the top window so the
-    // customer lands on the partner's own Book Now page (which itself
-    // embeds our /fleet catalog). Fall through to internal navigation for
-    // the standard customer-central flow — existing tenants on their own
-    // domains are completely untouched.
-    const embedRedirect = searchParams.get('embed_redirect');
-    if (isEmbedded() && embedRedirect) {
-      try {
-        const target = new URL(embedRedirect);
-        const FORWARD_KEYS = [
-          'pickupLocId',
-          'dropoffLocId',
-          'pickupDate',
-          'pickupTime',
-          'returnDate',
-          'returnTime',
-          'pickup',
-          'dropoff',
-          'location',
-        ];
-        for (const key of FORWARD_KEYS) {
-          const v = params.get(key);
-          if (v) target.searchParams.set(key, v);
-        }
-        requestHandoff(target.toString());
-        return;
-      } catch {
-        /* malformed redirect URL — fall through to router.push */
-      }
-    }
-
-    router.push(`${paths.fleet}?${params.toString()}`);
-  };
+  const { t } = useDynamicTranslation(['Swap locations', "You've unlocked our best weekly rate."]);
+  const {
+    rootRef,
+    pickupLocations,
+    dropoffLocations,
+    pickupLocId,
+    setPickupLocId,
+    dropLocId,
+    setDropLocId,
+    pickupDate,
+    returnDate,
+    setReturnDate,
+    pickupTime,
+    setPickupTime,
+    returnTime,
+    setReturnTime,
+    diffLocation,
+    setDiffLocation,
+    openLoc,
+    setOpenLoc,
+    selectedPickup,
+    selectedDrop,
+    minTime,
+    maxTime,
+    handlePickupDate,
+    days,
+    showDisc,
+    earnedWeekly,
+    bestWeeklyPct,
+    discTitle,
+    discSub,
+    goSearch,
+  } = useSearchBar();
 
   const LocationField = ({ which }: { which: 'pickup' | 'drop' }) => {
     const selected = which === 'pickup' ? selectedPickup : selectedDrop;
@@ -157,7 +61,7 @@ export function SearchBar({ variant = 'hero', bareContainer = false }: SearchBar
     return (
       <div className="relative min-w-0 flex-[1.3]">
         <div className="mb-[6px] text-[10px] tracking-[0.03em] text-faint uppercase">
-          {which === 'pickup' ? 'Pick-up' : 'Drop-off'}
+          {which === 'pickup' ? <Dyn>Pick-up</Dyn> : <Dyn>Drop-off</Dyn>}
         </div>
         <button
           type="button"
@@ -168,14 +72,14 @@ export function SearchBar({ variant = 'hero', bareContainer = false }: SearchBar
         >
           <MapPin size={16} className="flex-shrink-0 text-primary" />
           <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink">
-            {value || <span className="text-placeholder">Select location</span>}
+            {value || <span className="text-placeholder"><Dyn>Select location</Dyn></span>}
           </span>
           <ChevronDown size={13} className="flex-shrink-0 text-faint" />
         </button>
         {open && (
           <div role="listbox" className="absolute top-full right-0 left-0 z-40 mt-[10px] max-h-[260px] overflow-y-auto rounded-[11px] border border-line bg-white p-[6px] shadow-[var(--shadow-pop)]">
             {list.length === 0 ? (
-              <div className="px-[11px] py-[10px] text-[13px] text-faint">No locations available</div>
+              <div className="px-[11px] py-[10px] text-[13px] text-faint"><Dyn>No locations available</Dyn></div>
             ) : (
               list.map((loc) => (
                 <button
@@ -224,8 +128,8 @@ export function SearchBar({ variant = 'hero', bareContainer = false }: SearchBar
                   setPickupLocId(dropLocId);
                   setDropLocId(pickupLocId);
                 }}
-                title="Swap locations"
-                aria-label="Swap locations"
+                title={t('Swap locations')}
+                aria-label={t('Swap locations')}
                 className="flex flex-shrink-0 cursor-pointer items-center justify-center bg-transparent p-1 text-primary"
               >
                 <Swap size={16} />
@@ -234,7 +138,7 @@ export function SearchBar({ variant = 'hero', bareContainer = false }: SearchBar
             </div>
             <div className="mx-[9px] hidden h-[38px] w-px flex-shrink-0 bg-line md:block" />
             <div className="min-w-0 flex-[1.55]">
-              <div className="mb-[5px] text-[10px] tracking-[0.03em] text-faint uppercase">Pick-up Date &amp; Time</div>
+              <div className="mb-[5px] text-[10px] tracking-[0.03em] text-faint uppercase"><Dyn>Pick-up Date &amp; Time</Dyn></div>
               <DateTimeField
                 date={pickupDate}
                 time={pickupTime}
@@ -249,7 +153,7 @@ export function SearchBar({ variant = 'hero', bareContainer = false }: SearchBar
             </div>
             <div className="mx-[9px] hidden h-[38px] w-px flex-shrink-0 bg-line md:block" />
             <div className="min-w-0 flex-[1.55]">
-              <div className="mb-[5px] text-[10px] tracking-[0.03em] text-faint uppercase">Return Date &amp; Time</div>
+              <div className="mb-[5px] text-[10px] tracking-[0.03em] text-faint uppercase"><Dyn>Return Date &amp; Time</Dyn></div>
               <DateTimeField
                 date={returnDate}
                 time={returnTime}
@@ -268,7 +172,7 @@ export function SearchBar({ variant = 'hero', bareContainer = false }: SearchBar
               className="flex h-[42px] w-full flex-shrink-0 items-center justify-center gap-2 rounded-[9px] border border-line bg-white text-[13px] font-semibold text-primary md:ml-2 md:w-[42px]"
             >
               <Search size={17} />
-              <span className="md:hidden">Search</span>
+              <span className="md:hidden"><Dyn>Search</Dyn></span>
             </button>
           </div>
           <label
@@ -286,7 +190,7 @@ export function SearchBar({ variant = 'hero', bareContainer = false }: SearchBar
             >
               {diffLocation && <Check size={11} strokeWidth={3} className="text-white" />}
             </span>
-            Return car to different location
+            <Dyn>Return car to different location</Dyn>
           </label>
         </div>
       </div>
@@ -329,7 +233,7 @@ export function SearchBar({ variant = 'hero', bareContainer = false }: SearchBar
           </div>
           <div className="mx-3 hidden h-[44px] w-px flex-shrink-0 bg-line md:block" />
           <div className="min-w-0 flex-[1.7]">
-            <div className="mb-[6px] text-[10px] tracking-[0.03em] text-faint uppercase">Pick-up Date &amp; Time</div>
+            <div className="mb-[6px] text-[10px] tracking-[0.03em] text-faint uppercase"><Dyn>Pick-up Date &amp; Time</Dyn></div>
             <DateTimeField
               date={pickupDate}
               time={pickupTime}
@@ -343,7 +247,7 @@ export function SearchBar({ variant = 'hero', bareContainer = false }: SearchBar
           </div>
           <div className="mx-3 hidden h-[44px] w-px flex-shrink-0 bg-line md:block" />
           <div className="min-w-0 flex-[1.7]">
-            <div className="mb-[6px] text-[10px] tracking-[0.03em] text-faint uppercase">Return Date &amp; Time</div>
+            <div className="mb-[6px] text-[10px] tracking-[0.03em] text-faint uppercase"><Dyn>Return Date &amp; Time</Dyn></div>
             <DateTimeField
               date={returnDate}
               time={returnTime}
@@ -367,8 +271,8 @@ export function SearchBar({ variant = 'hero', bareContainer = false }: SearchBar
               <circle cx="7.5" cy="7.5" r=".5" fill="var(--color-primary)" />
             </svg>
             <div className="text-[12.5px] leading-[1.45]">
-              <span className="font-semibold text-secondary">{discTitle}</span>{' '}
-              <span className="text-primary">{discSub}</span>
+              <span className="font-semibold text-secondary"><Dyn>{discTitle}</Dyn></span>{' '}
+              <span className="text-primary"><Dyn>{discSub}</Dyn></span>
             </div>
           </div>
         )}
@@ -393,13 +297,13 @@ export function SearchBar({ variant = 'hero', bareContainer = false }: SearchBar
                 </svg>
               )}
             </span>
-            Return car to different location
+            <Dyn>Return car to different location</Dyn>
           </label>
           <button
             onClick={goSearch}
             className="inline-flex w-full items-center justify-center gap-2 rounded-[7px] bg-primary px-[18px] py-[11px] text-[13.5px] font-semibold text-white sm:w-auto sm:py-[9px]"
           >
-            Show Available Cars
+            <Dyn>Show Available Cars</Dyn>
             <ArrowRight size={16} />
           </button>
         </div>
