@@ -9,7 +9,7 @@ import { ArrowRight } from '@/components/ui/icons';
 
 // TESTING: the inquiry email is NOT sent while this is true, so the UI can be
 // tried end-to-end without notifying the tenant. Flip to false to reconnect.
-const FORM_DISCONNECTED = true;
+const FORM_DISCONNECTED = false;
 
 const OTHER_RE = /other/i;
 
