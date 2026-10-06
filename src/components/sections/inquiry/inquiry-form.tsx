@@ -34,9 +34,9 @@ function Field({
 }
 
 const baseField =
-  'w-full rounded-[12px] border border-card-border bg-white px-[14px] text-[14.5px] text-ink outline-none transition-all placeholder:text-placeholder focus:border-primary focus:ring-2 focus:ring-[color-mix(in_srgb,var(--color-primary)_16%,transparent)]';
-const inputClass = `${baseField} h-[44px]`;
-const textareaClass = `${baseField} min-h-[92px] py-[11px] resize-y`;
+  'w-full rounded-[10px] border border-card-border bg-white px-[13px] text-[14px] text-ink outline-none transition-all placeholder:text-placeholder focus:border-primary focus:ring-2 focus:ring-[color-mix(in_srgb,var(--color-primary)_16%,transparent)]';
+const inputClass = `${baseField} h-[40px]`;
+const textareaClass = `${baseField} min-h-[84px] py-[10px] resize-y`;
 
 export function InquiryForm({
   config,

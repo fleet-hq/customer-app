@@ -41,7 +41,7 @@ export function Select({ value, onChange, options, placeholder = 'Choose…', ar
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          'flex h-[44px] w-full items-center justify-between gap-[8px] rounded-[12px] border bg-white px-[14px] text-[14.5px] outline-none transition-all',
+          'flex h-[40px] w-full items-center justify-between gap-[8px] rounded-[10px] border bg-white px-[13px] text-[14px] outline-none transition-all',
           open
             ? 'border-primary ring-2 ring-[color-mix(in_srgb,var(--color-primary)_16%,transparent)]'
             : 'border-card-border',
@@ -81,7 +81,7 @@ export function Select({ value, onChange, options, placeholder = 'Choose…', ar
                     setOpen(false);
                   }}
                   className={cn(
-                    'flex w-full items-center justify-between gap-[8px] px-[14px] py-[9px] text-left text-[14.5px] transition-colors',
+                    'flex w-full items-center justify-between gap-[8px] px-[13px] py-[8px] text-left text-[14px] transition-colors',
                     selected ? 'bg-primary-soft font-semibold text-primary' : 'text-ink hover:bg-subtle',
                   )}
                 >
