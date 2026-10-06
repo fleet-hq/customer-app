@@ -136,6 +136,7 @@ export function toAgreementExtras(
     name: e.name,
     price: `$${e.price.toFixed(2)}/${e.period === 'per_day' ? 'day' : 'trip'}`,
     purchased: e.purchased,
+    quantity: e.quantity,
   }));
 }
 
@@ -203,6 +204,7 @@ export function agreementPartsFromSnapshot(snapshot: AgreementSnapshot): {
       name: e.name,
       price: formatSnapshotExtraPrice(e.price, e.period),
       purchased: e.purchased,
+      quantity: e.quantity ?? 0,
     })),
     addendum: snapshot.addendum ?? null,
     invoice: snapshot.invoice ? snapshotInvoice(snapshot.invoice) : undefined,
@@ -282,6 +284,7 @@ export interface AgreementData {
     name: string;
     price: string;
     purchased: boolean;
+    quantity: number;
   }[];
   clauses: {
     id: number;

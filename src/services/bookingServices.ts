@@ -406,6 +406,7 @@ export interface AvailableExtra {
   price: number;
   period: string;
   purchased: boolean;
+  quantity: number;
 }
 
 export interface BookingDetails {
@@ -695,13 +696,14 @@ function transformBooking(api: ApiBooking): BookingDetails {
     price: Number(extra.price) * (extra.quantity || 1),
   }));
 
-  const purchasedExtraIds = new Set((api.extras || []).map((e) => e.id));
+  const purchasedQty = new Map((api.extras || []).map((e) => [e.id, e.quantity || 1]));
   const availableExtras: AvailableExtra[] = (api.fleet.extras || []).map((e) => ({
     id: e.id,
     name: e.description || e.name,
     price: Number(e.price),
     period: e.period,
-    purchased: purchasedExtraIds.has(e.id),
+    purchased: purchasedQty.has(e.id),
+    quantity: purchasedQty.get(e.id) ?? 0,
   }));
 
   return {
