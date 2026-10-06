@@ -5,6 +5,7 @@ import type { InquiryFormConfig } from '@/services/companyContentServices';
 import { submitInquiry } from '@/services/inquiryServices';
 import { Select } from '@/components/ui/select';
 import { Dialog } from '@/components/ui/dialog';
+import { DateTimeField } from '@/components/search/date-time-field';
 import { ArrowRight } from '@/components/ui/icons';
 
 // TESTING: the inquiry email is NOT sent while this is true, so the UI can be
@@ -55,8 +56,10 @@ export function InquiryForm({
   const [pickupOther, setPickupOther] = useState('');
   const [dropoff, setDropoff] = useState('');
   const [dropoffOther, setDropoffOther] = useState('');
-  const [pickupAt, setPickupAt] = useState('');
-  const [dropoffAt, setDropoffAt] = useState('');
+  const [pickupDate, setPickupDate] = useState('');
+  const [pickupTime, setPickupTime] = useState('');
+  const [dropoffDate, setDropoffDate] = useState('');
+  const [dropoffTime, setDropoffTime] = useState('');
   const [heardAbout, setHeardAbout] = useState('');
   const [message, setMessage] = useState('');
   const [status, setStatus] = useState<'idle' | 'submitting' | 'error'>('idle');
@@ -66,9 +69,9 @@ export function InquiryForm({
   const dropoffIsOther = OTHER_RE.test(dropoff);
   const promoCode = config.promo_note ? extractPromoCode(config.promo_note) : '';
 
-  const toIso = (local: string): string | null => {
-    if (!local) return null;
-    const d = new Date(local);
+  const combineIso = (date: string, time: string): string | null => {
+    if (!date) return null;
+    const d = new Date(`${date}T${time || '00:00'}`);
     return Number.isNaN(d.getTime()) ? null : d.toISOString();
   };
 
@@ -91,8 +94,8 @@ export function InquiryForm({
           vehicle,
           pickup_location: pickupIsOther ? pickupOther.trim() || pickup : pickup,
           dropoff_location: dropoffIsOther ? dropoffOther.trim() || dropoff : dropoff,
-          pickup_at: toIso(pickupAt),
-          dropoff_at: toIso(dropoffAt),
+          pickup_at: combineIso(pickupDate, pickupTime),
+          dropoff_at: combineIso(dropoffDate, dropoffTime),
           heard_about: heardAbout,
           promo_code: promoCode,
           message: message.trim(),
@@ -201,20 +204,28 @@ export function InquiryForm({
 
         <div className="grid grid-cols-1 gap-[16px] sm:grid-cols-2">
           <Field label="Pickup Date & Time">
-            <input
-              className={inputClass}
-              type="datetime-local"
-              value={pickupAt}
-              onChange={(e) => setPickupAt(e.target.value)}
-            />
+            <div className={`${baseField} flex h-[40px] items-center focus-within:border-primary focus-within:ring-2 focus-within:ring-[color-mix(in_srgb,var(--color-primary)_16%,transparent)]`}>
+              <DateTimeField
+                date={pickupDate}
+                time={pickupTime}
+                onDate={setPickupDate}
+                onTime={setPickupTime}
+                compact
+                label="Pickup"
+              />
+            </div>
           </Field>
           <Field label="Drop-off Date & Time">
-            <input
-              className={inputClass}
-              type="datetime-local"
-              value={dropoffAt}
-              onChange={(e) => setDropoffAt(e.target.value)}
-            />
+            <div className={`${baseField} flex h-[40px] items-center focus-within:border-primary focus-within:ring-2 focus-within:ring-[color-mix(in_srgb,var(--color-primary)_16%,transparent)]`}>
+              <DateTimeField
+                date={dropoffDate}
+                time={dropoffTime}
+                onDate={setDropoffDate}
+                onTime={setDropoffTime}
+                compact
+                label="Drop-off"
+              />
+            </div>
           </Field>
         </div>
 
