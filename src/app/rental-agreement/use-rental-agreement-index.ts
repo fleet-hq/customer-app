@@ -200,12 +200,14 @@ export function useRentalAgreementIndex() {
         ? toAgreementExtras(bookingData.availableExtras)
         : baseAgreement.extras;
     const clauses = signedSnapshot?.clauses ?? baseAgreement.clauses;
-    if (!companySettings) return { ...baseAgreement, addendum, extras, clauses };
+    const invoice = signedSnapshot?.invoice ?? baseAgreement.invoice;
+    if (!companySettings) return { ...baseAgreement, addendum, extras, clauses, invoice };
     return {
       ...baseAgreement,
       addendum,
       extras,
       clauses,
+      invoice,
       company: {
         name: companySettings.name || baseAgreement.company?.name || 'N/A',
         address: companySettings.address || baseAgreement.company?.address || 'N/A',

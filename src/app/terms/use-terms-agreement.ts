@@ -175,7 +175,7 @@ export function useTermsAgreement() {
         minDriverAge: bookingData.vehicle.minDriverAge ?? null,
         maxDriverAge: bookingData.vehicle.maxDriverAge ?? null,
       },
-      invoice: {
+      invoice: signedSnapshot?.invoice ?? {
         rentalTotal: `$${bookingData.invoice.rentalTotal.toFixed(2)}`,
         fees: bookingData.invoice.fees > 0 ? `$${bookingData.invoice.fees.toFixed(2)}` : undefined,
         discount: bookingData.invoice.discount > 0 ? `-$${bookingData.invoice.discount.toFixed(2)}` : undefined,

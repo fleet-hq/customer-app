@@ -151,7 +151,31 @@ export interface AgreementSnapshot {
     quantity?: number;
     purchased: boolean;
   }[];
+  invoice?: {
+    rental_total?: string | null;
+    fees?: string | null;
+    discount?: string | null;
+    insurance?: string | null;
+    tax?: string | null;
+    total?: string | null;
+    deposit?: string | null;
+  } | null;
   pricing?: Record<string, unknown>;
+}
+
+function snapshotInvoice(
+  inv: NonNullable<AgreementSnapshot['invoice']>,
+): AgreementData['invoice'] {
+  const money = (v?: string | null) => (v != null ? `$${Number(v).toFixed(2)}` : undefined);
+  return {
+    rentalTotal: money(inv.rental_total) ?? '$0.00',
+    fees: money(inv.fees),
+    discount: inv.discount != null ? `-$${Number(inv.discount).toFixed(2)}` : undefined,
+    insurance: money(inv.insurance),
+    tax: money(inv.tax),
+    total: money(inv.total) ?? '$0.00',
+    deposit: money(inv.deposit),
+  };
 }
 
 function formatSnapshotExtraPrice(price: string | null, period: string | null): string {
@@ -167,6 +191,7 @@ export function agreementPartsFromSnapshot(snapshot: AgreementSnapshot): {
   clauses: AgreementData['clauses'];
   extras: NonNullable<AgreementData['extras']>;
   addendum: BonzahAddendum | null;
+  invoice: AgreementData['invoice'];
 } {
   return {
     clauses: (snapshot.clauses ?? []).map((c, i) => ({
@@ -180,6 +205,7 @@ export function agreementPartsFromSnapshot(snapshot: AgreementSnapshot): {
       purchased: e.purchased,
     })),
     addendum: snapshot.addendum ?? null,
+    invoice: snapshot.invoice ? snapshotInvoice(snapshot.invoice) : undefined,
   };
 }
 
@@ -370,7 +396,7 @@ function transformAgreement(api: ApiAgreement): AgreementData {
       minDriverAge: fleet?.booking_rule?.min_driver_age ?? null,
       maxDriverAge: fleet?.booking_rule?.max_driver_age ?? null,
     },
-    invoice: undefined,
+    invoice: snapshot?.invoice,
     extras: snapshot?.extras,
     addendum: snapshot?.addendum ?? undefined,
     fromSnapshot: !!snapshot,
