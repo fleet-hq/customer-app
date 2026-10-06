@@ -357,6 +357,11 @@ export function useFleetDetail(carId: string) {
     return list.filter((p) => selectedManualIds.has(p.id));
   }, [manualInsurancePackages, selectedManualIds]);
 
+  const bonzahSelected = useMemo(
+    () => Array.from(selectedInsurance).some((id) => id !== 'own'),
+    [selectedInsurance],
+  );
+
   const { pricing, extraInvoiceItems, extrasById, insuranceLabel } = useBookingInvoice({
     vehicleData,
     rentalDays: days,
@@ -445,7 +450,7 @@ export function useFleetDetail(carId: string) {
     company: companySettings,
     tenantName: tenant.name,
     template: rentalAgreementTemplate,
-    addendum: selectedInsurance.size > 0 ? bonzahAddendumData ?? null : null,
+    addendum: bonzahSelected ? bonzahAddendumData ?? null : null,
     timezone: fleetTz,
     insuranceLabel,
     ownInsurance: selectedInsurance.has('own'),
@@ -494,6 +499,7 @@ export function useFleetDetail(carId: string) {
     errorBannerRef,
     selectedInsurance,
     setSelectedInsurance,
+    bonzahSelected,
     selectedManualIds,
     setSelectedManualIds,
     abiOptedIn,

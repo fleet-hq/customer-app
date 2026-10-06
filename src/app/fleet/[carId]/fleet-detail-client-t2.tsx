@@ -70,6 +70,7 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
     protectionRef,
     errorBannerRef,
     selectedInsurance,
+    bonzahSelected,
     selectedManualIds,
     manualInsurancePackages,
     abiOptedIn,
@@ -759,7 +760,7 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
         open={rentalAgreementModalOpen}
         onClose={() => setRentalAgreementModalOpen(false)}
         initialSignature={rentalAgreementSignature}
-        showBonzahAddendum={selectedInsurance.size > 0}
+        showBonzahAddendum={bonzahSelected}
         data={agreementPreviewData}
         onSigned={(dataUri) => {
           fd.setRentalAgreementSignature(dataUri);
