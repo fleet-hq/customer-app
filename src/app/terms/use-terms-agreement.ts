@@ -104,6 +104,7 @@ export function useTermsAgreement() {
   const agreement = useMemo<AgreementData | null>(() => {
     if (!isBound || !bookingData) return null;
     const ins = bookingData.insuranceCoverage;
+    const signedSnapshot = apiAgreement?.fromSnapshot ? apiAgreement : null;
     const miles = bookingData.vehicle.milesUnlimited
       ? 'Unlimited'
       : (bookingData.vehicle.milesPerDay ?? 0) > 0
@@ -183,10 +184,13 @@ export function useTermsAgreement() {
         total: `$${bookingData.invoice.total.toFixed(2)}`,
         deposit: bookingData.invoice.deposit > 0 ? `$${bookingData.invoice.deposit.toFixed(2)}` : undefined,
       },
-      extras: toAgreementExtras(bookingData.availableExtras ?? []),
-      clauses: template?.clauses ?? [],
-      addendum:
-        ins && (ins.status === 'ACTIVE' || ins.status === 'EXPIRED') && bonzahAddendum
+      extras: signedSnapshot
+        ? signedSnapshot.extras
+        : toAgreementExtras(bookingData.availableExtras ?? []),
+      clauses: signedSnapshot?.clauses ?? template?.clauses ?? [],
+      addendum: signedSnapshot
+        ? signedSnapshot.addendum ?? null
+        : ins && (ins.status === 'ACTIVE' || ins.status === 'EXPIRED') && bonzahAddendum
           ? bonzahAddendum
           : null,
       template: {

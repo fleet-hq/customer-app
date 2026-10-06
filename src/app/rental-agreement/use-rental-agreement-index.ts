@@ -185,18 +185,27 @@ export function useRentalAgreementIndex() {
 
   const agreement = useMemo(() => {
     if (!baseAgreement) return baseAgreement;
+    const signedSnapshot = apiAgreement?.fromSnapshot ? apiAgreement : null;
     const coverage = bookingData?.insuranceCoverage;
     const hasIssuedBonzah =
       !!coverage && (coverage.status === 'ACTIVE' || coverage.status === 'EXPIRED');
-    const addendum = hasIssuedBonzah && bonzahAddendum ? bonzahAddendum : null;
-    const extras = bookingData?.availableExtras
-      ? toAgreementExtras(bookingData.availableExtras)
-      : baseAgreement.extras;
-    if (!companySettings) return { ...baseAgreement, addendum, extras };
+    const addendum = signedSnapshot
+      ? signedSnapshot.addendum ?? null
+      : hasIssuedBonzah && bonzahAddendum
+        ? bonzahAddendum
+        : null;
+    const extras = signedSnapshot
+      ? signedSnapshot.extras
+      : bookingData?.availableExtras
+        ? toAgreementExtras(bookingData.availableExtras)
+        : baseAgreement.extras;
+    const clauses = signedSnapshot?.clauses ?? baseAgreement.clauses;
+    if (!companySettings) return { ...baseAgreement, addendum, extras, clauses };
     return {
       ...baseAgreement,
       addendum,
       extras,
+      clauses,
       company: {
         name: companySettings.name || baseAgreement.company?.name || 'N/A',
         address: companySettings.address || baseAgreement.company?.address || 'N/A',
@@ -205,7 +214,7 @@ export function useRentalAgreementIndex() {
         logo: companySettings.logo || baseAgreement.company?.logo || null,
       },
     };
-  }, [baseAgreement, companySettings, bookingData, bonzahAddendum]);
+  }, [baseAgreement, companySettings, bookingData, bonzahAddendum, apiAgreement]);
 
   const isLoading =
     !localDataLoaded ||

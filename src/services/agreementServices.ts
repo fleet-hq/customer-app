@@ -33,6 +33,7 @@ export interface ApiAgreement {
   status: string;
   signed_at: string | null;
   signature_image: string | null;
+  agreement_snapshot?: AgreementSnapshot | null;
   created_at: string;
   updated_at: string;
   // Populated from booking
@@ -138,6 +139,50 @@ export function toAgreementExtras(
   }));
 }
 
+export interface AgreementSnapshot {
+  version?: number;
+  clauses?: { title: string; content: string }[];
+  addendum?: BonzahAddendum | null;
+  extras?: {
+    id?: number;
+    name: string;
+    price: string | null;
+    period: string | null;
+    quantity?: number;
+    purchased: boolean;
+  }[];
+  pricing?: Record<string, unknown>;
+}
+
+function formatSnapshotExtraPrice(price: string | null, period: string | null): string {
+  if (price == null) return '—';
+  const unit = period === 'per_day' ? 'day' : 'trip';
+  return `$${Number(price).toFixed(2)}/${unit}`;
+}
+
+// The frozen clauses/extras/addendum from a signed agreement's snapshot,
+// shaped as AgreementData parts so a signed agreement renders exactly as
+// presented at signing, regardless of later edits to the live records.
+export function agreementPartsFromSnapshot(snapshot: AgreementSnapshot): {
+  clauses: AgreementData['clauses'];
+  extras: NonNullable<AgreementData['extras']>;
+  addendum: BonzahAddendum | null;
+} {
+  return {
+    clauses: (snapshot.clauses ?? []).map((c, i) => ({
+      id: i + 1,
+      title: c.title,
+      content: c.content,
+    })),
+    extras: (snapshot.extras ?? []).map((e) => ({
+      name: e.name,
+      price: formatSnapshotExtraPrice(e.price, e.period),
+      purchased: e.purchased,
+    })),
+    addendum: snapshot.addendum ?? null,
+  };
+}
+
 // Transformed types for frontend
 export interface AgreementData {
   id: number;
@@ -221,6 +266,10 @@ export interface AgreementData {
     title: string;
     description: string;
   };
+  /** True when clauses/extras/addendum came from the signed snapshot
+   *  rather than live data — builders use it to stop overriding with
+   *  current records. */
+  fromSnapshot?: boolean;
 }
 
 // formatDate and formatDateTime are imported from @/lib/utils
@@ -237,6 +286,9 @@ function transformAgreement(api: ApiAgreement): AgreementData {
   const customer = booking?.customer;
   const fleet = booking?.fleet;
   const company = api.company;
+  const snapshot = api.agreement_snapshot
+    ? agreementPartsFromSnapshot(api.agreement_snapshot)
+    : null;
 
   return {
     id: api.id,
@@ -319,11 +371,17 @@ function transformAgreement(api: ApiAgreement): AgreementData {
       maxDriverAge: fleet?.booking_rule?.max_driver_age ?? null,
     },
     invoice: undefined,
-    clauses: api.template?.template_clauses?.map((tc) => ({
-      id: tc.clause.id,
-      title: tc.clause.title,
-      content: tc.clause.content,
-    })) || [],
+    extras: snapshot?.extras,
+    addendum: snapshot?.addendum ?? undefined,
+    fromSnapshot: !!snapshot,
+    clauses:
+      snapshot?.clauses ??
+      api.template?.template_clauses?.map((tc) => ({
+        id: tc.clause.id,
+        title: tc.clause.title,
+        content: tc.clause.content,
+      })) ??
+      [],
     template: {
       title: api.template?.title || 'Rental Agreement',
       description: api.template?.description || '',
