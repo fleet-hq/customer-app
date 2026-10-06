@@ -13,7 +13,7 @@ import {
   useBonzahAddendum,
 } from '@/hooks/useAgreements';
 import { useBookingDetails, useBookingDrivers } from '@/hooks/useBooking';
-import { submitBookingSignature, type AgreementData } from '@/services/agreementServices';
+import { submitBookingSignature, toAgreementExtras, type AgreementData } from '@/services/agreementServices';
 import { setBookingToken } from '@/utils/booking-token';
 
 export interface Section {
@@ -183,6 +183,7 @@ export function useTermsAgreement() {
         total: `$${bookingData.invoice.total.toFixed(2)}`,
         deposit: bookingData.invoice.deposit > 0 ? `$${bookingData.invoice.deposit.toFixed(2)}` : undefined,
       },
+      extras: toAgreementExtras(bookingData.availableExtras ?? []),
       clauses: template?.clauses ?? [],
       addendum:
         ins && (ins.status === 'ACTIVE' || ins.status === 'EXPIRED') && bonzahAddendum

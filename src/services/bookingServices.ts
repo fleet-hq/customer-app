@@ -400,11 +400,20 @@ export function isInsuranceVerified(
   return status === 'verified' && details?.activeStatus !== 'inactive';
 }
 
+export interface AvailableExtra {
+  id: number;
+  name: string;
+  price: number;
+  period: string;
+  purchased: boolean;
+}
+
 export interface BookingDetails {
   id: string;
   fleetId: number;
   customerId: number;
   status: string;
+  availableExtras: AvailableExtra[];
   vehicle: {
     name: string;
     licensePlate: string;
@@ -686,11 +695,21 @@ function transformBooking(api: ApiBooking): BookingDetails {
     price: Number(extra.price) * (extra.quantity || 1),
   }));
 
+  const purchasedExtraIds = new Set((api.extras || []).map((e) => e.id));
+  const availableExtras: AvailableExtra[] = (api.fleet.extras || []).map((e) => ({
+    id: e.id,
+    name: e.description || e.name,
+    price: Number(e.price),
+    period: e.period,
+    purchased: purchasedExtraIds.has(e.id),
+  }));
+
   return {
     id: String(api.id),
     fleetId: api.fleet.id,
     customerId: api.customer.id,
     status: api.status,
+    availableExtras,
     vehicle: {
       name: api.fleet.name,
       licensePlate: api.fleet.plate_number || 'N/A',

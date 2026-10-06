@@ -2,6 +2,7 @@ import axios from 'axios';
 import { getDomainParams } from '@/utils/company';
 import { getBookingToken, getBookingTokenHeaders } from '@/utils/booking-token';
 import { formatDate, formatDateTime } from '@/lib/utils';
+import type { AvailableExtra } from '@/services/bookingServices';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -127,6 +128,16 @@ export interface BonzahAddendum {
   sections: { heading: string; body: string }[];
 }
 
+export function toAgreementExtras(
+  extras: AvailableExtra[],
+): NonNullable<AgreementData['extras']> {
+  return extras.map((e) => ({
+    name: e.name,
+    price: `$${e.price.toFixed(2)}/${e.period === 'per_day' ? 'day' : 'trip'}`,
+    purchased: e.purchased,
+  }));
+}
+
 // Transformed types for frontend
 export interface AgreementData {
   id: number;
@@ -196,6 +207,11 @@ export interface AgreementData {
     total: string;
     deposit?: string;
   };
+  extras?: {
+    name: string;
+    price: string;
+    purchased: boolean;
+  }[];
   clauses: {
     id: number;
     title: string;

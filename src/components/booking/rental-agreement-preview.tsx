@@ -72,6 +72,36 @@ function SpecTable({ rows }: { rows: SpecRow[] }) {
   );
 }
 
+function ExtrasTable({ rows }: { rows: NonNullable<AgreementData['extras']> }) {
+  return (
+    <table className="w-full mt-3 border-collapse text-[10px] table-fixed">
+      <colgroup>
+        <col style={{ width: '55%' }} />
+        <col style={{ width: '30%' }} />
+        <col style={{ width: '15%' }} />
+      </colgroup>
+      <thead>
+        <tr>
+          <th className="border border-[#E0E0E0] px-3 py-2 text-left text-[#5D5D5D]"><Dyn>Extra</Dyn></th>
+          <th className="border border-[#E0E0E0] px-3 py-2 text-left text-[#5D5D5D]"><Dyn>Price</Dyn></th>
+          <th className="border border-[#E0E0E0] px-3 py-2 text-center text-[#5D5D5D]"><Dyn>Included</Dyn></th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((extra, i) => (
+          <tr key={i}>
+            <td className="border border-[#E0E0E0] px-3 py-2 text-[#131314]"><Dyn>{extra.name}</Dyn></td>
+            <td className="border border-[#E0E0E0] px-3 py-2 font-bold text-[#131314]">{extra.price}</td>
+            <td className="border border-[#E0E0E0] px-3 py-2 text-center font-bold text-[#131314]">
+              {extra.purchased ? '✓' : '—'}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
 function Fill({ value, w = 24 }: { value?: string | null; w?: number }) {
   return (
     <span
@@ -288,6 +318,13 @@ export function RentalAgreementPreview({ data, onSignatureChange }: RentalAgreem
 
           <SectionTitle className="mt-10"><Dyn>RENTAL VEHICLE SPECIFICATIONS</Dyn></SectionTitle>
           <SpecTable rows={vehicleSpecs} />
+
+          {d.extras && d.extras.length > 0 && (
+            <>
+              <SectionTitle className="mt-10"><Dyn>EXTRAS</Dyn></SectionTitle>
+              <ExtrasTable rows={d.extras} />
+            </>
+          )}
 
           <SectionTitle className="mt-8"><Dyn>RENTAL FEES</Dyn></SectionTitle>
           {feeRows.length > 0 ? (

@@ -11,7 +11,7 @@ import {
   useBonzahAddendum,
 } from '@/hooks/useAgreements';
 import { useBookingDetails } from '@/hooks/useBooking';
-import { submitBookingSignature, type AgreementData } from '@/services/agreementServices';
+import { submitBookingSignature, toAgreementExtras, type AgreementData } from '@/services/agreementServices';
 import { setBookingToken } from '@/utils/booking-token';
 
 /** All /rental-agreement (index, no id) data, state, and handlers —
@@ -189,10 +189,14 @@ export function useRentalAgreementIndex() {
     const hasIssuedBonzah =
       !!coverage && (coverage.status === 'ACTIVE' || coverage.status === 'EXPIRED');
     const addendum = hasIssuedBonzah && bonzahAddendum ? bonzahAddendum : null;
-    if (!companySettings) return { ...baseAgreement, addendum };
+    const extras = bookingData?.availableExtras
+      ? toAgreementExtras(bookingData.availableExtras)
+      : baseAgreement.extras;
+    if (!companySettings) return { ...baseAgreement, addendum, extras };
     return {
       ...baseAgreement,
       addendum,
+      extras,
       company: {
         name: companySettings.name || baseAgreement.company?.name || 'N/A',
         address: companySettings.address || baseAgreement.company?.address || 'N/A',
