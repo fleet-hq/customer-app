@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 
 import { getCurrentTenant } from '@/lib/get-tenant';
 import { withCompany } from '@/lib/tenant';
-import { Sparkles, Clock, ShieldCheck, Phone, Mail } from '@/components/ui/icons';
+import { Clock, ShieldCheck, Phone, Mail } from '@/components/ui/icons';
 import { InquiryForm } from '@/components/sections/inquiry/inquiry-form';
 import { InquiryPageBodyT2 } from './inquiry-page-t2';
 
@@ -45,17 +45,6 @@ export async function InquiryPageBody() {
               </div>
             ) : null}
           </div>
-
-          {config.promo_note ? (
-            <div className="flex items-start gap-[12px] rounded-[14px] border border-primary-border bg-primary-soft p-[18px]">
-              <span className="mt-[1px] flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded-full bg-primary text-white">
-                <Sparkles size={16} />
-              </span>
-              <p className="text-[14.5px] font-semibold leading-[1.5] text-primary">
-                {co(config.promo_note)}
-              </p>
-            </div>
-          ) : null}
 
           <div className="flex flex-col gap-[14px] border-t border-hairline pt-[22px]">
             {TRUST_POINTS.map((p, i) => (

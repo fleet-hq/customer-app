@@ -1,7 +1,7 @@
 import { withCompany } from '@/lib/tenant';
 import type { Tenant } from '@/lib/tenant';
 import type { InquiryFormConfig } from '@/services/companyContentServices';
-import { Sparkles, Clock, ShieldCheck, Phone, Mail } from '@/components/ui/icons';
+import { Clock, ShieldCheck, Phone, Mail } from '@/components/ui/icons';
 import { InquiryForm } from '@/components/sections/inquiry/inquiry-form';
 import { Dyn } from '@/components/i18n/Dyn';
 import styles from '@/styles/template-2.module.css';
@@ -39,15 +39,6 @@ export function InquiryPageBodyT2({ tenant, config }: { tenant: Tenant; config: 
                   <Dyn>{co(p)}</Dyn>
                 </p>
               ))}
-            </div>
-          ) : null}
-
-          {config.promo_note ? (
-            <div className={styles.formNote}>
-              <Sparkles size={16} />
-              <span>
-                <Dyn>{co(config.promo_note)}</Dyn>
-              </span>
             </div>
           ) : null}
 
