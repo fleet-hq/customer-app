@@ -32,7 +32,7 @@ export function HeaderT2() {
   const phone = tenant.footer.contact.phone;
 
   return (
-    <header className={styles.nav}>
+    <header className={`no-print ${styles.nav}`}>
       <div className={styles.navInner}>
         <Link href={paths.home} className={styles.brand} onClick={() => setOpen(false)}>
           {tenant.brand.logo ? (

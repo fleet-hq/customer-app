@@ -97,7 +97,7 @@ export default function TermsClientT2() {
             </span>
           </div>
         ) : (
-          <div className={styles.toolbar}>
+          <div className={`no-print ${styles.toolbar}`}>
             <label onClick={() => setAgree((a) => !a)} className={styles.formTrustItem} style={{ cursor: 'pointer' }}>
               {agree ? <Check size={14} /> : null}
               <span>
@@ -126,7 +126,7 @@ export default function TermsClientT2() {
             <h1>{title}</h1>
             <p className={styles.articleIntro}>{intro}</p>
           </div>
-          <button type="button" className={`${styles.btn} ${styles.btnGhost}`}>
+          <button type="button" onClick={() => window.print()} className={`no-print ${styles.btn} ${styles.btnGhost}`}>
             <Download size={15} /> <Dyn>Download PDF</Dyn>
           </button>
         </div>

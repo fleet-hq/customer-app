@@ -92,7 +92,11 @@ function RentalAgreementIndex() {
               {agreement.template.description}
             </p>
           </div>
-          <button className="inline-flex flex-shrink-0 items-center gap-2 whitespace-nowrap rounded-[9px] bg-primary px-[22px] py-3 text-sm font-semibold text-white">
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="no-print inline-flex flex-shrink-0 items-center gap-2 whitespace-nowrap rounded-[9px] bg-primary px-[22px] py-3 text-sm font-semibold text-white"
+          >
             <Download size={15} /> Download PDF
           </button>
         </div>
@@ -106,7 +110,7 @@ function RentalAgreementIndex() {
             <Check size={16} strokeWidth={3} /> This agreement has been signed.
           </div>
         ) : (
-          <div className="mx-auto mt-6 flex max-w-[820px] flex-wrap items-center justify-between gap-[14px]">
+          <div className="no-print mx-auto mt-6 flex max-w-[820px] flex-wrap items-center justify-between gap-[14px]">
             <label
               onClick={() => setAgree((a) => !a)}
               className="flex max-w-[520px] cursor-pointer items-start gap-3"

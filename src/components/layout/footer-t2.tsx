@@ -17,7 +17,7 @@ export function FooterT2() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className={styles.footer} id="contact">
+    <footer className={`no-print ${styles.footer}`} id="contact">
       <div className={styles.container}>
         <div className={styles.footerTop}>
           <div>

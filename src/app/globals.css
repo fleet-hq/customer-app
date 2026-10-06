@@ -122,6 +122,12 @@ textarea::placeholder {
  * action buttons, modals. Backgrounds + shadows are flattened so the
  * receipt prints as plain content. */
 @media print {
+  /* Consistent margins on every sheet, including page 2 onwards —
+   * without this the browser's default box leaves the continuation
+   * pages cramped against the top and bottom edges. */
+  @page {
+    margin: 14mm;
+  }
   header.no-print,
   footer.no-print,
   .no-print,

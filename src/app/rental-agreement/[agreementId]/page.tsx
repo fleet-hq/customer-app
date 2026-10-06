@@ -74,7 +74,11 @@ export default function RentalAgreementPage({ params }: { params: Promise<{ agre
           <h1 className="text-[26px] font-semibold text-secondary">{agreement.template.title}</h1>
           <p className="mt-[10px] text-[13px] font-light leading-[1.55] text-faint">{agreement.template.description}</p>
         </div>
-        <button className="inline-flex flex-shrink-0 items-center gap-2 whitespace-nowrap rounded-[9px] bg-primary px-[22px] py-3 text-sm font-semibold text-white">
+        <button
+          type="button"
+          onClick={() => window.print()}
+          className="no-print inline-flex flex-shrink-0 items-center gap-2 whitespace-nowrap rounded-[9px] bg-primary px-[22px] py-3 text-sm font-semibold text-white"
+        >
           <Download size={15} /> Download PDF
         </button>
       </div>
@@ -88,7 +92,7 @@ export default function RentalAgreementPage({ params }: { params: Promise<{ agre
           <Check size={16} strokeWidth={3} /> This agreement has been signed.
         </div>
       ) : (
-        <div className="mx-auto mt-6 flex max-w-[820px] flex-wrap items-center justify-between gap-[14px]">
+        <div className="no-print mx-auto mt-6 flex max-w-[820px] flex-wrap items-center justify-between gap-[14px]">
           <label onClick={() => setAgree((a) => !a)} className="flex max-w-[520px] cursor-pointer items-start gap-3">
             <span
               className={cn(

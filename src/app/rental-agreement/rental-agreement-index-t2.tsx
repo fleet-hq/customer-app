@@ -65,7 +65,7 @@ export default function RentalAgreementIndexT2() {
               <h1>{agreement.template.title}</h1>
               <p className={styles.articleIntro}>{agreement.template.description}</p>
             </div>
-            <button type="button" className={`${styles.btn} ${styles.btnGhost}`}>
+            <button type="button" onClick={() => window.print()} className={`no-print ${styles.btn} ${styles.btnGhost}`}>
               <Download size={15} /> <Dyn>Download PDF</Dyn>
             </button>
           </div>
