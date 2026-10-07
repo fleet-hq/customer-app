@@ -48,13 +48,33 @@ export function ContactLayout({ tenant, page, path }: { tenant: Tenant; page: Co
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-[1080px] px-4 pt-[36px] pb-[24px] sm:px-6 sm:pt-[44px]">
+      <section className="mx-auto flex w-full max-w-[1080px] flex-col gap-[24px] px-4 pt-[36px] pb-[24px] sm:px-6 sm:pt-[44px]">
+        {inquiry ? (
+          <div className="rounded-[20px] border border-card-border bg-white p-[26px] shadow-[var(--shadow-card)] sm:p-[32px]">
+            {inquiry.title ? (
+              <h2 className="m-0 mb-[8px] font-manrope text-[21px] font-bold tracking-[-0.01em] text-ink">
+                <Dyn>{co(inquiry.title)}</Dyn>
+              </h2>
+            ) : null}
+            {inquiry.intro?.length ? (
+              <div className="mb-[20px] flex flex-col gap-[8px]">
+                {inquiry.intro.map((p, i) => (
+                  <p key={i} className="text-[15px] leading-[1.7] text-muted">
+                    <Dyn>{co(p)}</Dyn>
+                  </p>
+                ))}
+              </div>
+            ) : null}
+            <InquiryForm config={inquiry} tenantName={tenant.name} domain={tenant.domain} />
+          </div>
+        ) : null}
+
         <ContactActions tenant={tenant} />
 
         {blocks.map((block, i) => (
           <div
             key={i}
-            className="mt-[24px] flex flex-col gap-[16px] rounded-[20px] border border-card-border bg-subtle p-[26px] sm:flex-row sm:items-start sm:gap-[24px] sm:p-[32px]"
+            className="flex flex-col gap-[16px] rounded-[20px] border border-card-border bg-subtle p-[26px] sm:flex-row sm:items-start sm:gap-[24px] sm:p-[32px]"
           >
             <span className="flex h-[46px] w-[46px] flex-shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary">
               {(() => {
@@ -90,26 +110,6 @@ export function ContactLayout({ tenant, page, path }: { tenant: Tenant; page: Co
             </div>
           </div>
         ))}
-
-        {inquiry ? (
-          <div className="mt-[24px] rounded-[20px] border border-card-border bg-white p-[26px] shadow-[var(--shadow-card)] sm:p-[32px]">
-            {inquiry.title ? (
-              <h2 className="m-0 mb-[8px] font-manrope text-[21px] font-bold tracking-[-0.01em] text-ink">
-                <Dyn>{co(inquiry.title)}</Dyn>
-              </h2>
-            ) : null}
-            {inquiry.intro?.length ? (
-              <div className="mb-[20px] flex flex-col gap-[8px]">
-                {inquiry.intro.map((p, i) => (
-                  <p key={i} className="text-[15px] leading-[1.7] text-muted">
-                    <Dyn>{co(p)}</Dyn>
-                  </p>
-                ))}
-              </div>
-            ) : null}
-            <InquiryForm config={inquiry} tenantName={tenant.name} domain={tenant.domain} />
-          </div>
-        ) : null}
       </section>
     </div>
   );
