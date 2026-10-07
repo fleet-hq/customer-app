@@ -1,8 +1,12 @@
 import type { MetadataRoute } from 'next';
 import { headers } from 'next/headers';
 
-import { getCurrentTenant, TenantNotFoundError } from '@/lib/get-tenant';
+import { getCurrentTenant } from '@/lib/get-tenant';
 import { paths } from '@/lib/paths';
+
+// Resolved per request: the tenant, and therefore the page list, depends
+// on the host being asked.
+export const dynamic = 'force-dynamic';
 
 /** Routes every tenant site serves. Booking, checkout and account pages
  *  are deliberately absent — they are per-customer and carry tokens. */
@@ -16,10 +20,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let tenant;
   try {
     tenant = await getCurrentTenant();
-  } catch (err) {
-    // An unknown host has nothing to list rather than erroring the route.
-    if (err instanceof TenantNotFoundError) return [];
-    throw err;
+  } catch {
+    // An unknown host, or a tenant lookup that failed, has nothing to
+    // list. A sitemap is never worth returning an error for — crawlers
+    // treat a 5xx as a signal about the whole site.
+    return [];
   }
 
   const lastModified = new Date();
