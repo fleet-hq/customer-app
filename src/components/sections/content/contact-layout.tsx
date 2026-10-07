@@ -22,7 +22,7 @@ export function ContactLayout({ tenant, page, path }: { tenant: Tenant; page: Co
         <section className="mx-auto grid w-full max-w-[1120px] grid-cols-1 gap-[36px] px-4 pt-[44px] pb-[8px] sm:px-6 sm:pt-[56px] lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-[56px]">
           <aside className="flex flex-col gap-[16px] lg:pt-[8px]">
             <span className="inline-flex w-fit items-center rounded-full border border-primary-border bg-white px-[13px] py-[6px] text-[11.5px] font-semibold uppercase tracking-[0.06em] text-primary">
-              <Dyn>{co(page.eyebrow || 'Contact')}</Dyn>
+              {tenant.name}
             </span>
             {page.h1 ? (
               <h1 className="m-0 font-manrope text-[30px] font-bold leading-[1.12] tracking-[-0.02em] text-ink text-balance sm:text-[38px]">
