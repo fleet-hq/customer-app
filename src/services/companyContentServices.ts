@@ -203,18 +203,33 @@ export interface ServicesSection {
   cta?: { title?: string; description?: string; cta_label?: string; cta_href?: string };
 }
 
-/** Optional enquiry-form fields a tenant does not need. Name, phone and
- *  email always show. Recognised keys: pickup_location, dropoff_location,
- *  pickup_datetime, dropoff_datetime, message. */
+/** Every field the enquiry form can show. */
 export type InquiryFieldKey =
+  | 'name'
+  | 'phone'
+  | 'email'
+  | 'vehicle'
   | 'pickup_location'
   | 'dropoff_location'
   | 'pickup_datetime'
   | 'dropoff_datetime'
+  | 'heard_about'
   | 'message';
 
+/** Per-tenant override for one field. Absent means the field keeps its
+ *  default label, visibility and requiredness, so a tenant only states
+ *  what differs for them. ``name`` cannot be hidden — an enquiry with no
+ *  one attached to it is not actionable. */
+export interface InquiryFieldOverride {
+  hidden?: boolean;
+  label?: string;
+  required?: boolean;
+}
+
 export interface InquiryFormConfig {
-  hidden_fields?: InquiryFieldKey[];
+  /** Field-by-field overrides. This is how a tenant gets a different
+   *  form without any per-tenant code in the frontend. */
+  fields?: Partial<Record<InquiryFieldKey, InquiryFieldOverride>>;
   title?: string;
   intro?: string[];
   promo_note?: string;

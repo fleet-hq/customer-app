@@ -48,10 +48,15 @@ export function InquiryForm({
   tenantName: string;
   domain: string;
 }) {
-  // Tenants hide the fields they do not need; nothing hidden keeps the
-  // full form, so sites configured before this are unaffected.
-  const hiddenFields = new Set<string>(config.hidden_fields ?? []);
-  const shows = (key: string) => !hiddenFields.has(key);
+  // One place decides how every field behaves for this tenant. A tenant
+  // that configures nothing gets the default form, so adding overrides
+  // never changes a site that did not ask for them.
+  const fieldCfg = (key: string) => config.fields?.[key as keyof typeof config.fields] ?? {};
+  // 'name' is deliberately not hideable — an enquiry with nobody
+  // attached to it cannot be answered.
+  const shows = (key: string) => key === 'name' || !fieldCfg(key).hidden;
+  const labelFor = (key: string, fallback: string) => fieldCfg(key).label || fallback;
+  const requiredFor = (key: string, fallback: boolean) => fieldCfg(key).required ?? fallback;
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -117,7 +122,7 @@ export function InquiryForm({
   return (
     <>
       <form onSubmit={onSubmit} className="flex flex-col gap-[16px]">
-        <Field label="Passenger Name" required>
+        <Field label={labelFor('name', 'Passenger Name')} required>
           <input
             className={inputClass}
             value={name}
@@ -128,7 +133,7 @@ export function InquiryForm({
         </Field>
 
         <div className="grid grid-cols-1 gap-[16px] sm:grid-cols-2">
-          <Field label="Contact Number" required>
+          <Field label={labelFor('phone', 'Contact Number')} required={requiredFor('phone', true)}>
             <input
               className={inputClass}
               type="tel"
@@ -138,7 +143,7 @@ export function InquiryForm({
               required
             />
           </Field>
-          <Field label="Email Address" required>
+          <Field label={labelFor('email', 'Email Address')} required={requiredFor('email', true)}>
             <input
               className={inputClass}
               type="email"
@@ -150,8 +155,8 @@ export function InquiryForm({
           </Field>
         </div>
 
-        {config.vehicle_options?.length ? (
-          <Field label="Select Vehicle">
+        {config.vehicle_options?.length && shows('vehicle') ? (
+          <Field label={labelFor('vehicle', 'Select Vehicle')} required={requiredFor('vehicle', false)}>
             <Select
               value={vehicle}
               onChange={setVehicle}
@@ -165,7 +170,7 @@ export function InquiryForm({
         {shows('pickup_location') || shows('dropoff_location') ? (
         <div className="grid grid-cols-1 gap-[16px] sm:grid-cols-2">
           {shows('pickup_location') ? (
-          <Field label="Pickup Location" required>
+          <Field label={labelFor('pickup_location', 'Pickup Location')} required={requiredFor('pickup_location', true)}>
             {config.pickup_options?.length ? (
               <Select
                 value={pickup}
@@ -175,7 +180,7 @@ export function InquiryForm({
                 ariaLabel="Pickup Location"
               />
             ) : (
-              <input className={inputClass} value={pickup} onChange={(e) => setPickup(e.target.value)} required />
+              <input className={inputClass} value={pickup} onChange={(e) => setPickup(e.target.value)} required={requiredFor('pickup_location', true)} />
             )}
             {pickupIsOther ? (
               <input
@@ -188,7 +193,7 @@ export function InquiryForm({
           </Field>
           ) : null}
           {shows('dropoff_location') ? (
-          <Field label="Drop-off Location">
+          <Field label={labelFor('dropoff_location', 'Drop-off Location')} required={requiredFor('dropoff_location', false)}>
             {config.dropoff_options?.length ? (
               <Select
                 value={dropoff}
@@ -216,7 +221,7 @@ export function InquiryForm({
         {shows('pickup_datetime') || shows('dropoff_datetime') ? (
         <div className="grid grid-cols-1 gap-[16px] sm:grid-cols-2">
           {shows('pickup_datetime') ? (
-          <Field label="Pickup Date & Time">
+          <Field label={labelFor('pickup_datetime', 'Pickup Date & Time')} required={requiredFor('pickup_datetime', false)}>
             <div className={`${baseField} flex h-[40px] items-center focus-within:border-primary focus-within:ring-2 focus-within:ring-[color-mix(in_srgb,var(--color-primary)_16%,transparent)]`}>
               <DateTimeField
                 date={pickupDate}
@@ -230,7 +235,7 @@ export function InquiryForm({
           </Field>
           ) : null}
           {shows('dropoff_datetime') ? (
-          <Field label="Drop-off Date & Time">
+          <Field label={labelFor('dropoff_datetime', 'Drop-off Date & Time')} required={requiredFor('dropoff_datetime', false)}>
             <div className={`${baseField} flex h-[40px] items-center focus-within:border-primary focus-within:ring-2 focus-within:ring-[color-mix(in_srgb,var(--color-primary)_16%,transparent)]`}>
               <DateTimeField
                 date={dropoffDate}
@@ -246,8 +251,8 @@ export function InquiryForm({
         </div>
         ) : null}
 
-        {config.heard_about_options?.length ? (
-          <Field label="How Did You Hear About Us?">
+        {config.heard_about_options?.length && shows('heard_about') ? (
+          <Field label={labelFor('heard_about', 'How Did You Hear About Us?')}>
             <Select
               value={heardAbout}
               onChange={setHeardAbout}
@@ -259,7 +264,7 @@ export function InquiryForm({
         ) : null}
 
         {shows('message') ? (
-        <Field label="Anything else?">
+        <Field label={labelFor('message', 'Anything else?')} required={requiredFor('message', false)}>
           <textarea
             className={textareaClass}
             value={message}
