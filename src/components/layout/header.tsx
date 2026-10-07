@@ -52,6 +52,18 @@ export function Header({
     .filter((b) => b.href)
     .map((b) => ({ href: b.href as string, label: b.heading || b.link_label || '' }))
     .filter((s) => s.label);
+
+  // A nav item that points at a content page whose blocks each link
+  // somewhere gets those blocks as a dropdown, so an operator who has
+  // built an overview page does not have to duplicate it in the nav.
+  const dropdownFor = (href: string) => {
+    if (href === '/services') return serviceLinks;
+    const page = tenant.sections.pages?.[href.replace(/^\//, '')];
+    if (!page) return [];
+    return (page.blocks ?? [])
+      .map((b) => ({ href: b.link?.href ?? '', label: b.heading ?? '' }))
+      .filter((s) => s.href && s.label);
+  };
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -109,8 +121,8 @@ export function Header({
               const isActive = active
                 ? link.label === active
                 : isLinkActive(link.href, pathname ?? '/', hash);
-              const isServices = link.href === '/services' && serviceLinks.length > 0;
-              if (isServices) {
+              const subLinks = dropdownFor(link.href);
+              if (subLinks.length > 0) {
                 return (
                   <div key={link.href} className="group relative">
                     <Link
@@ -125,7 +137,7 @@ export function Header({
                     </Link>
                     <div className="invisible absolute left-1/2 top-full z-[60] w-[260px] -translate-x-1/2 pt-[12px] opacity-0 transition-all duration-150 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
                       <div className="rounded-xl border border-card-border bg-white p-1.5 shadow-[var(--shadow-menu)]">
-                        {serviceLinks.map((s) => (
+                        {subLinks.map((s) => (
                           <Link
                             key={s.href}
                             href={s.href}
@@ -237,7 +249,7 @@ export function Header({
               const isActive = active
                 ? link.label === active
                 : isLinkActive(link.href, pathname ?? '/', hash);
-              const isServices = link.href === '/services' && serviceLinks.length > 0;
+              const subLinks = dropdownFor(link.href);
               return (
                 <div key={link.href}>
                   <Link
@@ -252,9 +264,9 @@ export function Header({
                   >
                     <Dyn>{link.label}</Dyn>
                   </Link>
-                  {isServices ? (
+                  {subLinks.length > 0 ? (
                     <div className="mt-0.5 mb-1 ml-3 flex flex-col gap-0.5 border-l border-hairline pl-3">
-                      {serviceLinks.map((s) => (
+                      {subLinks.map((s) => (
                         <Link
                           key={s.href}
                           href={s.href}
