@@ -12,6 +12,7 @@ import { BrandCta } from '@/components/sections/shared/brand-cta';
 import { NapBlock } from '@/components/sections/shared/nap-block';
 import { ArrowRight } from '@/components/ui/icons';
 import { ServicesPageT2 } from './services-page-t2';
+import { Dyn } from '@/components/i18n/Dyn';
 
 const SERVICES_TRAIL = [
   { label: 'Home', href: '/' },
@@ -80,14 +81,14 @@ export default async function ServicesPage() {
           </span>
           {s!.h1 ? (
             <h1 className="mt-[18px] font-manrope text-[34px] font-bold leading-[1.1] tracking-[-0.02em] text-ink text-balance sm:text-[46px]">
-              {co(s!.h1)}
+              <Dyn>{co(s!.h1)}</Dyn>
             </h1>
           ) : null}
           {s!.intro?.length ? (
             <div className="mt-[16px] flex max-w-[640px] flex-col gap-[12px]">
               {s!.intro.map((p, i) => (
                 <p key={i} className="text-[16.5px] leading-[1.7] text-muted">
-                  {co(p)}
+                  <Dyn>{co(p)}</Dyn>
                 </p>
               ))}
             </div>
@@ -109,17 +110,17 @@ export default async function ServicesPage() {
                     {String(i + 1).padStart(2, '0')}
                   </span>
                   <h2 className="mt-[10px] font-manrope text-[18.5px] font-bold leading-[1.25] tracking-[-0.01em] text-ink transition-colors group-hover:text-primary">
-                    {co(block.heading || '')}
+                    <Dyn>{co(block.heading || '')}</Dyn>
                   </h2>
                   {block.paragraphs?.[0] ? (
                     <p className="mt-[9px] flex-1 text-[14.5px] leading-[1.6] text-muted">
-                      {co(block.paragraphs[0])}
+                      <Dyn>{co(block.paragraphs[0])}</Dyn>
                     </p>
                   ) : (
                     <span className="flex-1" />
                   )}
                   <span className="mt-[18px] inline-flex items-center gap-[6px] text-[13.5px] font-semibold text-primary">
-                    {co(block.link_label || 'Explore')}
+                    <Dyn>{co(block.link_label || 'Explore')}</Dyn>
                     <ArrowRight size={15} className="transition-transform group-hover:translate-x-[3px]" />
                   </span>
                 </Link>
@@ -145,7 +146,7 @@ export default async function ServicesPage() {
                   <div className="mb-[18px] flex items-center gap-[12px]">
                     <span className="h-[22px] w-[4px] flex-shrink-0 rounded-full bg-primary" />
                     <h2 className="font-manrope text-[22px] font-bold leading-[1.25] tracking-[-0.01em] text-ink sm:text-[24px]">
-                      {co(block.heading)}
+                      <Dyn>{co(block.heading)}</Dyn>
                     </h2>
                   </div>
                 ) : null}
@@ -154,7 +155,7 @@ export default async function ServicesPage() {
                   <div className="flex flex-col gap-[12px] pl-[16px]">
                     {block.paragraphs.map((p, j) => (
                       <p key={j} className="text-[16px] leading-[1.75] text-label">
-                        {co(p)}
+                        <Dyn>{co(p)}</Dyn>
                       </p>
                     ))}
                   </div>
@@ -173,7 +174,7 @@ export default async function ServicesPage() {
                           ) : null}
                         </div>
                         <p className="pt-[5px] pb-[16px] text-[16px] leading-[1.65] text-label">
-                          {co(step)}
+                          <Dyn>{co(step)}</Dyn>
                         </p>
                       </li>
                     ))}
@@ -187,7 +188,7 @@ export default async function ServicesPage() {
                         key={j}
                         className="rounded-full border border-card-border bg-white px-[16px] py-[8px] text-[14px] font-medium text-label"
                       >
-                        {co(b)}
+                        <Dyn>{co(b)}</Dyn>
                       </span>
                     ))}
                   </div>
@@ -199,7 +200,7 @@ export default async function ServicesPage() {
                       href={block.href}
                       className="inline-flex items-center gap-[7px] text-[14.5px] font-semibold text-primary hover:gap-[10px]"
                     >
-                      {co(block.link_label || 'Learn more')}
+                      <Dyn>{co(block.link_label || 'Learn more')}</Dyn>
                       <ArrowRight size={16} />
                     </Link>
                   </div>

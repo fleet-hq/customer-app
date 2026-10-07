@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { ArrowRight } from '@/components/ui/icons';
+import { Dyn } from '@/components/i18n/Dyn';
 
 interface BrandCtaProps {
   eyebrow?: string;
@@ -45,10 +46,10 @@ export function BrandCta({
           </div>
         ) : null}
         <h2 className="m-0 mb-[14px] font-manrope text-[27px] leading-[1.15] font-bold tracking-[-0.02em] text-white sm:text-[32px]">
-          {title}
+          <Dyn>{title}</Dyn>
         </h2>
         {description ? (
-          <p className="m-0 mb-[28px] text-[14.5px] leading-[1.65] text-white/85">{description}</p>
+          <p className="m-0 mb-[28px] text-[14.5px] leading-[1.65] text-white/85"><Dyn>{description}</Dyn></p>
         ) : (
           <div className="mb-[28px]" />
         )}
@@ -56,7 +57,7 @@ export function BrandCta({
           href={ctaHref}
           className="inline-flex items-center gap-[9px] rounded-full bg-white px-[30px] py-[14px] text-[15px] font-semibold text-ink transition-transform hover:-translate-y-[1px]"
         >
-          {ctaLabel}
+          <Dyn>{ctaLabel}</Dyn>
           <ArrowRight size={17} />
         </Link>
       </div>

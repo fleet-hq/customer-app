@@ -62,7 +62,7 @@ export function ServicesPageT2({ tenant, h1, intro, blocks, cta }: ServicesPageT
                 <h2>
                   <Dyn>{co(block.heading || '')}</Dyn>
                 </h2>
-                {block.paragraphs?.[0] ? <p>{co(block.paragraphs[0])}</p> : null}
+                {block.paragraphs?.[0] ? <p><Dyn>{co(block.paragraphs[0])}</Dyn></p> : null}
                 <span className={`${styles.linkMore}`}>
                   <Dyn>{co(block.link_label || 'Explore')}</Dyn>
                 </span>

@@ -5,6 +5,7 @@ import { withCompany } from '@/lib/tenant';
 import { Clock, ShieldCheck, Phone, Mail } from '@/components/ui/icons';
 import { InquiryForm } from '@/components/sections/inquiry/inquiry-form';
 import { InquiryPageBodyT2 } from './inquiry-page-t2';
+import { Dyn } from '@/components/i18n/Dyn';
 
 const TRUST_POINTS = [
   { icon: Clock, text: 'We reply fast — usually within the hour during opening times.' },
@@ -33,13 +34,13 @@ export async function InquiryPageBody() {
               {tenant.name}
             </span>
             <h1 className="font-manrope text-[30px] font-bold leading-[1.12] tracking-[-0.02em] text-ink text-balance sm:text-[38px]">
-              {co(config.title || 'Book your car')}
+              <Dyn>{co(config.title || 'Book your car')}</Dyn>
             </h1>
             {config.intro?.length ? (
               <div className="flex flex-col gap-[10px]">
                 {config.intro.map((p, i) => (
                   <p key={i} className="text-[15.5px] leading-[1.7] text-muted">
-                    {co(p)}
+                    <Dyn>{co(p)}</Dyn>
                   </p>
                 ))}
               </div>

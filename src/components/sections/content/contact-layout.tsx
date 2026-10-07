@@ -5,6 +5,7 @@ import { contentPageSchema } from '@/lib/schema';
 import { JsonLd } from '@/components/seo/json-ld';
 import { ContactActions } from './contact-actions';
 import { MapPin } from '@/components/ui/icons';
+import { Dyn } from '@/components/i18n/Dyn';
 
 export function ContactLayout({ tenant, page, path }: { tenant: Tenant; page: ContentPage; path: string }) {
   const co = (t: string) => withCompany(t, tenant.name);
@@ -25,18 +26,18 @@ export function ContactLayout({ tenant, page, path }: { tenant: Tenant; page: Co
         />
         <div className="relative mx-auto w-full max-w-[1080px] px-4 pt-[56px] pb-[48px] sm:px-6 sm:pt-[72px] sm:pb-[56px]">
           <span className="text-[12px] font-semibold uppercase tracking-[0.1em] text-white/70">
-            {co(page.eyebrow || 'Contact')}
+            <Dyn>{co(page.eyebrow || 'Contact')}</Dyn>
           </span>
           {page.h1 ? (
             <h1 className="mt-[16px] max-w-[720px] font-manrope text-[34px] font-bold leading-[1.1] tracking-[-0.025em] text-white text-balance sm:text-[46px]">
-              {co(page.h1)}
+              <Dyn>{co(page.h1)}</Dyn>
             </h1>
           ) : null}
           {page.intro?.length ? (
             <div className="mt-[16px] flex max-w-[620px] flex-col gap-[10px]">
               {page.intro.map((p, i) => (
                 <p key={i} className="text-[16px] leading-[1.65] text-white/85">
-                  {co(p)}
+                  <Dyn>{co(p)}</Dyn>
                 </p>
               ))}
             </div>
@@ -58,14 +59,14 @@ export function ContactLayout({ tenant, page, path }: { tenant: Tenant; page: Co
             <div>
               {block.heading ? (
                 <h2 className="m-0 font-manrope text-[21px] font-bold tracking-[-0.01em] text-ink">
-                  {co(block.heading)}
+                  <Dyn>{co(block.heading)}</Dyn>
                 </h2>
               ) : null}
               {block.paragraphs?.length ? (
                 <div className="mt-[10px] flex flex-col gap-[8px]">
                   {block.paragraphs.map((p, j) => (
                     <p key={j} className="text-[15.5px] leading-[1.7] text-label">
-                      {co(p)}
+                      <Dyn>{co(p)}</Dyn>
                     </p>
                   ))}
                 </div>
