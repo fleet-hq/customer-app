@@ -1,4 +1,5 @@
 import type { ReactNode, SVGProps } from 'react';
+import { iconByName } from '@/lib/content-icons';
 import {
   Calendar,
   Car,
@@ -14,20 +15,6 @@ import {
 } from '@/components/ui/icons';
 
 type IconCmp = (p: SVGProps<SVGSVGElement> & { size?: number }) => ReactNode;
-
-const FEATURE_ICONS: Record<string, IconCmp> = {
-  calendar: Calendar,
-  car: Car,
-  plane: Plane,
-  shield: ShieldCheck,
-  headset: Headset,
-  clock: Clock,
-  star: Star,
-  'map-pin': MapPin,
-  key: Key,
-  check: Check,
-  sparkles: Sparkles,
-};
 
 export interface HeroFeature {
   icon?: string;
@@ -134,7 +121,7 @@ export function HomeHeroFeatured({
         {items.length > 0 ? (
           <div className="grid grid-cols-2 gap-y-4 px-6 py-6 sm:grid-cols-3 md:flex md:items-center md:justify-between md:px-14">
             {items.map((f, i) => {
-              const Icon = FEATURE_ICONS[(f.icon || '').toLowerCase()] ?? Sparkles;
+              const Icon = iconByName(f.icon, Sparkles);
               return (
                 <div
                   key={i}

@@ -275,6 +275,10 @@ export interface ContentLink {
 
 export interface ContentBlock {
   heading?: string;
+  /** Icon name from the shared content-icon registry. Chooses the
+   *  block's symbol instead of the position-based rotation, and the
+   *  marker used for its bullets. */
+  icon?: string;
   paragraphs?: string[];
   bullets?: string[];
   steps?: string[];

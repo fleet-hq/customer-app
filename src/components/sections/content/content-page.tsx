@@ -15,6 +15,7 @@ import { ContactLayout } from './contact-layout';
 import { ContentPageT2 } from './content-page-t2';
 import { ArrowRight, Check, Car, ShieldCheck, MapPin, Info } from '@/components/ui/icons';
 import { Dyn } from '@/components/i18n/Dyn';
+import { iconByName } from '@/lib/content-icons';
 
 const RICH_ICONS = [Car, ShieldCheck, MapPin, Info];
 
@@ -251,6 +252,9 @@ function Block({
   stepNo: number;
   co: (t: string) => string;
 }) {
+  // The block's own icon marks its bullets; a tick remains the default so
+  // existing pages keep the look they were published with.
+  const BulletIcon = iconByName(block.icon, Check);
   const hasSteps = !!block.steps?.length;
   if (block.faqs?.length) {
     return (
@@ -312,7 +316,7 @@ function Block({
         <ul className="mt-[20px] grid gap-x-[28px] gap-y-[13px] sm:grid-cols-2">
           {block.bullets.map((b, j) => (
             <li key={j} className="flex gap-[11px] text-[15.5px] leading-[1.55] text-label">
-              <Check size={17} className="mt-[3px] flex-shrink-0 text-primary" />
+              <BulletIcon size={17} className="mt-[3px] flex-shrink-0 text-primary" />
               <span>{co(b)}</span>
             </li>
           ))}
@@ -358,7 +362,10 @@ function RichBlock({
       </div>
     );
   }
-  const Icon = RICH_ICONS[index % RICH_ICONS.length];
+  // Prefer the icon the operator chose; the positional rotation is only
+  // a fallback for blocks published before icons could be set.
+  const Icon = iconByName(block.icon, RICH_ICONS[index % RICH_ICONS.length]);
+  const BulletIcon = iconByName(block.icon, Check);
   return (
     <div className="flex flex-col rounded-[20px] border border-card-border bg-white p-[26px] sm:p-[30px]">
       <span className="flex h-[44px] w-[44px] items-center justify-center rounded-full bg-primary-soft text-primary">
@@ -386,7 +393,7 @@ function RichBlock({
             const hasKey = ci > 0 && ci <= 22;
             return (
               <li key={j} className="flex gap-[11px] text-[14.5px] leading-[1.55]">
-                <Check size={16} className="mt-[3px] flex-shrink-0 text-primary" />
+                <BulletIcon size={16} className="mt-[3px] flex-shrink-0 text-primary" />
                 {hasKey ? (
                   <span>
                     <span className="font-semibold text-ink">{text.slice(0, ci)}</span>
