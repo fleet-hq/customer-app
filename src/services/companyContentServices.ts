@@ -137,6 +137,18 @@ export interface CopyBlockSection {
   cta_label?: string;
 }
 
+/** "Areas We Serve" — the places a tenant operates in. Each area may
+ *  link to its own landing page, or stand as plain text where there is
+ *  no page for it. */
+export interface ServiceAreasSection {
+  eyebrow?: string;
+  title?: string;
+  description?: string;
+  items?: ContentLink[];
+  cta_label?: string;
+  cta_href?: string;
+}
+
 export interface CategoriesSection {
   eyebrow?: string;
   title?: string;
@@ -348,6 +360,7 @@ export interface ContentSections {
   fleet_page?: FleetPageSection | null;
   blog_index?: BlogIndexSection | null;
   seo?: SiteSeoConfig | null;
+  service_areas?: ServiceAreasSection | null;
   pages?: Record<string, ContentPage> | null;
   /** Footer "Explore" column. Lets tenants with extra content pages
    *  surface them without the footer hardcoding a link list. */

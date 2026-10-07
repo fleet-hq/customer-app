@@ -16,6 +16,7 @@ import type {
   StatsSection,
   Template2Settings,
   StepsSection,
+  ServiceAreasSection,
   ServicesSection,
   InquiryFormConfig,
   FleetPageSection,
@@ -52,6 +53,7 @@ export interface TenantSections {
   fleet_page: FleetPageSection | null;
   blog_index: BlogIndexSection | null;
   seo: SiteSeoConfig | null;
+  service_areas: ServiceAreasSection | null;
   pages: Record<string, ContentPage> | null;
   /** Footer "Explore" links. Tenants with extra content pages set these
    *  so the footer lists them; unset keeps the standard links. */
@@ -250,6 +252,7 @@ export function tenantFromApi(detail: ApiCompanyDetail, locations: ApiLocation[]
       fleet_page: sections.fleet_page ?? null,
       blog_index: sections.blog_index ?? null,
       seo: sections.seo ?? null,
+      service_areas: sections.service_areas ?? null,
       pages: sections.pages ?? null,
       footerLinks: sections.footer_links ?? null,
     },

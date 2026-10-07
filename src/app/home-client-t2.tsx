@@ -7,6 +7,7 @@ import { FeaturesT2 } from '@/components/sections/home-t2/features-t2';
 import { PromoBandT2 } from '@/components/sections/home-t2/promo-band-t2';
 import { FleetGridT2 } from '@/components/sections/home-t2/fleet-grid-t2';
 import { StepsT2 } from '@/components/sections/home-t2/steps-t2';
+import { ServiceAreasT2 } from '@/components/sections/home-t2/service-areas-t2';
 import { TestimonialsT2 } from '@/components/sections/home-t2/testimonials-t2';
 import { FaqT2 } from '@/components/sections/home-t2/faq-t2';
 import { CtaT2 } from '@/components/sections/home-t2/cta-t2';
@@ -121,6 +122,17 @@ export default function HomeClientT2() {
           eyebrow={sections.steps?.eyebrow}
           title={co(sections.steps?.title ?? '')}
           items={stepItems.map((s) => ({ ...s, description: co(s.description) }))}
+        />
+      ) : null}
+
+      {sections.service_areas ? (
+        <ServiceAreasT2
+          eyebrow={sections.service_areas.eyebrow}
+          title={co(sections.service_areas.title ?? '')}
+          description={co(sections.service_areas.description ?? '')}
+          items={sections.service_areas.items ?? []}
+          ctaLabel={sections.service_areas.cta_label}
+          ctaHref={sections.service_areas.cta_href}
         />
       ) : null}
 

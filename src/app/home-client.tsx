@@ -13,6 +13,7 @@ import { HomeFaq } from '@/components/sections/home/home-faq';
 import { CtaBand } from '@/components/sections/home/cta-band';
 import { SetupInProgress } from '@/components/setup-in-progress';
 import { HowItWorks } from '@/components/sections/home/how-it-works';
+import { ServiceAreas } from '@/components/sections/home/service-areas';
 import { ContentPage } from '@/components/sections/content/content-page';
 import { useTenant } from '@/lib/tenant-context';
 import { withCompany } from '@/lib/tenant';
@@ -73,6 +74,7 @@ export default function HomeClient() {
   const categoriesVisible = !!(categories?.eyebrow || categories?.title || categories?.description);
 
   const stepItems = sections.steps?.items ?? [];
+  const serviceAreas = sections.service_areas;
   const testimonialItems = sections.testimonials?.items ?? [];
   const faqItems = sections.faqs?.items ?? [];
 
@@ -233,6 +235,17 @@ export default function HomeClient() {
           eyebrow={sections.steps?.eyebrow ?? ''}
           title={co(sections.steps?.title ?? '')}
           items={stepItems}
+        />
+      ) : null}
+
+      {serviceAreas ? (
+        <ServiceAreas
+          eyebrow={serviceAreas.eyebrow ?? ''}
+          title={co(serviceAreas.title ?? '')}
+          description={co(serviceAreas.description ?? '')}
+          items={serviceAreas.items ?? []}
+          ctaLabel={serviceAreas.cta_label}
+          ctaHref={serviceAreas.cta_href}
         />
       ) : null}
 
