@@ -48,6 +48,11 @@ export function InquiryForm({
   tenantName: string;
   domain: string;
 }) {
+  // Tenants hide the fields they do not need; nothing hidden keeps the
+  // full form, so sites configured before this are unaffected.
+  const hiddenFields = new Set<string>(config.hidden_fields ?? []);
+  const shows = (key: string) => !hiddenFields.has(key);
+
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -157,7 +162,9 @@ export function InquiryForm({
           </Field>
         ) : null}
 
+        {shows('pickup_location') || shows('dropoff_location') ? (
         <div className="grid grid-cols-1 gap-[16px] sm:grid-cols-2">
+          {shows('pickup_location') ? (
           <Field label="Pickup Location" required>
             {config.pickup_options?.length ? (
               <Select
@@ -179,6 +186,8 @@ export function InquiryForm({
               />
             ) : null}
           </Field>
+          ) : null}
+          {shows('dropoff_location') ? (
           <Field label="Drop-off Location">
             {config.dropoff_options?.length ? (
               <Select
@@ -200,9 +209,13 @@ export function InquiryForm({
               />
             ) : null}
           </Field>
+          ) : null}
         </div>
+        ) : null}
 
+        {shows('pickup_datetime') || shows('dropoff_datetime') ? (
         <div className="grid grid-cols-1 gap-[16px] sm:grid-cols-2">
+          {shows('pickup_datetime') ? (
           <Field label="Pickup Date & Time">
             <div className={`${baseField} flex h-[40px] items-center focus-within:border-primary focus-within:ring-2 focus-within:ring-[color-mix(in_srgb,var(--color-primary)_16%,transparent)]`}>
               <DateTimeField
@@ -215,6 +228,8 @@ export function InquiryForm({
               />
             </div>
           </Field>
+          ) : null}
+          {shows('dropoff_datetime') ? (
           <Field label="Drop-off Date & Time">
             <div className={`${baseField} flex h-[40px] items-center focus-within:border-primary focus-within:ring-2 focus-within:ring-[color-mix(in_srgb,var(--color-primary)_16%,transparent)]`}>
               <DateTimeField
@@ -227,7 +242,9 @@ export function InquiryForm({
               />
             </div>
           </Field>
+          ) : null}
         </div>
+        ) : null}
 
         {config.heard_about_options?.length ? (
           <Field label="How Did You Hear About Us?">
@@ -241,6 +258,7 @@ export function InquiryForm({
           </Field>
         ) : null}
 
+        {shows('message') ? (
         <Field label="Anything else?">
           <textarea
             className={textareaClass}
@@ -249,6 +267,7 @@ export function InquiryForm({
             placeholder="Special requests, questions, etc."
           />
         </Field>
+        ) : null}
 
         {status === 'error' ? (
           <p className="rounded-[10px] border border-danger-border bg-danger-bg px-[14px] py-[10px] text-[14px] font-medium text-danger-text">

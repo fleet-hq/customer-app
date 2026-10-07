@@ -203,7 +203,18 @@ export interface ServicesSection {
   cta?: { title?: string; description?: string; cta_label?: string; cta_href?: string };
 }
 
+/** Optional enquiry-form fields a tenant does not need. Name, phone and
+ *  email always show. Recognised keys: pickup_location, dropoff_location,
+ *  pickup_datetime, dropoff_datetime, message. */
+export type InquiryFieldKey =
+  | 'pickup_location'
+  | 'dropoff_location'
+  | 'pickup_datetime'
+  | 'dropoff_datetime'
+  | 'message';
+
 export interface InquiryFormConfig {
+  hidden_fields?: InquiryFieldKey[];
   title?: string;
   intro?: string[];
   promo_note?: string;
