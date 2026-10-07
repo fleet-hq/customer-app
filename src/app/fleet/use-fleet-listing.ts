@@ -268,6 +268,10 @@ export function useFleetListing() {
     bookingQuery,
     selectedHours,
     unavailableIds,
+    /** Availability is only resolved for a chosen pickup/drop-off window.
+     *  Without one, nothing is known about a vehicle, so a card must not
+     *  claim it is available. */
+    hasAvailabilityWindow: Boolean(pickupDatetime && dropoffDatetime),
     totalPages,
     goToPage,
     countLabel,
