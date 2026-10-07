@@ -7,6 +7,13 @@ import { paths } from '@/lib/paths';
 import { Mail, MapPin, Phone } from '@/components/ui/icons';
 import { Dyn } from '@/components/i18n/Dyn';
 
+const DEFAULT_EXPLORE_LINKS = [
+  { label: 'About Us', href: `${paths.home}#about` },
+  { label: 'Our Fleet', href: paths.fleet },
+  { label: 'FAQs', href: `${paths.home}#faqs` },
+  { label: 'Privacy', href: paths.privacy },
+];
+
 export function Footer() {
   const tenant = useTenant();
   const { brand, footer } = tenant;
@@ -14,6 +21,11 @@ export function Footer() {
   const description = footer.description || brand.description;
   // Render only the socials the operator added — no placeholder icons.
   const socials = footer.socials;
+  // Tenants with extra content pages list them here; everyone else keeps
+  // the standard four so no site loses its footer nav.
+  const configured = (tenant.sections.footerLinks ?? [])
+    .filter((l): l is { label: string; href: string } => !!l.href && !!l.label);
+  const exploreLinks = configured.length > 0 ? configured : DEFAULT_EXPLORE_LINKS;
 
   return (
     <footer className="no-print w-full bg-secondary text-white">
@@ -56,18 +68,15 @@ export function Footer() {
               <Dyn>Explore</Dyn>
             </h4>
             <nav className="flex flex-col gap-3">
-              <Link href={`${paths.home}#about`} className="text-[13px] text-white/80 transition-colors hover:text-footer-hover">
-                <Dyn>About Us</Dyn>
-              </Link>
-              <Link href={paths.fleet} className="text-[13px] text-white/80 transition-colors hover:text-footer-hover">
-                <Dyn>Our Fleet</Dyn>
-              </Link>
-              <Link href={`${paths.home}#faqs`} className="text-[13px] text-white/80 transition-colors hover:text-footer-hover">
-                <Dyn>FAQs</Dyn>
-              </Link>
-              <Link href={paths.privacy} className="text-[13px] text-white/80 transition-colors hover:text-footer-hover">
-                <Dyn>Privacy</Dyn>
-              </Link>
+              {exploreLinks.map((l) => (
+                <Link
+                  key={`${l.label}-${l.href}`}
+                  href={l.href}
+                  className="text-[13px] text-white/80 transition-colors hover:text-footer-hover"
+                >
+                  <Dyn>{l.label}</Dyn>
+                </Link>
+              ))}
             </nav>
           </div>
 

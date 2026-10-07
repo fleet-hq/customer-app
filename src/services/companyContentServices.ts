@@ -349,6 +349,9 @@ export interface ContentSections {
   blog_index?: BlogIndexSection | null;
   seo?: SiteSeoConfig | null;
   pages?: Record<string, ContentPage> | null;
+  /** Footer "Explore" column. Lets tenants with extra content pages
+   *  surface them without the footer hardcoding a link list. */
+  footer_links?: ContentLink[] | null;
 }
 
 export interface CompanyContent {

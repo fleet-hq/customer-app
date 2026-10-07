@@ -22,6 +22,7 @@ import type {
   BlogIndexSection,
   SiteSeoConfig,
   ContentPage,
+  ContentLink,
   WebsiteTemplate,
 } from '@/services/companyContentServices';
 import { DEFAULT_NAV_LINKS, DEFAULT_THEME } from './tenant-defaults';
@@ -52,6 +53,9 @@ export interface TenantSections {
   blog_index: BlogIndexSection | null;
   seo: SiteSeoConfig | null;
   pages: Record<string, ContentPage> | null;
+  /** Footer "Explore" links. Tenants with extra content pages set these
+   *  so the footer lists them; unset keeps the standard links. */
+  footerLinks: ContentLink[] | null;
 }
 
 export interface TenantLocation {
@@ -247,6 +251,7 @@ export function tenantFromApi(detail: ApiCompanyDetail, locations: ApiLocation[]
       blog_index: sections.blog_index ?? null,
       seo: sections.seo ?? null,
       pages: sections.pages ?? null,
+      footerLinks: sections.footer_links ?? null,
     },
     tracking: {
       facebookPixelId: nonEmpty(tracking.facebook_pixel_id),
