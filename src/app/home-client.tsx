@@ -12,6 +12,7 @@ import { Testimonials } from '@/components/sections/home/testimonials';
 import { HomeFaq } from '@/components/sections/home/home-faq';
 import { CtaBand } from '@/components/sections/home/cta-band';
 import { SetupInProgress } from '@/components/setup-in-progress';
+import { HowItWorks } from '@/components/sections/home/how-it-works';
 import { ContentPage } from '@/components/sections/content/content-page';
 import { useTenant } from '@/lib/tenant-context';
 import { withCompany } from '@/lib/tenant';
@@ -71,6 +72,7 @@ export default function HomeClient() {
   const categories = sections.categories;
   const categoriesVisible = !!(categories?.eyebrow || categories?.title || categories?.description);
 
+  const stepItems = sections.steps?.items ?? [];
   const testimonialItems = sections.testimonials?.items ?? [];
   const faqItems = sections.faqs?.items ?? [];
 
@@ -223,6 +225,14 @@ export default function HomeClient() {
           eyebrow={categories?.eyebrow ?? ''}
           title={categories?.title ?? ''}
           description={categories?.description ?? ''}
+        />
+      ) : null}
+
+      {stepItems.length > 0 ? (
+        <HowItWorks
+          eyebrow={sections.steps?.eyebrow ?? ''}
+          title={co(sections.steps?.title ?? '')}
+          items={stepItems}
         />
       ) : null}
 
