@@ -120,7 +120,7 @@ export function Header({
                         isActive ? 'font-semibold text-primary' : 'font-medium text-ink hover:text-primary',
                       )}
                     >
-                      {link.label}
+                      <Dyn>{link.label}</Dyn>
                       <ChevronDown size={13} className="text-faint transition-transform duration-200 group-hover:rotate-180" />
                     </Link>
                     <div className="invisible absolute left-1/2 top-full z-[60] w-[260px] -translate-x-1/2 pt-[12px] opacity-0 transition-all duration-150 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
@@ -131,7 +131,7 @@ export function Header({
                             href={s.href}
                             className="block rounded-lg px-3 py-[9px] text-[13px] font-medium text-ink transition-colors hover:bg-hover hover:text-primary"
                           >
-                            {s.label}
+                            <Dyn>{s.label}</Dyn>
                           </Link>
                         ))}
                       </div>
@@ -148,7 +148,7 @@ export function Header({
                     isActive ? 'font-semibold text-primary' : 'font-medium text-ink hover:text-primary',
                   )}
                 >
-                  {link.label}
+                  <Dyn>{link.label}</Dyn>
                 </Link>
               );
             })}
@@ -250,7 +250,7 @@ export function Header({
                         : 'font-medium text-ink hover:bg-hover',
                     )}
                   >
-                    {link.label}
+                    <Dyn>{link.label}</Dyn>
                   </Link>
                   {isServices ? (
                     <div className="mt-0.5 mb-1 ml-3 flex flex-col gap-0.5 border-l border-hairline pl-3">
@@ -261,7 +261,7 @@ export function Header({
                           onClick={() => setMobileNavOpen(false)}
                           className="rounded-lg px-3 py-[9px] text-[13px] font-medium text-muted transition-colors hover:bg-hover hover:text-primary"
                         >
-                          {s.label}
+                          <Dyn>{s.label}</Dyn>
                         </Link>
                       ))}
                     </div>

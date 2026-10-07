@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import type { FaqItem } from '@/services/companyContentServices';
+import { Dyn } from '@/components/i18n/Dyn';
 
 interface ContentFaqProps {
   title: string;
@@ -33,7 +34,7 @@ export function ContentFaq({ title, items }: ContentFaqProps) {
                   aria-expanded={isOpen}
                   className="flex w-full items-center justify-between gap-[24px] px-[4px] py-[18px] text-left"
                 >
-                  <span className="text-[15.5px] font-medium text-ink">{item.question}</span>
+                  <span className="text-[15.5px] font-medium text-ink"><Dyn>{item.question}</Dyn></span>
                   <span className="flex-shrink-0 text-[18px] leading-none text-primary">
                     {isOpen ? '–' : '+'}
                   </span>
@@ -47,7 +48,7 @@ export function ContentFaq({ title, items }: ContentFaqProps) {
               >
                 <div className="overflow-hidden">
                   <p className="m-0 max-w-[760px] px-[4px] pb-[20px] text-[14.5px] leading-[1.7] text-muted">
-                    {item.answer}
+                    <Dyn>{item.answer}</Dyn>
                   </p>
                 </div>
               </div>

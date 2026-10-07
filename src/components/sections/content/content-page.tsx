@@ -95,10 +95,10 @@ export function ContentPage({ tenant, page, path, heroImage, afterHero, heroOver
                 <span key={i} className="inline-flex items-center gap-[7px]">
                   {b.href && i < page.breadcrumb!.length - 1 ? (
                     <Link href={b.href} className="hover:text-primary">
-                      {co(b.label || '')}
+                      <Dyn>{co(b.label || '')}</Dyn>
                     </Link>
                   ) : (
-                    <span className={onImage ? 'text-white' : 'text-label'}>{co(b.label || '')}</span>
+                    <span className={onImage ? 'text-white' : 'text-label'}><Dyn>{co(b.label || '')}</Dyn></span>
                   )}
                   {i < page.breadcrumb!.length - 1 ? (
                     <span className={onImage ? 'text-white/40' : 'text-card-border'}>/</span>
@@ -115,7 +115,7 @@ export function ContentPage({ tenant, page, path, heroImage, afterHero, heroOver
                   : 'border border-primary-border bg-white text-primary')
               }
             >
-              {co(eyebrow)}
+              <Dyn>{co(eyebrow)}</Dyn>
             </span>
           ) : null}
           {page.h1 ? (
@@ -125,7 +125,7 @@ export function ContentPage({ tenant, page, path, heroImage, afterHero, heroOver
                 (onImage ? 'text-white' : 'text-ink')
               }
             >
-              {co(page.h1)}
+              <Dyn>{co(page.h1)}</Dyn>
             </h1>
           ) : null}
           {page.intro?.length ? (
@@ -135,7 +135,7 @@ export function ContentPage({ tenant, page, path, heroImage, afterHero, heroOver
                   key={i}
                   className={'text-[16.5px] leading-[1.7] ' + (onImage ? 'text-white/85' : 'text-muted')}
                 >
-                  {co(p)}
+                  <Dyn>{co(p)}</Dyn>
                 </p>
               ))}
             </div>
@@ -204,7 +204,7 @@ export function ContentPage({ tenant, page, path, heroImage, afterHero, heroOver
                     <Dyn>{co(cta.title || 'Ready to Book?')}</Dyn>
                   </h2>
                   {cta.description ? (
-                    <p className="m-0 mb-[28px] text-[14.5px] leading-[1.65] text-white/85">{co(cta.description)}</p>
+                    <p className="m-0 mb-[28px] text-[14.5px] leading-[1.65] text-white/85"><Dyn>{co(cta.description)}</Dyn></p>
                   ) : (
                     <div className="mb-[28px]" />
                   )}
@@ -267,7 +267,7 @@ function Block({
     <div className="mt-[16px] flex max-w-[720px] flex-col gap-[13px]">
       {block.paragraphs.map((p, j) => (
         <p key={j} className="text-[16.5px] leading-[1.75] text-label">
-          {co(p)}
+          <Dyn>{co(p)}</Dyn>
         </p>
       ))}
     </div>
@@ -293,7 +293,7 @@ function Block({
         ) : null}
         {block.heading ? (
           <h2 className="mt-[12px] font-manrope text-[22px] font-bold leading-[1.25] tracking-[-0.01em] text-ink sm:text-[25px]">
-            {co(block.heading)}
+            <Dyn>{co(block.heading)}</Dyn>
           </h2>
         ) : null}
         {paragraphs}
@@ -306,7 +306,7 @@ function Block({
     <div className="border-t border-hairline pt-[30px] sm:pt-[36px]">
       {block.heading ? (
         <h2 className="font-manrope text-[23px] font-bold leading-[1.2] tracking-[-0.015em] text-ink sm:text-[27px]">
-          {co(block.heading)}
+          <Dyn>{co(block.heading)}</Dyn>
         </h2>
       ) : null}
 
@@ -317,7 +317,7 @@ function Block({
           {block.bullets.map((b, j) => (
             <li key={j} className="flex gap-[11px] text-[15.5px] leading-[1.55] text-label">
               <BulletIcon size={17} className="mt-[3px] flex-shrink-0 text-primary" />
-              <span>{co(b)}</span>
+              <span><Dyn>{co(b)}</Dyn></span>
             </li>
           ))}
         </ul>
@@ -335,7 +335,7 @@ function Block({
                   <span className="my-[4px] w-[2px] flex-1 rounded-full bg-primary-border" />
                 ) : null}
               </div>
-              <p className="pt-[5px] pb-[16px] text-[16px] leading-[1.65] text-label">{co(step)}</p>
+              <p className="pt-[5px] pb-[16px] text-[16px] leading-[1.65] text-label"><Dyn>{co(step)}</Dyn></p>
             </li>
           ))}
         </ol>
@@ -373,14 +373,14 @@ function RichBlock({
       </span>
       {block.heading ? (
         <h2 className="mt-[16px] font-manrope text-[20px] font-bold leading-[1.25] tracking-[-0.01em] text-ink">
-          {co(block.heading)}
+          <Dyn>{co(block.heading)}</Dyn>
         </h2>
       ) : null}
       {block.paragraphs?.length ? (
         <div className="mt-[10px] flex flex-col gap-[10px]">
           {block.paragraphs.map((p, j) => (
             <p key={j} className="text-[15px] leading-[1.65] text-muted">
-              {co(p)}
+              <Dyn>{co(p)}</Dyn>
             </p>
           ))}
         </div>
@@ -396,11 +396,11 @@ function RichBlock({
                 <BulletIcon size={16} className="mt-[3px] flex-shrink-0 text-primary" />
                 {hasKey ? (
                   <span>
-                    <span className="font-semibold text-ink">{text.slice(0, ci)}</span>
-                    <span className="text-muted">{text.slice(ci + 1)}</span>
+                    <span className="font-semibold text-ink"><Dyn>{text.slice(0, ci)}</Dyn></span>
+                    <span className="text-muted"><Dyn>{text.slice(ci + 1)}</Dyn></span>
                   </span>
                 ) : (
-                  <span className="text-label">{text}</span>
+                  <span className="text-label"><Dyn>{text}</Dyn></span>
                 )}
               </li>
             );
