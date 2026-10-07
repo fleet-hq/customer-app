@@ -24,6 +24,7 @@ interface FleetToolbarProps {
   filterOptions: FilterOptions;
   onFilters: (filters: FilterState) => void;
   activeFilterCount: number;
+  showAvailability?: boolean;
 }
 
 export function FleetToolbar({
@@ -41,6 +42,7 @@ export function FleetToolbar({
   filterOptions,
   onFilters,
   activeFilterCount,
+  showAvailability,
 }: FleetToolbarProps) {
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -115,7 +117,7 @@ export function FleetToolbar({
                 ))}
               </div>
               <div className="my-4 h-px bg-line" />
-              <FleetFilters filters={filters} options={filterOptions} onChange={onFilters} />
+              <FleetFilters filters={filters} options={filterOptions} onChange={onFilters} showAvailability={showAvailability} />
             </div>
           )}
         </div>

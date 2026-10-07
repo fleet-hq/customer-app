@@ -12,6 +12,9 @@ export interface FilterState {
   seats: number[];
   minPrice: number | null;
   maxPrice: number | null;
+  /** Only meaningful once a pickup/drop-off window is chosen — that is
+   *  what availability is resolved against. */
+  availableOnly: boolean;
 }
 
 export const INITIAL_FILTERS: FilterState = {
@@ -21,6 +24,7 @@ export const INITIAL_FILTERS: FilterState = {
   seats: [],
   minPrice: null,
   maxPrice: null,
+  availableOnly: false,
 };
 
 export interface FilterOptions {
@@ -37,7 +41,8 @@ export function activeFilterCount(filters: FilterState): number {
     filters.color.length +
     filters.seats.length +
     (filters.minPrice != null ? 1 : 0) +
-    (filters.maxPrice != null ? 1 : 0)
+    (filters.maxPrice != null ? 1 : 0) +
+    (filters.availableOnly ? 1 : 0)
   );
 }
 
@@ -45,9 +50,12 @@ interface FleetFiltersProps {
   filters: FilterState;
   options: FilterOptions;
   onChange: (filters: FilterState) => void;
+  /** Hidden until a pickup/drop-off window is chosen — filtering by
+   *  availability means nothing before there is something to check. */
+  showAvailability?: boolean;
 }
 
-export function FleetFilters({ filters, options, onChange }: FleetFiltersProps) {
+export function FleetFilters({ filters, options, onChange, showAvailability }: FleetFiltersProps) {
   const toggle = useCallback(
     <T extends string | number>(
       key: 'vehicleType' | 'make' | 'color' | 'seats',
@@ -70,6 +78,17 @@ export function FleetFilters({ filters, options, onChange }: FleetFiltersProps) 
         <span className="text-[12px] font-semibold tracking-[0.05em] text-faint uppercase">
           <Dyn>Filters</Dyn>
         </span>
+        {showAvailability ? (
+          <label className="flex cursor-pointer items-center gap-[7px] text-[13px] text-ink">
+            <input
+              type="checkbox"
+              checked={filters.availableOnly}
+              onChange={(e) => onChange({ ...filters, availableOnly: e.target.checked })}
+              className="h-[15px] w-[15px] accent-primary"
+            />
+            <Dyn>Available only</Dyn>
+          </label>
+        ) : null}
         {count > 0 && (
           <button
             type="button"

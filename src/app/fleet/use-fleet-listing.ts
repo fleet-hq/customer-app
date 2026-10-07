@@ -195,35 +195,6 @@ export function useFleetListing() {
 
   const clientFilterCount = activeFilterCount(filters);
 
-  const vehicles = useMemo(() => {
-    let list = [...enrichedResults];
-    if (isFiltered) list = list.filter((v) => slugify(v.vehicleType ?? '') === type);
-    list = list.filter((v) => {
-      if (filters.vehicleType.length && !filters.vehicleType.includes(v.vehicleType ?? '')) return false;
-      if (filters.make.length && !filters.make.includes(v.make)) return false;
-      if (filters.color.length && !filters.color.includes(v.color)) return false;
-      if (filters.seats.length && !filters.seats.includes(v.seats)) return false;
-      if (filters.minPrice != null && v.pricePerDay < filters.minPrice) return false;
-      if (filters.maxPrice != null && v.pricePerDay > filters.maxPrice) return false;
-      return true;
-    });
-    if (sort === 'Price: low to high') list.sort((a, b) => a.pricePerDay - b.pricePerDay);
-    if (sort === 'Price: high to low') list.sort((a, b) => b.pricePerDay - a.pricePerDay);
-    if (days >= 7) list.sort((a, b) => weeklyDiscountPct(b) - weeklyDiscountPct(a));
-    return list;
-  }, [enrichedResults, sort, isFiltered, type, filters, days]);
-
-  // Fire the list-view signal once per distinct result set rather than
-  // on every render — filtering and sorting reshuffle `vehicles` on the
-  // client without a new page view behind it.
-  const listSignature = vehicles.map((v) => v.id).join(',');
-  useEffect(() => {
-    if (isLoading || vehicles.length === 0) return;
-    trackFleetList(vehicles);
-    // `listSignature` is the stable identity of the rendered list.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [listSignature, isLoading]);
-
   const fleetIds = useMemo(() => enrichedResults.map((v) => v.id), [enrichedResults]);
   const { data: availability, isLoading: isAvailabilityLoading } = useFleetAvailability(
     fleetIds,
@@ -235,6 +206,38 @@ export function useFleetListing() {
     if (availability) for (const [id, ok] of Object.entries(availability)) if (ok === false) ids.add(id);
     return ids;
   }, [availability]);
+
+  const hasWindow = Boolean(pickupDatetime && dropoffDatetime);
+
+  const vehicles = useMemo(() => {
+    let list = [...enrichedResults];
+    if (isFiltered) list = list.filter((v) => slugify(v.vehicleType ?? '') === type);
+    list = list.filter((v) => {
+      if (filters.vehicleType.length && !filters.vehicleType.includes(v.vehicleType ?? '')) return false;
+      if (filters.make.length && !filters.make.includes(v.make)) return false;
+      if (filters.color.length && !filters.color.includes(v.color)) return false;
+      if (filters.seats.length && !filters.seats.includes(v.seats)) return false;
+      if (filters.minPrice != null && v.pricePerDay < filters.minPrice) return false;
+      if (filters.maxPrice != null && v.pricePerDay > filters.maxPrice) return false;
+      if (filters.availableOnly && hasWindow && unavailableIds.has(v.id)) return false;
+      return true;
+    });
+    if (sort === 'Price: low to high') list.sort((a, b) => a.pricePerDay - b.pricePerDay);
+    if (sort === 'Price: high to low') list.sort((a, b) => b.pricePerDay - a.pricePerDay);
+    if (days >= 7) list.sort((a, b) => weeklyDiscountPct(b) - weeklyDiscountPct(a));
+    return list;
+  }, [enrichedResults, sort, isFiltered, type, filters, days, hasWindow, unavailableIds]);
+
+  // Fire the list-view signal once per distinct result set rather than
+  // on every render — filtering and sorting reshuffle `vehicles` on the
+  // client without a new page view behind it.
+  const listSignature = vehicles.map((v) => v.id).join(',');
+  useEffect(() => {
+    if (isLoading || vehicles.length === 0) return;
+    trackFleetList(vehicles);
+    // `listSignature` is the stable identity of the rendered list.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listSignature, isLoading]);
 
   const goToPage = (p: number) => {
     setPage(Math.min(Math.max(1, p), totalPages));
@@ -271,7 +274,7 @@ export function useFleetListing() {
     /** Availability is only resolved for a chosen pickup/drop-off window.
      *  Without one, nothing is known about a vehicle, so a card must not
      *  claim it is available. */
-    hasAvailabilityWindow: Boolean(pickupDatetime && dropoffDatetime),
+    hasAvailabilityWindow: hasWindow,
     totalPages,
     goToPage,
     countLabel,

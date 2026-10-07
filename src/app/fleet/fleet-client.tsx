@@ -96,6 +96,7 @@ export default function FleetClient() {
         ) : null}
 
         <FleetToolbar
+          showAvailability={hasAvailabilityWindow}
           heading={heading}
           isFiltered={isFiltered}
           activeLabel={activeLabel}
