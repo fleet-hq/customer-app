@@ -18,39 +18,29 @@ export function ContactLayout({ tenant, page, path }: { tenant: Tenant; page: Co
     <div className="bg-white text-ink">
       <JsonLd data={contentPageSchema(tenant, page, path)} />
 
-      <section className="relative overflow-hidden border-b border-hairline bg-secondary">
-        <div
-          className="pointer-events-none absolute inset-0 opacity-80"
-          aria-hidden="true"
-          style={{
-            background:
-              'radial-gradient(110% 120% at 90% -20%, color-mix(in srgb, var(--color-primary) 45%, transparent) 0%, transparent 60%)',
-          }}
-        />
-        <div className="relative mx-auto w-full max-w-[1080px] px-4 pt-[56px] pb-[48px] sm:px-6 sm:pt-[72px] sm:pb-[56px]">
-          <span className="text-[12px] font-semibold uppercase tracking-[0.1em] text-white/70">
-            <Dyn>{co(page.eyebrow || 'Contact')}</Dyn>
-          </span>
-          {page.h1 ? (
-            <h1 className="mt-[16px] max-w-[720px] font-manrope text-[34px] font-bold leading-[1.1] tracking-[-0.025em] text-white text-balance sm:text-[46px]">
-              <Dyn>{co(page.h1)}</Dyn>
-            </h1>
-          ) : null}
-          {page.intro?.length ? (
-            <div className="mt-[16px] flex max-w-[620px] flex-col gap-[10px]">
-              {page.intro.map((p, i) => (
-                <p key={i} className="text-[16px] leading-[1.65] text-white/85">
-                  <Dyn>{co(p)}</Dyn>
-                </p>
-              ))}
-            </div>
-          ) : null}
-        </div>
-      </section>
+      {inquiry ? (
+        <section className="mx-auto grid w-full max-w-[1120px] grid-cols-1 gap-[36px] px-4 pt-[44px] pb-[8px] sm:px-6 sm:pt-[56px] lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-[56px]">
+          <aside className="flex flex-col gap-[16px] lg:pt-[8px]">
+            <span className="inline-flex w-fit items-center rounded-full border border-primary-border bg-white px-[13px] py-[6px] text-[11.5px] font-semibold uppercase tracking-[0.06em] text-primary">
+              <Dyn>{co(page.eyebrow || 'Contact')}</Dyn>
+            </span>
+            {page.h1 ? (
+              <h1 className="m-0 font-manrope text-[30px] font-bold leading-[1.12] tracking-[-0.02em] text-ink text-balance sm:text-[38px]">
+                <Dyn>{co(page.h1)}</Dyn>
+              </h1>
+            ) : null}
+            {page.intro?.length ? (
+              <div className="flex flex-col gap-[10px]">
+                {page.intro.map((p, i) => (
+                  <p key={i} className="text-[15.5px] leading-[1.7] text-muted">
+                    <Dyn>{co(p)}</Dyn>
+                  </p>
+                ))}
+              </div>
+            ) : null}
+          </aside>
 
-      <section className="mx-auto flex w-full max-w-[1080px] flex-col gap-[24px] px-4 pt-[36px] pb-[24px] sm:px-6 sm:pt-[44px]">
-        {inquiry ? (
-          <div className="rounded-[20px] border border-card-border bg-white p-[26px] shadow-[var(--shadow-card)] sm:p-[32px]">
+          <div className="rounded-[22px] border border-card-border bg-white p-[22px] shadow-[var(--shadow-card)] sm:p-[32px]">
             {inquiry.title ? (
               <h2 className="m-0 mb-[8px] font-manrope text-[21px] font-bold tracking-[-0.01em] text-ink">
                 <Dyn>{co(inquiry.title)}</Dyn>
@@ -67,8 +57,40 @@ export function ContactLayout({ tenant, page, path }: { tenant: Tenant; page: Co
             ) : null}
             <InquiryForm config={inquiry} tenantName={tenant.name} domain={tenant.domain} />
           </div>
-        ) : null}
+        </section>
+      ) : (
+        <section className="relative overflow-hidden border-b border-hairline bg-secondary">
+          <div
+            className="pointer-events-none absolute inset-0 opacity-80"
+            aria-hidden="true"
+            style={{
+              background:
+                'radial-gradient(110% 120% at 90% -20%, color-mix(in srgb, var(--color-primary) 45%, transparent) 0%, transparent 60%)',
+            }}
+          />
+          <div className="relative mx-auto w-full max-w-[1080px] px-4 pt-[56px] pb-[48px] sm:px-6 sm:pt-[72px] sm:pb-[56px]">
+            <span className="text-[12px] font-semibold uppercase tracking-[0.1em] text-white/70">
+              <Dyn>{co(page.eyebrow || 'Contact')}</Dyn>
+            </span>
+            {page.h1 ? (
+              <h1 className="mt-[16px] max-w-[720px] font-manrope text-[34px] font-bold leading-[1.1] tracking-[-0.025em] text-white text-balance sm:text-[46px]">
+                <Dyn>{co(page.h1)}</Dyn>
+              </h1>
+            ) : null}
+            {page.intro?.length ? (
+              <div className="mt-[16px] flex max-w-[620px] flex-col gap-[10px]">
+                {page.intro.map((p, i) => (
+                  <p key={i} className="text-[16px] leading-[1.65] text-white/85">
+                    <Dyn>{co(p)}</Dyn>
+                  </p>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </section>
+      )}
 
+      <section className="mx-auto flex w-full max-w-[1120px] flex-col gap-[24px] px-4 pt-[36px] pb-[24px] sm:px-6 sm:pt-[44px]">
         <ContactActions tenant={tenant} />
 
         {blocks.map((block, i) => (
