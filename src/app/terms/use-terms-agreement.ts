@@ -15,6 +15,7 @@ import {
 import { useBookingDetails, useBookingDrivers } from '@/hooks/useBooking';
 import { submitBookingSignature, toAgreementExtras, type AgreementData } from '@/services/agreementServices';
 import { setBookingToken } from '@/utils/booking-token';
+import { milesLabel, overageLabel } from '@/lib/agreement-format';
 
 export interface Section {
   heading: string;
@@ -105,11 +106,7 @@ export function useTermsAgreement() {
     if (!isBound || !bookingData) return null;
     const ins = bookingData.insuranceCoverage;
     const signedSnapshot = apiAgreement?.fromSnapshot ? apiAgreement : null;
-    const miles = bookingData.vehicle.milesUnlimited
-      ? 'Unlimited'
-      : (bookingData.vehicle.milesPerDay ?? 0) > 0
-        ? `${bookingData.vehicle.milesPerDay} miles/day`
-        : 'N/A';
+    const miles = milesLabel(bookingData.vehicle);
     return {
       id: apiAgreement?.id ?? 0,
       status: apiAgreement?.signatureImage ? 'signed' : 'pending',
@@ -168,10 +165,7 @@ export function useTermsAgreement() {
         vehicleName: bookingData.vehicle.name,
         minimumMiles: miles,
         maximumMiles: miles,
-        overageFee:
-          (bookingData.vehicle.milesOverageRate ?? 0) > 0
-            ? `$${bookingData.vehicle.milesOverageRate!.toFixed(2)}/mile`
-            : '$0.00',
+        overageFee: overageLabel(bookingData.vehicle.milesOverageRate),
         minDriverAge: bookingData.vehicle.minDriverAge ?? null,
         maxDriverAge: bookingData.vehicle.maxDriverAge ?? null,
       },

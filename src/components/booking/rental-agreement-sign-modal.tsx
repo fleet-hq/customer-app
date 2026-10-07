@@ -8,6 +8,8 @@ import { SignaturePad } from '@/components/ui/signature-pad';
 import { useDefaultAgreementTemplate, useBonzahAddendum } from '@/hooks/useAgreements';
 import { useDynamicTranslation } from '@/hooks/useDynamicTranslation';
 import { useTenant } from '@/lib/tenant-context';
+import { RentalAgreementPreview } from '@/components/booking/rental-agreement-preview';
+import type { AgreementData } from '@/services/agreementServices';
 import styles from '@/styles/template-2.module.css';
 
 interface RentalAgreementSignModalProps {
@@ -16,6 +18,10 @@ interface RentalAgreementSignModalProps {
   onSigned: (signatureDataUri: string) => void;
   initialSignature?: string | null;
   showBonzahAddendum?: boolean;
+  /** Full agreement to preview. When present the modal renders the whole
+   *  document exactly as the customer will see it after booking, instead
+   *  of the clauses alone. */
+  data?: AgreementData;
 }
 
 const WITNESS_BODY =
@@ -91,6 +97,7 @@ export function RentalAgreementSignModal({
   onSigned,
   initialSignature = null,
   showBonzahAddendum = false,
+  data,
 }: RentalAgreementSignModalProps) {
   const tenant = useTenant();
   const isT2 = tenant.websiteTemplate === 'template_2';
@@ -143,13 +150,14 @@ export function RentalAgreementSignModal({
       role="dialog"
       aria-modal="true"
       aria-label="Rental Agreement"
-      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-2 sm:p-4"
       onClick={onClose}
     >
       <div
         onClick={(e) => e.stopPropagation()}
         className={cn(
-          'flex max-h-[85vh] w-full max-w-[640px] flex-col overflow-hidden rounded-2xl shadow-2xl',
+          'flex h-[94vh] sm:h-auto max-h-[94vh] sm:max-h-[92vh] w-full flex-col overflow-hidden rounded-2xl shadow-2xl',
+          data ? 'max-w-[920px]' : 'max-w-[640px]',
           isT2 ? 'rounded-[3px] bg-[var(--card)] border border-[var(--line)]' : 'bg-white',
         )}
       >
@@ -177,6 +185,11 @@ export function RentalAgreementSignModal({
           </button>
         </div>
 
+        {data ? (
+          <div className={cn('flex-1 overflow-y-auto', isT2 ? 'bg-[var(--paper)]' : 'bg-[#F5F7F9]')}>
+            <RentalAgreementPreview data={data} onSignatureChange={setSignature} />
+          </div>
+        ) : (
         <div
           className={cn(
             'flex-1 overflow-y-auto px-4 py-5 sm:px-6 space-y-4',
@@ -292,13 +305,42 @@ export function RentalAgreementSignModal({
             </Paper>
           )}
         </div>
+        )}
 
         <div
           className={cn(
-            'flex items-center justify-end gap-2 border-t px-6 py-4',
+            'flex flex-col gap-3 border-t px-4 py-3 sm:flex-row sm:items-center sm:gap-2 sm:px-6 sm:py-4',
+            data ? 'sm:justify-between' : 'sm:justify-end',
             isT2 ? 'border-[var(--line)]' : 'border-[#e2e8f0]',
           )}
         >
+          {data && (
+            <label
+              onClick={() => setAgree((a) => !a)}
+              className="flex cursor-pointer items-start gap-[10px] sm:items-center"
+            >
+              <span
+                className={cn(
+                  'mt-px inline-flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-[5px] border-[1.5px] sm:mt-0',
+                  isT2
+                    ? agree
+                      ? 'border-[var(--brass)] bg-[var(--brass)]'
+                      : 'border-[var(--line-strong)] bg-[var(--card)]'
+                    : agree
+                      ? 'border-primary bg-primary'
+                      : 'border-control bg-white',
+                )}
+              >
+                {agree && <Check size={11} strokeWidth={3} className={isT2 ? 'text-[var(--on-brass)]' : 'text-white'} />}
+              </span>
+              <span className={cn('text-[12px] leading-[1.5]', isT2 ? 'text-[var(--text)]' : 'text-[#131314]')}>
+                {t('I have read and agree to the')}{' '}
+                <span className="font-semibold">{t(titleText)}</span>.
+              </span>
+            </label>
+          )}
+
+          <div className="flex items-center justify-end gap-2">
           <button
             type="button"
             onClick={onClose}
@@ -327,6 +369,7 @@ export function RentalAgreementSignModal({
           >
             {t('Sign & Accept')}
           </button>
+          </div>
         </div>
       </div>
     </div>

@@ -27,7 +27,9 @@ function fmtDateLong(iso?: string | null, timezone?: string | null): string {
 }
 
 function agreementNo(id?: number | null): string {
-  if (id == null) return DASH;
+  // 0 means the agreement record doesn't exist yet (previewing before
+  // booking) — there is no number to show rather than "AGR-000".
+  if (id == null || id === 0) return DASH;
   return `AGR-${String(id).padStart(3, '0')}`;
 }
 

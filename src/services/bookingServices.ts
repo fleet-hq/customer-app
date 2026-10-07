@@ -566,7 +566,7 @@ export interface BookingDetails {
 // booking's tenant timezone — REQUIRED for a Lahore customer viewing a
 // New York booking to see the rental-location's clock rather than
 // their own. Falls back to browser local only if tz is missing.
-function formatBookingDate(dateStr: string, tz?: string): string {
+export function formatBookingDate(dateStr: string, tz?: string): string {
   const d = new Date(dateStr);
   if (Number.isNaN(d.getTime())) return '';
   const opts: Intl.DateTimeFormatOptions = {
@@ -582,7 +582,7 @@ function formatBookingDate(dateStr: string, tz?: string): string {
   return `${get('weekday')}. ${get('day')} ${get('month')}, ${get('year')}`;
 }
 
-function formatBookingTime(dateStr: string, tz?: string): string {
+export function formatBookingTime(dateStr: string, tz?: string): string {
   const d = new Date(dateStr);
   if (Number.isNaN(d.getTime())) return '';
   return d.toLocaleTimeString('en-US', {
@@ -593,7 +593,7 @@ function formatBookingTime(dateStr: string, tz?: string): string {
   });
 }
 
-function formatCreatedDate(dateStr: string): string {
+export function formatCreatedDate(dateStr: string): string {
   const date = new Date(dateStr);
   const day = date.getDate();
   const suffix = day === 1 || day === 21 || day === 31 ? 'st' : day === 2 || day === 22 ? 'nd' : day === 3 || day === 23 ? 'rd' : 'th';

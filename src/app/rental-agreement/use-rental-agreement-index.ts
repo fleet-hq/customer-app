@@ -13,6 +13,7 @@ import {
 import { useBookingDetails } from '@/hooks/useBooking';
 import { submitBookingSignature, toAgreementExtras, type AgreementData } from '@/services/agreementServices';
 import { setBookingToken } from '@/utils/booking-token';
+import { milesLabel, overageLabel } from '@/lib/agreement-format';
 
 /** All /rental-agreement (index, no id) data, state, and handlers —
  *  shared verbatim by both templates. Mechanical extraction of what
@@ -123,20 +124,9 @@ export function useRentalAgreementIndex() {
         bookedAt: bookingData.bookedOn,
         vin: bookingData.vehicle.vin,
         vehicleName: bookingData.vehicle.name,
-        minimumMiles: bookingData.vehicle.milesUnlimited
-          ? 'Unlimited'
-          : (bookingData.vehicle.milesPerDay ?? 0) > 0
-            ? `${bookingData.vehicle.milesPerDay} miles/day`
-            : 'N/A',
-        maximumMiles: bookingData.vehicle.milesUnlimited
-          ? 'Unlimited'
-          : (bookingData.vehicle.milesPerDay ?? 0) > 0
-            ? `${bookingData.vehicle.milesPerDay} miles/day`
-            : 'N/A',
-        overageFee:
-          (bookingData.vehicle.milesOverageRate ?? 0) > 0
-            ? `$${bookingData.vehicle.milesOverageRate!.toFixed(2)}/mile`
-            : '$0.00',
+        minimumMiles: milesLabel(bookingData.vehicle),
+        maximumMiles: milesLabel(bookingData.vehicle),
+        overageFee: overageLabel(bookingData.vehicle.milesOverageRate),
         minDriverAge: bookingData.vehicle.minDriverAge ?? null,
         maxDriverAge: bookingData.vehicle.maxDriverAge ?? null,
       },

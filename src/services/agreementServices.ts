@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { getDomainParams } from '@/utils/company';
+import { milesLabel, overageLabel } from '@/lib/agreement-format';
 import { getBookingToken, getBookingTokenHeaders } from '@/utils/booking-token';
 import { formatDate, formatDateTime } from '@/lib/utils';
 import type { AvailableExtra } from '@/services/bookingServices';
@@ -315,6 +316,10 @@ function transformAgreement(api: ApiAgreement): AgreementData {
   const customer = booking?.customer;
   const fleet = booking?.fleet;
   const company = api.company;
+  const fleetMiles = milesLabel({
+    milesUnlimited: api.booking_details?.fleet?.booking_rule?.miles_unlimited,
+    milesPerDay: api.booking_details?.fleet?.booking_rule?.miles_per_day,
+  });
   const snapshot = api.agreement_snapshot
     ? agreementPartsFromSnapshot(api.agreement_snapshot)
     : null;
@@ -383,19 +388,9 @@ function transformAgreement(api: ApiAgreement): AgreementData {
       bookedAt: formatDateLong(booking?.created_at || null),
       vin: fleet?.vin || 'N/A',
       vehicleName: fleet ? `${fleet.year} ${fleet.name}` : 'N/A',
-      minimumMiles: fleet?.booking_rule?.miles_unlimited
-        ? 'Unlimited'
-        : Number(fleet?.booking_rule?.miles_per_day || 0) > 0
-          ? `${Number(fleet?.booking_rule?.miles_per_day)} miles/day`
-          : 'N/A',
-      maximumMiles: fleet?.booking_rule?.miles_unlimited
-        ? 'Unlimited'
-        : Number(fleet?.booking_rule?.miles_per_day || 0) > 0
-          ? `${Number(fleet?.booking_rule?.miles_per_day)} miles/day`
-          : 'N/A',
-      overageFee: Number(fleet?.booking_rule?.miles_overage_rate || 0) > 0
-        ? `$${Number(fleet?.booking_rule?.miles_overage_rate).toFixed(2)}/mile`
-        : '$0.00',
+      minimumMiles: fleetMiles,
+      maximumMiles: fleetMiles,
+      overageFee: overageLabel(fleet?.booking_rule?.miles_overage_rate),
       minDriverAge: fleet?.booking_rule?.min_driver_age ?? null,
       maxDriverAge: fleet?.booking_rule?.max_driver_age ?? null,
     },

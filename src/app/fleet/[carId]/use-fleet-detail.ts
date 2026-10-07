@@ -30,7 +30,8 @@ import { buildUnavailabilityIndex, slotsBlockedOn, firstBlockInSpan } from '@/li
 import { formatInTimeZone } from 'date-fns-tz';
 import { useEmbedBridge } from '@/hooks';
 import { useTenant } from '@/lib/tenant-context';
-import { useDefaultAgreementTemplate } from '@/hooks/useAgreements';
+import { useDefaultAgreementTemplate, useCompanySettings, useBonzahAddendum } from '@/hooks/useAgreements';
+import { useBookingAgreementData } from '@/components/booking/use-booking-agreement-data';
 import { useAbiQuote } from '@/hooks/useAbi';
 import type { AbiQuoteAvailable } from '@/services/abiServices';
 import { useDynamicTranslation } from '@/hooks/useDynamicTranslation';
@@ -398,7 +399,34 @@ export function useFleetDetail(carId: string) {
     extrasById,
   ]);
 
+  const { data: companySettings } = useCompanySettings();
+  const { data: bonzahAddendumData } = useBonzahAddendum();
+
+  // The agreement exactly as it will read once booked, so the customer
+  // reviews the real document before signing rather than clauses alone.
+  const agreementPreviewData = useBookingAgreementData({
+    vehicle,
+    pricing,
+    selectedExtras: extras,
+    customer: fields,
+    pickupDate,
+    pickupTime,
+    returnDate,
+    returnTime,
+    pickupIso: fleetDateArgs?.pickupDatetime,
+    dropoffIso: fleetDateArgs?.dropoffDatetime,
+    company: companySettings,
+    tenantName: tenant.name,
+    template: rentalAgreementTemplate,
+    addendum: selectedInsurance.size > 0 ? bonzahAddendumData ?? null : null,
+    timezone: fleetTz,
+    insuranceLabel,
+    ownInsurance: selectedInsurance.has('own'),
+    signature: rentalAgreementSignature,
+  });
+
   const common = {
+    agreementPreviewData,
     router,
     searchParams,
     embed,

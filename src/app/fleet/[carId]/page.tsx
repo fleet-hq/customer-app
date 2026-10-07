@@ -173,6 +173,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
     pricing,
     extraInvoiceItems,
     insuranceLabel,
+    agreementPreviewData,
   } = fd;
 
   return (
@@ -966,6 +967,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
         onClose={() => setRentalAgreementModalOpen(false)}
         initialSignature={rentalAgreementSignature}
         showBonzahAddendum={selectedInsurance.size > 0}
+        data={agreementPreviewData}
         onSigned={(dataUri) => {
           fd.setRentalAgreementSignature(dataUri);
           setRentalAgreementModalOpen(false);
