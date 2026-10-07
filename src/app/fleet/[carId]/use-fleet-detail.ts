@@ -34,6 +34,7 @@ import { useDefaultAgreementTemplate } from '@/hooks/useAgreements';
 import { useAbiQuote } from '@/hooks/useAbi';
 import type { AbiQuoteAvailable } from '@/services/abiServices';
 import { useDynamicTranslation } from '@/hooks/useDynamicTranslation';
+import { pickDefaultLocation } from '@/lib/locations';
 import { extractApiErrorMessage } from './fleet-detail-shared';
 import { trackVehicleView, trackBeginCheckout } from '@/lib/tracking-events';
 
@@ -266,10 +267,9 @@ export function useFleetDetail(carId: string) {
     const pickupLocs = companyLocations.filter((l) => l.type === 'pickup' || l.type === 'both');
     const dropoffLocs = companyLocations.filter((l) => l.type === 'dropoff' || l.type === 'both');
     const def =
-      pickupLocs.find((l) => String(l.id) === String(defaultLoc?.id)) ?? pickupLocs[0] ?? companyLocations[0];
+      pickDefaultLocation(pickupLocs, defaultLoc?.id) ?? companyLocations[0];
     setPickupLocId(String(def.id));
-    const dropDef =
-      dropoffLocs.find((l) => String(l.id) === String(def.id)) ?? dropoffLocs[0] ?? def;
+    const dropDef = pickDefaultLocation(dropoffLocs, def.id) ?? def;
     setDropoffLocId(String(dropDef.id));
   }, [companyLocations, defaultLoc, pickupLocId]);
 

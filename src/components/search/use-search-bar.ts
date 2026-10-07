@@ -6,7 +6,9 @@ import { paths } from '@/lib/paths';
 import { isEmbedded, requestHandoff } from '@/lib/embed-bridge';
 import { DEFAULT_TRIP } from '@/lib/mock-data';
 import { useCompanyLocations } from '@/hooks';
+import { useCompany } from '@/contexts';
 import { useFleetDiscountsSummary } from '@/hooks/useFleetDiscounts';
+import { pickDefaultLocation } from '@/lib/locations';
 import { rentalDays } from '@/lib/utils';
 
 const WEEK_DAYS = 7;
@@ -21,6 +23,8 @@ export function useSearchBar() {
   const rootRef = useRef<HTMLDivElement>(null);
 
   const { data: apiLocations } = useCompanyLocations();
+  const { company, isLoading: companyLoading } = useCompany();
+  const defaultLoc = company?.defaultLocation ?? null;
   const pickupLocations = useMemo(
     () => (apiLocations ?? []).filter((l) => l.type === 'pickup' || l.type === 'both'),
     [apiLocations],
@@ -44,9 +48,19 @@ export function useSearchBar() {
   const [openLoc, setOpenLoc] = useState<null | 'pickup' | 'drop'>(null);
 
   useEffect(() => {
-    if (pickupLocations.length && !pickupLocId) setPickupLocId(pickupLocations[0].id);
-    if (dropoffLocations.length && !dropLocId) setDropLocId(dropoffLocations[0].id);
-  }, [pickupLocations, dropoffLocations, pickupLocId, dropLocId]);
+    // Wait for the company's default location to resolve, otherwise a
+    // fast locations response seeds the alphabetically-first location
+    // and the effect never runs again to correct it.
+    if (companyLoading) return;
+    if (pickupLocations.length && !pickupLocId) {
+      const def = pickDefaultLocation(pickupLocations, defaultLoc?.id);
+      if (def) setPickupLocId(def.id);
+    }
+    if (dropoffLocations.length && !dropLocId) {
+      const def = pickDefaultLocation(dropoffLocations, defaultLoc?.id);
+      if (def) setDropLocId(def.id);
+    }
+  }, [pickupLocations, dropoffLocations, pickupLocId, dropLocId, defaultLoc, companyLoading]);
 
   const selectedPickup = pickupLocations.find((l) => l.id === pickupLocId);
   const selectedDrop = dropoffLocations.find((l) => l.id === dropLocId);

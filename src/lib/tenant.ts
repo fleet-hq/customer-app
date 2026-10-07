@@ -1,3 +1,4 @@
+import { pickDefaultLocation } from '@/lib/locations';
 import type {
   BrandTheme,
   CategoriesSection,
@@ -101,8 +102,7 @@ export interface Tenant {
 }
 
 export function defaultLocation(tenant: Tenant): TenantLocation | undefined {
-  if (!tenant.locations.length) return undefined;
-  return tenant.locations.find((l) => l.id === tenant.defaultLocationId) ?? tenant.locations[0];
+  return pickDefaultLocation(tenant.locations, tenant.defaultLocationId);
 }
 
 /** Replace ``{company}`` placeholders in admin-supplied copy with the
