@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { DEFAULT_TRIP } from '@/lib/mock-data';
-import { termRate, TERM_DAYS } from '@/app/fleet/use-fleet-listing';
 import {
   useFleet,
   useInsuranceOptions,
@@ -948,27 +947,10 @@ export function useFleetDetail(carId: string) {
   const dropoffMinTime = selectedDropoff && !selectedDropoff.is247 ? selectedDropoff.openingTime : null;
   const dropoffMaxTime = selectedDropoff && !selectedDropoff.is247 ? selectedDropoff.closingTime : null;
 
-  const termRateCards = (
-    [
-      ['Daily', TERM_DAYS.daily],
-      ['Weekly', TERM_DAYS.weekly],
-      ['Monthly', TERM_DAYS.monthly],
-    ] as [string, number][]
-  ).flatMap(([label, days]) => {
-    const rate = termRate(vehicle, days);
-    if (!rate) return [];
-    // A term with no tier configured is just the daily rate multiplied
-    // out, which tells the customer nothing and undercuts the saving the
-    // term is advertised on. Show a term only once it is genuinely cheaper.
-    if (days > 1 && rate.discountPct <= 0) return [];
-    return [{ label, rate }];
-  });
-
   return {
     status: 'ready' as const,
     ...common,
     vehicle,
-    termRateCards,
     plans,
     recommendedPlanId,
     selectedPlans,

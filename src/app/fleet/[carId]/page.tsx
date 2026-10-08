@@ -146,7 +146,6 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
     selectedPlans,
     ownSelected,
     galleryImages,
-    termRateCards,
     discount,
     total,
     isInsuranceDisabled,
@@ -222,32 +221,6 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                 <div className="text-[11px] text-muted"><Dyn>per day</Dyn></div>
               </div>
             </div>
-
-            {termRateCards.length > 1 ? (
-              <div className="mb-[18px] grid grid-cols-3 gap-[10px]">
-                {termRateCards.map((r) => (
-                  <div
-                    key={r.label}
-                    className="rounded-[12px] border border-card-border bg-subtle px-[12px] py-[10px]"
-                  >
-                    <div className="text-[11px] font-semibold tracking-[0.04em] text-muted uppercase">
-                      <Dyn>{r.label}</Dyn>
-                    </div>
-                    <div className="mt-[3px] text-[16px] font-bold text-secondary">
-                      {money(r.rate.total)}
-                    </div>
-                    <div className="text-[11px] text-muted">
-                      {money(r.rate.perDay)}<Dyn> / day</Dyn>
-                      {r.rate.discountPct > 0 ? (
-                        <span className="ml-[5px] font-semibold text-primary">
-                          −{r.rate.discountPct}%
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : null}
 
             <div className="mb-[18px] flex gap-[10px]">
               <div

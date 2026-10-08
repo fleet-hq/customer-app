@@ -54,29 +54,6 @@ export function applicableDiscountPct(
   return best;
 }
 
-export interface TermRate {
-  days: number;
-  total: number;
-  perDay: number;
-  discountPct: number;
-}
-
-/** "From" price for a whole rental term, discounts included. Built on
- *  ``applicableDiscountPct`` so a rate shown on a card can never
- *  disagree with what the basket charges for the same duration. */
-export function termRate(
-  vehicle: { pricePerDay?: number; discounts?: { unitType: string; units: number; percentage: number }[] },
-  days: number,
-): TermRate | null {
-  const perDayBase = vehicle.pricePerDay;
-  if (!perDayBase || perDayBase <= 0 || days <= 0) return null;
-  const discountPct = applicableDiscountPct(vehicle.discounts, days * 24);
-  const perDay = perDayBase * (1 - discountPct / 100);
-  return { days, total: perDay * days, perDay, discountPct };
-}
-
-export const TERM_DAYS = { daily: 1, weekly: 7, monthly: 30 } as const;
-
 const slugify = (s: string) =>
   s.toLowerCase().trim().replace(/&/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
