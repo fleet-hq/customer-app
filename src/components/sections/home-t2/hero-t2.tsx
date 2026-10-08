@@ -40,8 +40,8 @@ export function HeroT2({ pill, headingLines, subheading, backgroundImage }: Hero
               <Link href={paths.fleet} className={`${styles.btn} ${styles.btnBrass}`}>
                 <Dyn>Reserve a car</Dyn>
               </Link>
-              <Link href={paths.fleet} className={`${styles.btn} ${styles.btnOnInkGhost}`}>
-                <Dyn>Browse the fleet</Dyn>
+              <Link href={paths.manage} className={`${styles.btn} ${styles.btnOnInkGhost}`}>
+                <Dyn>Manage Bookings</Dyn>
               </Link>
             </div>
           </div>
