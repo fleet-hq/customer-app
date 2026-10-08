@@ -71,7 +71,7 @@ export default function VerifyIdClientT2() {
 
         <div className={styles.priceCard} style={{ marginTop: '1.4rem', position: 'static' }}>
           <label style={{ marginBottom: '0.6rem', display: 'block', fontSize: '0.76rem', fontWeight: 600 }}><Dyn>Driver&apos;s license photo</Dyn></label>
-          <div style={{ marginBottom: '1.4rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.7rem' }}>
+          <div className={styles.grid2} style={{ marginBottom: '1.4rem', gap: '0.7rem' }}>
             <Dropzone added={front} onClick={() => setFront(true)} caption={t('Front of license')} />
             <Dropzone added={back} onClick={() => setBack(true)} caption={t('Back of license')} />
           </div>
@@ -97,7 +97,7 @@ export default function VerifyIdClientT2() {
           <p className={styles.noticeBoxDanger} style={{ marginTop: '1rem' }}>{t(error)}</p>
         )}
 
-        <div style={{ marginTop: '1.4rem', display: 'flex', gap: '0.8rem' }}>
+        <div className={styles.btnRow}>
           <a href={bookingHref} className={`${styles.btn} ${styles.btnGhost}`}>
             <Dyn>Cancel</Dyn>
           </a>
@@ -106,7 +106,6 @@ export default function VerifyIdClientT2() {
             onClick={submit}
             disabled={pending}
             className={`${styles.btn} ${styles.btnBrass}`}
-            style={{ flex: 1, justifyContent: 'center', opacity: pending ? 0.6 : 1 }}
           >
             {pending ? t('Redirecting…') : t('Submit for verification')}
           </button>

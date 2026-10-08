@@ -158,23 +158,15 @@ export default function CancelBookingClientT2({ id }: { id: string }) {
 
             {error && <p style={{ marginTop: '1rem', fontSize: '0.85rem', color: 'var(--danger)' }}>{t(error)}</p>}
 
-            <div style={{ marginTop: '1.6rem', display: 'flex', gap: '0.8rem' }}>
-              <Link href={bookingLink} className={`${styles.btn} ${styles.btnGhost}`} style={{ flex: 1, justifyContent: 'center' }}>
+            <div className={styles.btnRow}>
+              <Link href={bookingLink} className={`${styles.btn} ${styles.btnGhost}`}>
                 <Dyn>Keep booking</Dyn>
               </Link>
               <button
                 type="button"
                 disabled={!reason || cancelling}
                 onClick={handleCancel}
-                className={styles.btn}
-                style={{
-                  flex: 1,
-                  justifyContent: 'center',
-                  background: reason && !cancelling ? 'var(--danger)' : 'var(--line)',
-                  color: '#fff',
-                  borderColor: reason && !cancelling ? 'var(--danger)' : 'var(--line)',
-                  cursor: reason && !cancelling ? 'pointer' : 'not-allowed',
-                }}
+                className={`${styles.btn} ${styles.btnDanger}`}
               >
                 {cancelling ? t('Cancelling...') : t('Cancel booking')}
               </button>

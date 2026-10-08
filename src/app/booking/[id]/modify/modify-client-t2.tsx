@@ -29,7 +29,7 @@ export default function ModifyTripClientT2({ id }: { id: string }) {
 
   if (tm.status === 'loading') {
     return (
-      <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className={styles.centerState}>
         <p style={{ color: 'var(--text-muted)' }}><Dyn>Loading…</Dyn></p>
       </div>
     );
@@ -37,7 +37,7 @@ export default function ModifyTripClientT2({ id }: { id: string }) {
 
   if (tm.status === 'not-found') {
     return (
-      <div style={{ minHeight: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: '0.6rem' }}>
+      <div className={styles.centerState}>
         <h1><Dyn>Booking not found</Dyn></h1>
         <p style={{ color: 'var(--text-muted)' }}><Dyn>The booking you are looking for does not exist.</Dyn></p>
       </div>
@@ -99,7 +99,7 @@ export default function ModifyTripClientT2({ id }: { id: string }) {
         </p>
 
         <div className={styles.priceCard} style={{ marginTop: '1.6rem', position: 'static' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+          <div className={styles.grid2}>
             <Field label={`${t('Pick-up date & time')}${isOngoing ? ` ${t('(locked — trip has started)')}` : ''}`}>
               <div style={{ borderRadius: 2, border: '1px solid var(--line)', padding: '0.7rem 0.85rem', opacity: isOngoing ? 0.75 : 1 }}>
                 <DateTimeField
@@ -258,7 +258,7 @@ export default function ModifyTripClientT2({ id }: { id: string }) {
 
         {error && <p style={{ marginTop: '1rem', color: 'var(--danger)', fontSize: '0.85rem' }}>{t(error)}</p>}
 
-        <div style={{ marginTop: '1.6rem', display: 'flex', gap: '0.8rem' }}>
+        <div className={styles.btnRow}>
           <button
             type="button"
             onClick={() => router.push(`${paths.booking(bookingId)}?token=${token || ''}`)}

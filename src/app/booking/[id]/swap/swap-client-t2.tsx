@@ -64,7 +64,7 @@ export default function SwapVehicleClientT2({ id }: { id: string }) {
   }
 
   return (
-    <div className={styles.section} style={{ paddingBottom: '7rem' }}>
+    <div className={`${styles.section} ${styles.hasActionBar}`}>
       <div className={styles.container} style={{ maxWidth: '56rem' }}>
         <BackLink href={cancelHref}><Dyn>Back to booking</Dyn></BackLink>
 
@@ -102,7 +102,7 @@ export default function SwapVehicleClientT2({ id }: { id: string }) {
             </p>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.1rem' }}>
+          <div className={styles.autoGrid}>
             {vehicles.map((v) => {
               const vid = String(v.id);
               const isSelected = selected === vid;
@@ -164,9 +164,9 @@ export default function SwapVehicleClientT2({ id }: { id: string }) {
           <div className={styles.priceCard} style={{ marginTop: '2rem', position: 'static' }}>
             <div style={{ marginBottom: '1rem', fontSize: '0.9rem', fontWeight: 600 }}><Dyn>Review your change</Dyn></div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '1rem', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.7rem' }}>
-                <div style={{ width: 84, height: 58, flex: 'none', borderRadius: 2, backgroundSize: 'cover', backgroundPosition: 'center', backgroundImage: `url('${booking?.vehicle.image}')` }} />
+            <div className={styles.compareRow}>
+              <div className={styles.compareSide}>
+                <div className={styles.compareThumb} style={{ backgroundImage: `url('${booking?.vehicle.image}')` }} />
                 <div>
                   <div style={{ fontSize: '0.66rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)' }}><Dyn>Current</Dyn></div>
                   <div style={{ fontSize: '0.86rem', fontWeight: 600 }}>{booking?.vehicle.name}</div>
@@ -174,10 +174,10 @@ export default function SwapVehicleClientT2({ id }: { id: string }) {
                 </div>
               </div>
 
-              <span style={{ color: 'var(--brass)', fontWeight: 700 }}>→</span>
+              <span className={styles.compareArrow}>→</span>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.7rem' }}>
-                <div style={{ width: 84, height: 58, flex: 'none', borderRadius: 2, backgroundSize: 'cover', backgroundPosition: 'center', backgroundImage: `url('${newVehicleImage}')` }} />
+              <div className={styles.compareSide}>
+                <div className={styles.compareThumb} style={{ backgroundImage: `url('${newVehicleImage}')` }} />
                 <div>
                   <div style={{ fontSize: '0.66rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--brass)' }}><Dyn>New</Dyn></div>
                   <div style={{ fontSize: '0.86rem', fontWeight: 600 }}>{newVehicleName}</div>
@@ -272,9 +272,9 @@ export default function SwapVehicleClientT2({ id }: { id: string }) {
         )}
       </div>
 
-      <div style={{ position: 'fixed', insetInline: 0, bottom: 0, zIndex: 40, borderTop: '1px solid var(--line)', background: 'var(--paper)', backdropFilter: 'blur(6px)' }}>
-        <div className={styles.container} style={{ maxWidth: '56rem', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', paddingBlock: '0.9rem' }}>
-          <div style={{ minWidth: 180, flex: 1 }}>
+      <div className={styles.actionBar}>
+        <div className={`${styles.container} ${styles.actionBarInner}`} style={{ maxWidth: '56rem' }}>
+          <div className={styles.actionBarStatus}>
             {error ? (
               <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--danger)' }}>{t(error)}</div>
             ) : previewLoading ? (
@@ -297,7 +297,7 @@ export default function SwapVehicleClientT2({ id }: { id: string }) {
               <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}><Dyn>Select a vehicle to continue.</Dyn></div>
             )}
           </div>
-          <div style={{ display: 'flex', gap: '0.8rem' }}>
+          <div className={styles.actionBarActions}>
             <button type="button" onClick={() => router.push(cancelHref)} className={`${styles.btn} ${styles.btnGhost}`}>
               <Dyn>Cancel</Dyn>
             </button>
@@ -306,7 +306,6 @@ export default function SwapVehicleClientT2({ id }: { id: string }) {
               disabled={!selectedVehicle || previewLoading || !allowed || confirming}
               onClick={handleConfirm}
               className={`${styles.btn} ${styles.btnBrass}`}
-              style={{ opacity: !selectedVehicle || previewLoading || !allowed || confirming ? 0.5 : 1 }}
             >
               {confirming ? t('Processing...') : t('Confirm change')} →
             </button>

@@ -29,7 +29,7 @@ export default function RentalAgreementIndexT2() {
 
   if (isLoading) {
     return (
-      <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className={styles.centerState}>
         <p style={{ color: 'var(--text-muted)' }}>
           <Dyn>Loading agreement…</Dyn>
         </p>
@@ -60,7 +60,7 @@ export default function RentalAgreementIndexT2() {
     <>
       <div className={styles.container}>
         <div className={styles.articleHead}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1.5rem' }}>
+          <div className={styles.splitRow}>
             <div>
               <h1>{agreement.template.title}</h1>
               <p className={styles.articleIntro}>{agreement.template.description}</p>

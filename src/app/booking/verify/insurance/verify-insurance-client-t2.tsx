@@ -163,7 +163,7 @@ export default function VerifyInsuranceClientT2() {
           <p className={styles.noticeBoxDanger} style={{ marginTop: '1rem' }}>{t(error)}</p>
         )}
 
-        <div style={{ marginTop: '1.4rem', display: 'flex', gap: '0.8rem' }}>
+        <div className={styles.btnRow}>
           <a href={bookingHref} className={`${styles.btn} ${styles.btnGhost}`}>
             <Dyn>Cancel</Dyn>
           </a>
@@ -172,7 +172,6 @@ export default function VerifyInsuranceClientT2() {
             onClick={submit}
             disabled={pending}
             className={`${styles.btn} ${styles.btnBrass}`}
-            style={{ flex: 1, justifyContent: 'center', opacity: pending ? 0.6 : 1 }}
           >
             {pending ? t('Sending…') : useOwn ? t('Submit for verification') : t('Confirm protection')}
           </button>

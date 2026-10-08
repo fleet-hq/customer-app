@@ -12,7 +12,7 @@ export default function BookingDetailClientT2({ id }: { id: string }) {
 
   if (bd.status === 'loading') {
     return (
-      <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className={styles.centerState}>
         <p style={{ color: 'var(--text-muted)' }}><Dyn>Loading booking…</Dyn></p>
       </div>
     );
@@ -20,7 +20,7 @@ export default function BookingDetailClientT2({ id }: { id: string }) {
 
   if (bd.status === 'link-expired') {
     return (
-      <div style={{ minHeight: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: '0.6rem' }}>
+      <div className={styles.centerState}>
         <a href={paths.home} className={styles.linkMore}><Dyn>Back to home</Dyn></a>
         <h1 style={{ marginTop: '0.9rem' }}><Dyn>This booking link has expired</Dyn></h1>
         <p style={{ maxWidth: '30rem' }}>
@@ -38,7 +38,7 @@ export default function BookingDetailClientT2({ id }: { id: string }) {
 
   if (bd.status === 'not-found') {
     return (
-      <div style={{ minHeight: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: '0.6rem' }}>
+      <div className={styles.centerState}>
         <a href={paths.home} className={styles.linkMore}><Dyn>Back to home</Dyn></a>
         <h1 style={{ marginTop: '0.9rem' }}><Dyn>Booking not found</Dyn></h1>
         <p style={{ maxWidth: '30rem' }}>

@@ -140,7 +140,6 @@ export default function PayBookingClientT2({ bookingId }: { bookingId: string })
                 onClick={handlePay}
                 disabled={payLoading || outstanding <= 0}
                 className={`${styles.btn} ${styles.btnBrass} ${styles.reserveBtn}`}
-                style={{ opacity: payLoading || outstanding <= 0 ? 0.6 : 1 }}
               >
                 {payLoading ? t('Redirecting…') : outstanding > 0 ? `${t('Pay')} ${money(outstanding)}` : t('Paid in full')}
               </button>

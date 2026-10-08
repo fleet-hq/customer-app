@@ -121,7 +121,7 @@ export default function TermsClientT2() {
   return (
     <div className={styles.container}>
       <div className={styles.articleHead}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1.5rem' }}>
+        <div className={styles.splitRow}>
           <div>
             <h1>{title}</h1>
             <p className={styles.articleIntro}>{intro}</p>

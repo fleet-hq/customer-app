@@ -32,7 +32,7 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
 
   if (fd.status === 'loading') {
     return (
-      <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className={styles.centerState}>
         <p style={{ color: 'var(--text-muted)' }}>
           <Dyn>{fd.isLoading ? 'Loading vehicle…' : 'Fetching insurance quotes…'}</Dyn>
         </p>
@@ -42,7 +42,7 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
 
   if (fd.status === 'not-found') {
     return (
-      <div style={{ minHeight: '60vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
+      <div className={styles.centerState} style={{ gap: '1rem' }}>
         <a href={paths.fleet} className={styles.linkMore}><Dyn>Back to fleet</Dyn></a>
         <p style={{ color: 'var(--text-muted)' }}><Dyn>Vehicle not found.</Dyn></p>
       </div>
@@ -593,46 +593,36 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
       </div>
 
       {galleryOpen ? (
-        <div
-          onClick={() => setGalleryOpen(false)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 200,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'rgba(12,14,12,0.92)',
-            padding: '2rem',
-          }}
-        >
-          <div onClick={(e) => e.stopPropagation()} style={{ position: 'relative', width: '100%', maxWidth: 920 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-              <span style={{ color: '#fff', fontSize: '0.9rem', fontWeight: 600 }}>
+        <div className={styles.lightbox} onClick={() => setGalleryOpen(false)}>
+          <div className={styles.lightboxInner} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.lightboxHead}>
+              <span className={styles.lightboxTitle}>
                 {vehicle.name} · {galleryIndex + 1} / {gallery.length}
               </span>
               <button
                 type="button"
+                aria-label={t('Close')}
                 onClick={() => setGalleryOpen(false)}
-                style={{ background: 'rgba(255,255,255,0.12)', border: 0, borderRadius: '999px', width: 38, height: 38, color: '#fff', cursor: 'pointer' }}
+                className={styles.lightboxClose}
               >
                 <Close size={18} strokeWidth={2} />
               </button>
             </div>
-            <div style={{ position: 'relative', aspectRatio: '16 / 10', width: '100%', borderRadius: 4, overflow: 'hidden', background: '#1c2228' }}>
-              <img src={gallery[galleryIndex]} alt={vehicle.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <div className={styles.lightboxFrame}>
+              <img src={gallery[galleryIndex]} alt={vehicle.name} />
               <button
                 type="button"
+                aria-label={t('Previous')}
                 onClick={() => setGalleryIndex((i) => (i + gallery.length - 1) % gallery.length)}
-                style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', width: 42, height: 42, borderRadius: '999px', background: 'rgba(255,255,255,0.92)', border: 0, cursor: 'pointer' }}
+                className={`${styles.lightboxNav} ${styles.lightboxPrev}`}
               >
                 <ChevronLeft size={20} strokeWidth={2} />
               </button>
               <button
                 type="button"
+                aria-label={t('Next')}
                 onClick={() => setGalleryIndex((i) => (i + 1) % gallery.length)}
-                style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', width: 42, height: 42, borderRadius: '999px', background: 'rgba(255,255,255,0.92)', border: 0, cursor: 'pointer' }}
+                className={`${styles.lightboxNav} ${styles.lightboxNext}`}
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                   <path d="m9 18 6-6-6-6" />

@@ -52,6 +52,11 @@ export function HeaderT2() {
                 </Link>
               </li>
             ))}
+            <li className={styles.navMenuOnly}>
+              <Link href={paths.manage} onClick={() => setOpen(false)}>
+                <Dyn>Manage Bookings</Dyn>
+              </Link>
+            </li>
           </ul>
         </nav>
 
@@ -61,7 +66,7 @@ export function HeaderT2() {
               {phone}
             </a>
           ) : null}
-          <Link href={paths.manage} className={`${styles.btn} ${styles.btnGhost}`} onClick={() => setOpen(false)}>
+          <Link href={paths.manage} className={`${styles.btn} ${styles.btnGhost} ${styles.navManage}`} onClick={() => setOpen(false)}>
             <Dyn>Manage Bookings</Dyn>
           </Link>
           <Link href={paths.fleet} className={`${styles.btn} ${styles.btnBrass}`}>
