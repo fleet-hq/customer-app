@@ -73,6 +73,7 @@ export interface ApiBookingRule {
   available_at?: number[];
   min_duration?: number | string | null;
   max_duration?: number | string | null;
+  allow_short_trips_at_minimum?: boolean;
   miles_per_day?: number;
   miles_overage_rate?: number;
   security_deposit?: number;
@@ -171,6 +172,7 @@ export interface Vehicle {
   status?: string;
   availableLocations?: number[];
   minDuration?: number;
+  allowShortTripsAtMinimum?: boolean;
   maxDuration?: number;
   milesPerDay?: number;
   milesOverageRate?: number;
@@ -312,6 +314,7 @@ export function transformApiVehicle(apiVehicle: ApiVehicle): Vehicle {
     status: apiVehicle.status,
     availableLocations: apiVehicle.booking_rule?.available_at || [],
     minDuration: Number(apiVehicle.booking_rule?.min_duration) || 1,
+    allowShortTripsAtMinimum: Boolean(apiVehicle.booking_rule?.allow_short_trips_at_minimum),
     maxDuration: Number(apiVehicle.booking_rule?.max_duration) || undefined,
     milesPerDay: apiVehicle.booking_rule?.miles_per_day,
     milesOverageRate: apiVehicle.booking_rule?.miles_overage_rate,

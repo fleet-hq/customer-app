@@ -290,11 +290,19 @@ export function useFleetDetail(carId: string) {
     if (Number.isNaN(pickupMs) || Number.isNaN(dropoffMs)) return days * 24;
     return (dropoffMs - pickupMs) / 3600000;
   }, [pickupDate, pickupTime, returnDate, returnTime, days]);
+  // Mirrors bookings/duration.py on the server. With the operator's
+  // short-trip allowance the question is what the renter is billed —
+  // `days` already rounds part-days up the way the invoice does — so a
+  // trip that reaches the minimum on price is accepted even though it
+  // falls short on the clock.
+  const allowShortAtMin = vehicle?.allowShortTripsAtMinimum ?? false;
   const meetsMinDuration = isHourlyFleet
     ? rawRentalHours >= 1
-    : minDuration > 1
-      ? rawRentalHours >= minDuration * 24
-      : days >= minDuration;
+    : allowShortAtMin
+      ? days >= minDuration
+      : minDuration > 1
+        ? rawRentalHours >= minDuration * 24
+        : days >= minDuration;
 
   const selectedExtras = useMemo<Record<string, { enabled: boolean; quantity: number }>>(() => {
     const out: Record<string, { enabled: boolean; quantity: number }> = {};
