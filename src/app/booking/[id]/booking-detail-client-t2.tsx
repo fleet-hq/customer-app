@@ -76,6 +76,7 @@ export default function BookingDetailClientT2({ id }: { id: string }) {
     insuranceError,
     insuranceLinkAlreadySent,
     allRequiredChecksDone,
+    consentChecksDone,
     handlePay,
     payLoading,
     payError,
@@ -141,6 +142,7 @@ export default function BookingDetailClientT2({ id }: { id: string }) {
         insuranceLinkSent={insuranceLinkAlreadySent}
         onInsuranceVerify={handleInsuranceVerify}
         allRequiredChecksDone={allRequiredChecksDone}
+        consentChecksDone={consentChecksDone}
         onPay={handlePay}
         payLoading={payLoading}
         payError={payError}

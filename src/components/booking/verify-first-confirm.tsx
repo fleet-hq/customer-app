@@ -92,6 +92,8 @@ interface Props {
   insuranceFailureDetails: InsuranceVerificationDetails | null;
   onInsuranceVerify: () => void;
   allRequiredChecksDone: boolean;
+  /** Agreement signed and card authorized — gates a plain payment. */
+  consentChecksDone?: boolean;
   onPay: () => void;
   payLoading: boolean;
   payError: string | null;
@@ -151,6 +153,7 @@ export function VerifyFirstConfirm(props: Props) {
     insuranceFailureDetails,
     onInsuranceVerify,
     allRequiredChecksDone,
+    consentChecksDone,
     onPay,
     payLoading,
     payError,
@@ -435,18 +438,6 @@ export function VerifyFirstConfirm(props: Props) {
               onSign={onSignAgreement}
             />
 
-            {/* Both are consent rather than verification: the renter is
-                agreeing to terms and to a card being kept, and neither can
-                be given on their behalf. Pay stays disabled until both. */}
-            {staffAskedForCard && mode === 'payment_due' ? (
-              <CardConsent
-                checked={!!saveCard}
-                onChange={(next) => onChooseSaveCard?.(next)}
-                companyName={companyName ?? ''}
-                depositAmount={depositAmount}
-                required
-              />
-            ) : null}
 
             {mode !== 'cancelled' && (
               <TripPhotos
@@ -576,6 +567,20 @@ export function VerifyFirstConfirm(props: Props) {
                 </p>
               )}
 
+              {/* Sits directly above Pay: these are the two things the
+                  renter is agreeing to, and reading them in one column
+                  while the button lives in another is how people click
+                  through without having done either. */}
+              <PayGate
+                needsAgreement={!agreementSigned && !!agreementHref}
+                onSignAgreement={onSignAgreement}
+                staffAskedForCard={!!staffAskedForCard}
+                saveCard={!!saveCard}
+                onChooseSaveCard={onChooseSaveCard}
+                companyName={companyName ?? ''}
+                depositAmount={depositAmount}
+              />
+
               {mode === 'pending_verification' && (
                 <PayCTA
                   onPay={onPay}
@@ -598,13 +603,37 @@ export function VerifyFirstConfirm(props: Props) {
                 />
               )}
 
+              {/* Sits directly above Pay: these are the two things the
+                  renter is agreeing to, and reading them in one column
+                  while the button lives in another is how people click
+                  through without having done either. */}
+              <PayGate
+                needsAgreement={!agreementSigned && !!agreementHref}
+                onSignAgreement={onSignAgreement}
+                staffAskedForCard={!!staffAskedForCard}
+                saveCard={!!saveCard}
+                onChooseSaveCard={onChooseSaveCard}
+                companyName={companyName ?? ''}
+                depositAmount={depositAmount}
+              />
+
               {mode === 'payment_due' && (
                 <PayCTA
                   onPay={onPay}
-                  disabled={payLoading}
+                  disabled={consentChecksDone === false || payLoading}
                   loading={payLoading}
-                  label={`Pay ${money(outstanding || totalDue)}`}
-                  hint={payError}
+                  label={
+                    consentChecksDone !== false
+                      ? `Pay ${money(outstanding || totalDue)}`
+                      : 'Complete the steps above to pay'
+                  }
+                  hint={
+                    payError
+                      ? payError
+                      : consentChecksDone === false
+                        ? 'Sign the agreement and authorize the card to continue.'
+                        : null
+                  }
                 />
               )}
 
@@ -1045,6 +1074,72 @@ function OutstandingChargesCard({
           );
         })}
       </ul>
+    </div>
+  );
+}
+
+/** The two things a renter agrees to, directly above the Pay button.
+ *
+ *  The agreement opens the same signing modal used at checkout rather
+ *  than linking away mid-payment, and the card authorization sits under
+ *  it. Both feed the same gate the button is disabled by, so the page
+ *  cannot offer to take money for terms nobody has accepted. */
+function PayGate({
+  needsAgreement,
+  onSignAgreement,
+  staffAskedForCard,
+  saveCard,
+  onChooseSaveCard,
+  companyName,
+  depositAmount,
+}: {
+  needsAgreement: boolean;
+  onSignAgreement?: () => void;
+  staffAskedForCard: boolean;
+  saveCard: boolean;
+  onChooseSaveCard?: (next: boolean) => void;
+  companyName: string;
+  depositAmount?: number;
+}) {
+  const isT2 = useIsT2();
+  if (!needsAgreement && !staffAskedForCard) return null;
+  return (
+    <div className="mt-4">
+      {needsAgreement ? (
+        <button
+          type="button"
+          onClick={onSignAgreement}
+          className={cn(
+            'flex w-full items-center justify-between gap-3 rounded-[10px] border px-3.5 py-3 text-left transition-colors',
+            isT2
+              ? 'border-[var(--line-strong)] bg-[var(--card)] hover:border-[var(--brass)]'
+              : 'border-line bg-white hover:border-primary',
+          )}
+        >
+          <span className="min-w-0">
+            <span className={cn('block text-[12.5px] font-semibold', isT2 ? 'text-[var(--text)]' : 'text-ink')}>
+              <Dyn>Sign the rental agreement</Dyn>
+              <span className="ml-0.5 text-danger">*</span>
+            </span>
+            <span className={cn('mt-0.5 block text-[11px]', isT2 ? 'text-[var(--text-muted)]' : 'text-faint')}>
+              <Dyn>Required before payment</Dyn>
+            </span>
+          </span>
+          <span className={cn('shrink-0 text-[12px] font-semibold', isT2 ? 'text-[var(--brass)]' : 'text-primary')}>
+            <Dyn>Review &amp; sign</Dyn>
+          </span>
+        </button>
+      ) : null}
+
+      {staffAskedForCard ? (
+        <CardConsent
+          checked={saveCard}
+          onChange={(next) => onChooseSaveCard?.(next)}
+          companyName={companyName}
+          depositAmount={depositAmount}
+          required
+        />
+      ) : null}
     </div>
   );
 }

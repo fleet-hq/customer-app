@@ -402,6 +402,10 @@ export function useBookingDetail(id: string) {
   const needsAgreement = !!agreementHref && !agreementSigned;
   if (needsAgreement) pendingChecks.push('sign the rental agreement');
   if (needsConsent) pendingChecks.push('authorize the card on file');
+  // Verification and consent gate different buttons. A booking that is
+  // simply awaiting payment was never held behind ID checks, so it is
+  // gated on the two things the renter agrees to and nothing more.
+  const consentChecksDone = !needsAgreement && !needsConsent;
   const allRequiredChecksDone = pendingChecks.length === 0;
 
   const payAmount = isVerifyFirst
@@ -433,6 +437,7 @@ export function useBookingDetail(id: string) {
     requireInsurance,
     showInsuranceStep,
     allRequiredChecksDone,
+    consentChecksDone,
     needsAgreement,
     needsConsent,
     agreementModalOpen,
