@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useBookingDetails } from '@/hooks/useBooking';
 import { useBookingBalance } from '@/hooks/useBookingBalance';
+import { useCardConsent } from '@/components/booking/use-card-consent';
 import { createBillingCheckoutSession, type BillingPaymentRow, type BillingRefundRow } from '@/services/billingServices';
 import { setBookingToken } from '@/utils/booking-token';
 import { useTenant } from '@/lib/tenant-context';
@@ -43,6 +44,9 @@ export function usePaymentPending(id: string) {
     'Outstanding balance',
   ]);
 
+  const { staffAskedForCard, saveCard, chooseSaveCard, checkoutConsent } =
+    useCardConsent(booking?.cardOnFileRequested);
+
   const [payLoading, setPayLoading] = useState(false);
   const handlePay = async () => {
     if (payLoading) return;
@@ -53,6 +57,7 @@ export function usePaymentPending(id: string) {
       const result = await createBillingCheckoutSession({
         successUrl: `${origin}/booking/${id}${suffix}`,
         cancelUrl: `${origin}/booking/${id}/payment-pending${suffix}`,
+        ...checkoutConsent,
       });
       window.location.href = result.checkout_url;
     } catch {
@@ -88,6 +93,9 @@ export function usePaymentPending(id: string) {
     t,
     payLoading,
     handlePay,
+    staffAskedForCard,
+    saveCard,
+    chooseSaveCard,
     outstanding,
     totalCharged,
     totalPaid,

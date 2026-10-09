@@ -9,6 +9,7 @@ import { money } from '@/lib/utils';
 import { Dyn } from '@/components/i18n/Dyn';
 import { usePaymentPending } from './use-payment-pending';
 import styles from '@/styles/template-2.module.css';
+import { CardConsent } from '@/components/booking/card-consent';
 
 export default function PaymentPendingClientT2({ id }: { id: string }) {
   const {
@@ -20,7 +21,11 @@ export default function PaymentPendingClientT2({ id }: { id: string }) {
     balanceLoading,
     t,
     payLoading,
+    tenant,
     handlePay,
+    staffAskedForCard,
+    saveCard,
+    chooseSaveCard,
     outstanding,
     totalCharged,
     totalPaid,
@@ -130,6 +135,14 @@ export default function PaymentPendingClientT2({ id }: { id: string }) {
                   <Dyn>Across</Dyn> {unpaid.length} <Dyn>unpaid</Dyn> {unpaid.length === 1 ? t('item') : t('items')}.
                 </p>
               )}
+              {staffAskedForCard && outstanding > 0 ? (
+                <CardConsent
+                  checked={saveCard}
+                  onChange={chooseSaveCard}
+                  companyName={tenant.name}
+                  depositAmount={booking?.invoice.deposit}
+                />
+              ) : null}
               <button
                 type="button"
                 onClick={handlePay}

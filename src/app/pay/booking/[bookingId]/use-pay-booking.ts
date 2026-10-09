@@ -7,6 +7,7 @@ import { useBookingBalance } from '@/hooks/useBookingBalance';
 import { createBillingCheckoutSession, type BillingPaymentRow, type BillingRefundRow } from '@/services/billingServices';
 import { setBookingToken } from '@/utils/booking-token';
 import { useTenant } from '@/lib/tenant-context';
+import { useCardConsent } from '@/components/booking/use-card-consent';
 import { useDynamicTranslation } from '@/hooks/useDynamicTranslation';
 
 /** All standalone pay-booking data, state, and handlers — shared
@@ -43,19 +44,8 @@ export function usePayBooking(bookingId: string) {
     'Outstanding balance',
   ]);
 
-  // E8.5: staff's request pre-ticks the box, and the renter may untick
-  // it. Seeded once the booking arrives rather than on every render, so
-  // an untick isn't undone by a refetch.
-  const staffAskedForCard = !!booking?.cardOnFileRequested;
-  const [saveCard, setSaveCard] = useState(false);
-  const [saveCardTouched, setSaveCardTouched] = useState(false);
-  useEffect(() => {
-    if (!saveCardTouched) setSaveCard(staffAskedForCard);
-  }, [staffAskedForCard, saveCardTouched]);
-  const chooseSaveCard = (next: boolean) => {
-    setSaveCardTouched(true);
-    setSaveCard(next);
-  };
+  const { staffAskedForCard, saveCard, chooseSaveCard, checkoutConsent } =
+    useCardConsent(booking?.cardOnFileRequested);
 
   const [payLoading, setPayLoading] = useState(false);
   const handlePay = async () => {
@@ -67,10 +57,7 @@ export function usePayBooking(bookingId: string) {
       const result = await createBillingCheckoutSession({
         successUrl: `${origin}/booking/${bookingId}${suffix}`,
         cancelUrl: `${origin}/pay/booking/${bookingId}${suffix}`,
-        // Only offered when staff asked; otherwise the renter is never
-        // shown the box and the booking's own setting decides.
-        saveCard: staffAskedForCard ? saveCard : undefined,
-        cardConsent: staffAskedForCard && saveCard,
+        ...checkoutConsent,
       });
       window.location.href = result.checkout_url;
     } catch {

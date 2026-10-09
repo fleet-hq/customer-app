@@ -22,6 +22,7 @@ import {
 } from '@/services/bookingPolicyServices';
 import { isInsuranceFailed, isInsuranceVerified } from '@/services/bookingServices';
 import { squareCreatePaymentForVerifyFirst } from '@/services/squarePaymentServices';
+import { useCardConsent } from '@/components/booking/use-card-consent';
 import { createBillingCheckoutSession } from '@/services/billingServices';
 import { bookingHasInsuranceCover } from '@/lib/insurance-extras';
 import { setBookingToken } from '@/utils/booking-token';
@@ -117,6 +118,9 @@ export function useBookingDetail(id: string) {
     return () => clearInterval(intervalId);
   }, [isVerifyFirst, holdExpiresAt]);
 
+  const { staffAskedForCard, saveCard, chooseSaveCard, checkoutConsent } =
+    useCardConsent(booking?.cardOnFileRequested);
+
   const [payLoading, setPayLoading] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
   const [squareModalOpen, setSquareModalOpen] = useState(false);
@@ -146,6 +150,16 @@ export function useBookingDetail(id: string) {
   const handlePay = async () => {
     if (payLoading) return;
     setPayError(null);
+    // Staff asked for a card, so the renter has to be given the chance to
+    // authorize it before paying. This bar has no room for that question,
+    // and the payment-pending page already asks it — send them there
+    // rather than straight to the provider, where the card would be kept
+    // by the provider and then refused filing for want of consent.
+    if (staffAskedForCard && !isVerifyFirst) {
+      const suffix = token ? `?token=${token}` : '';
+      window.location.href = `/booking/${id}/payment-pending${suffix}`;
+      return;
+    }
     if (
       isVerifyFirst
       && token
@@ -174,6 +188,7 @@ export function useBookingDetail(id: string) {
               await createBillingCheckoutSession({
                 successUrl: cancelUrl,
                 cancelUrl,
+                ...checkoutConsent,
               })
             ).checkout_url;
       window.location.href = checkoutUrl;
@@ -428,6 +443,9 @@ export function useBookingDetail(id: string) {
     insuranceError,
     secondaryDrivers,
     handlePay,
+    staffAskedForCard,
+    saveCard,
+    chooseSaveCard,
     handleSquarePaySubmit,
     handleIdVerify,
     handleInsuranceVerify,

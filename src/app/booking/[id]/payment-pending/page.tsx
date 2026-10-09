@@ -10,6 +10,7 @@ import { cn, money } from '@/lib/utils';
 import { Dyn } from '@/components/i18n/Dyn';
 import { usePaymentPending } from './use-payment-pending';
 import PaymentPendingClientT2 from './payment-pending-client-t2';
+import { CardConsent } from '@/components/booking/card-consent';
 
 export default function PaymentPendingPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -20,6 +21,7 @@ export default function PaymentPendingPage({ params }: { params: Promise<{ id: s
   }
 
   const {
+    tenant,
     token,
     tokenReady,
     isLoading,
@@ -29,6 +31,9 @@ export default function PaymentPendingPage({ params }: { params: Promise<{ id: s
     t,
     payLoading,
     handlePay,
+    staffAskedForCard,
+    saveCard,
+    chooseSaveCard,
     outstanding,
     totalCharged,
     totalPaid,
@@ -155,6 +160,14 @@ export default function PaymentPendingPage({ params }: { params: Promise<{ id: s
                   <Dyn>Across</Dyn> {unpaid.length} <Dyn>unpaid</Dyn> {unpaid.length === 1 ? t('item') : t('items')}.
                 </p>
               )}
+              {staffAskedForCard && outstanding > 0 ? (
+                <CardConsent
+                  checked={saveCard}
+                  onChange={chooseSaveCard}
+                  companyName={tenant.name}
+                  depositAmount={booking?.invoice.deposit}
+                />
+              ) : null}
               <button
                 onClick={handlePay}
                 disabled={payLoading || outstanding <= 0}
