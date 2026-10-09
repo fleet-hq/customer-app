@@ -1022,6 +1022,7 @@ export async function startEmbedBookingPayment(
     ...(payload.promo_code ? { promo_code: payload.promo_code } : {}),
     ...(options.provider ? { provider: options.provider } : {}),
     ...(payload.signature_image ? { signature_image: payload.signature_image } : {}),
+    ...(payload.card_consent ? { card_consent: true } : {}),
   };
   const res = await axios.post<StartEmbedPaymentResponse>(
     `${API_URL}/api/bookings/public/start-embed-payment/`,
@@ -1085,6 +1086,7 @@ export async function startBookingCheckout(
     ...(payload.promo_code ? { promo_code: payload.promo_code } : {}),
     ...(payload.provider ? { provider: payload.provider } : {}),
     ...(payload.signature_image ? { signature_image: payload.signature_image } : {}),
+    ...(payload.card_consent ? { card_consent: true } : {}),
     success_url: payload.success_url,
     cancel_url: payload.cancel_url,
   };
