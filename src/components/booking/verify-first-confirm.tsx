@@ -630,6 +630,24 @@ export function VerifyFirstConfirm(props: Props) {
               {/* Paid, but staff asked for a card and none was kept —
                   usually a cash settlement or a payment taken before
                   anyone asked. Nothing to charge, so offer the $0 page. */}
+              {/* A card is already kept, so the operator's "update card"
+                  link has to land on something. Consent is on record from
+                  the first one, so this goes straight to the $0 page. */}
+              {mode === 'confirmed_paid' && staffAskedForCard && hasCardOnFile ? (
+                <button
+                  type="button"
+                  onClick={() => onSaveCardOnly?.()}
+                  className={cn(
+                    'mt-4 flex w-full items-center justify-center gap-2 rounded-[10px] border py-2.5 text-[12.5px] font-medium',
+                    isT2
+                      ? 'border-[var(--line-strong)] text-[var(--text)] hover:bg-[var(--paper)]'
+                      : 'border-line text-ink hover:bg-subtle',
+                  )}
+                >
+                  <Dyn>Replace the card on file</Dyn>
+                </button>
+              ) : null}
+
               {mode === 'confirmed_paid' && staffAskedForCard && !hasCardOnFile ? (
                 <div className="mt-4">
                   <CardConsent
