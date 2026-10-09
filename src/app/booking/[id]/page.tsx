@@ -159,6 +159,7 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
       allRequiredChecksDone={allRequiredChecksDone}
       consentChecksDone={consentChecksDone}
       onSaveCardOnly={saveCardOnly}
+      cardRequestOpen={!!booking?.cardRequestOpen}
       hasCardOnFile={!!booking?.cardOnFile}
       onPay={handlePay}
       payLoading={payLoading}

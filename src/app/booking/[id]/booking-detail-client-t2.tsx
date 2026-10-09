@@ -145,6 +145,7 @@ export default function BookingDetailClientT2({ id }: { id: string }) {
         allRequiredChecksDone={allRequiredChecksDone}
         consentChecksDone={consentChecksDone}
         onSaveCardOnly={saveCardOnly}
+        cardRequestOpen={!!booking?.cardRequestOpen}
         hasCardOnFile={!!booking?.cardOnFile}
         onPay={handlePay}
         payLoading={payLoading}

@@ -97,6 +97,10 @@ interface Props {
   consentChecksDone?: boolean;
   /** Settled booking that still needs a card: mints the $0 page. */
   onSaveCardOnly?: () => void;
+  /** Staff sent a link asking for a card and none has arrived since.
+   *  Only then is the renter offered the card action — a booking that
+   *  merely kept a card at checkout has nothing to do here. */
+  cardRequestOpen?: boolean;
   hasCardOnFile?: boolean;
   onPay: () => void;
   payLoading: boolean;
@@ -159,6 +163,7 @@ export function VerifyFirstConfirm(props: Props) {
     allRequiredChecksDone,
     consentChecksDone,
     onSaveCardOnly,
+    cardRequestOpen,
     hasCardOnFile,
     onPay,
     payLoading,
@@ -633,7 +638,7 @@ export function VerifyFirstConfirm(props: Props) {
               {/* A card is already kept, so the operator's "update card"
                   link has to land on something. Consent is on record from
                   the first one, so this goes straight to the $0 page. */}
-              {mode === 'confirmed_paid' && staffAskedForCard && hasCardOnFile ? (
+              {mode === 'confirmed_paid' && cardRequestOpen && hasCardOnFile ? (
                 <button
                   type="button"
                   onClick={() => onSaveCardOnly?.()}
@@ -648,7 +653,7 @@ export function VerifyFirstConfirm(props: Props) {
                 </button>
               ) : null}
 
-              {mode === 'confirmed_paid' && staffAskedForCard && !hasCardOnFile ? (
+              {mode === 'confirmed_paid' && cardRequestOpen && !hasCardOnFile ? (
                 <div className="mt-4">
                   <CardConsent
                     checked={!!saveCard}

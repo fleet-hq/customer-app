@@ -523,6 +523,12 @@ export interface BookingDetails {
   /** Staff asked for a card on file; the pay page offers the renter the
    *  choice, and the server refuses to keep one without consent. */
   cardOnFileRequested: boolean;
+  /** Staff sent the renter a link asking them to add a card themselves,
+   *  and no card has arrived since. Unlike the flag above — which an
+   *  ordinary checkout also sets — this is what puts the card action on
+   *  this page, so it only ever appears on a booking someone asked
+   *  about. */
+  cardRequestOpen: boolean;
   /** The card actually kept, masked. Null when none is held. */
   cardOnFile: {
     label: string;
@@ -846,6 +852,7 @@ function transformBooking(api: ApiBooking): BookingDetails {
     totalPrice: api.total_price != null ? String(api.total_price) : '',
     paymentStatus: api.payment_status || '',
     cardOnFileRequested: !!(api as any).card_on_file_requested,
+    cardRequestOpen: !!(api as any).card_on_file_request_sent_at,
     cardOnFile: (api as any).card_on_file ?? null,
     cardConsentAt: (api as any).card_consent_at ?? null,
     holdExpiresAt: api.hold_expires_at ?? null,
