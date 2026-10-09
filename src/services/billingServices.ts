@@ -73,6 +73,25 @@ export interface CheckoutSessionResult {
   balance_hash: string;
 }
 
+/** A $0 hosted page that stores a card without charging for it, for a
+ *  booking that is already settled. Consent is required, same as paying. */
+export async function createSaveCardSession(args: {
+  successUrl: string;
+  cancelUrl: string;
+  cardConsent: boolean;
+}): Promise<{ checkout_url: string; session_id: string }> {
+  const res = await axios.post<{ checkout_url: string; session_id: string }>(
+    `${API_URL}/api/billing/public/bookings/save-card/`,
+    {
+      success_url: args.successUrl,
+      cancel_url: args.cancelUrl,
+      card_consent: args.cardConsent,
+    },
+    { headers: getBookingTokenHeaders() },
+  );
+  return res.data;
+}
+
 export async function createBillingCheckoutSession(args: {
   successUrl: string;
   cancelUrl: string;

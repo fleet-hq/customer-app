@@ -94,6 +94,9 @@ interface Props {
   allRequiredChecksDone: boolean;
   /** Agreement signed and card authorized — gates a plain payment. */
   consentChecksDone?: boolean;
+  /** Settled booking that still needs a card: mints the $0 page. */
+  onSaveCardOnly?: () => void;
+  hasCardOnFile?: boolean;
   onPay: () => void;
   payLoading: boolean;
   payError: string | null;
@@ -154,6 +157,8 @@ export function VerifyFirstConfirm(props: Props) {
     onInsuranceVerify,
     allRequiredChecksDone,
     consentChecksDone,
+    onSaveCardOnly,
+    hasCardOnFile,
     onPay,
     payLoading,
     payError,
@@ -636,6 +641,32 @@ export function VerifyFirstConfirm(props: Props) {
                   }
                 />
               )}
+
+              {/* Paid, but staff asked for a card and none was kept —
+                  usually a cash settlement or a payment taken before
+                  anyone asked. Nothing to charge, so offer the $0 page. */}
+              {mode === 'confirmed_paid' && staffAskedForCard && !hasCardOnFile ? (
+                <div className="mt-4">
+                  <CardConsent
+                    checked={!!saveCard}
+                    onChange={(next) => onChooseSaveCard?.(next)}
+                    companyName={companyName ?? ''}
+                    depositAmount={depositAmount}
+                    required
+                  />
+                  <PayCTA
+                    onPay={() => onSaveCardOnly?.()}
+                    disabled={!saveCard}
+                    loading={false}
+                    label="Save my card"
+                    hint={
+                      saveCard
+                        ? 'You will not be charged — this only stores your card for tolls, tickets or damage.'
+                        : 'Authorize above to save your card.'
+                    }
+                  />
+                </div>
+              ) : null}
 
               {mode === 'confirmed_paid' && (
                 <div

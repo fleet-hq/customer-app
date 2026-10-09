@@ -97,6 +97,7 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
     insuranceLinkAlreadySent,
     allRequiredChecksDone,
     consentChecksDone,
+    saveCardOnly,
     handlePay,
     payLoading,
     payError,
@@ -157,6 +158,8 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
       onInsuranceVerify={handleInsuranceVerify}
       allRequiredChecksDone={allRequiredChecksDone}
       consentChecksDone={consentChecksDone}
+      onSaveCardOnly={saveCardOnly}
+      hasCardOnFile={!!booking?.cardOnFile}
       onPay={handlePay}
       payLoading={payLoading}
       payError={payError}

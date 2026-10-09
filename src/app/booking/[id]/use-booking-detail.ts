@@ -24,7 +24,7 @@ import {
 import { isInsuranceFailed, isInsuranceVerified } from '@/services/bookingServices';
 import { squareCreatePaymentForVerifyFirst } from '@/services/squarePaymentServices';
 import { useCardConsent } from '@/components/booking/use-card-consent';
-import { createBillingCheckoutSession } from '@/services/billingServices';
+import { createBillingCheckoutSession, createSaveCardSession } from '@/services/billingServices';
 import { bookingHasInsuranceCover } from '@/lib/insurance-extras';
 import { setBookingToken } from '@/utils/booking-token';
 import { usePublicPaymentProviders } from '@/hooks';
@@ -441,6 +441,19 @@ export function useBookingDetail(id: string) {
     needsAgreement,
     needsConsent,
     agreementModalOpen,
+    // A settled booking with no card still needs one for incidentals.
+    // Nothing to pay, so this mints the $0 page instead.
+    saveCardOnly: async () => {
+      const origin = typeof window !== 'undefined' ? window.location.origin : '';
+      const suffix = token ? `?token=${token}` : '';
+      const back = `${origin}/booking/${id}${suffix}`;
+      const res = await createSaveCardSession({
+        successUrl: back,
+        cancelUrl: back,
+        cardConsent: true,
+      });
+      window.location.href = res.checkout_url;
+    },
     signAgreement: async (dataUri: string) => {
       await submitBookingSignature(id, dataUri);
       await refetchAgreement();
