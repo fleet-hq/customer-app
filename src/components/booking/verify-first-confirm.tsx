@@ -424,6 +424,7 @@ export function VerifyFirstConfirm(props: Props) {
               <OutstandingChargesCard
                 charges={charges}
                 paymentPendingHref={paymentPendingHref}
+                booking={booking}
               />
             )}
 
@@ -960,9 +961,13 @@ function VehicleCard({
 function OutstandingChargesCard({
   charges,
   paymentPendingHref,
+  booking,
 }: {
   charges: BillingChargeRow[];
   paymentPendingHref: string;
+  /** Lets the booking's own charge say what it covers — the vehicle, the
+   *  dates and the breakdown — rather than a bare "Booking total". */
+  booking: BookingDetails;
 }) {
   const isT2 = useIsT2();
   const pending = charges.filter(
@@ -988,14 +993,57 @@ function OutstandingChargesCard({
         </a>
       </div>
       <ul className="mt-3 space-y-2 text-[13px]">
-        {pending.map((c) => (
-          <li key={c.id} className="flex items-center justify-between gap-3">
-            <span className={isT2 ? 'text-[var(--text)]' : 'text-ink'}>{c.description || c.type}</span>
-            <span className={cn('whitespace-nowrap font-medium', isT2 ? 'text-[var(--text)]' : 'text-ink')}>
-              {money(Number(c.amount || 0))}
-            </span>
-          </li>
-        ))}
+        {pending.map((c) => {
+          // The booking's own charge is the one a renter cannot check: a
+          // single total with no statement of what it covers. Name the
+          // vehicle and dates, and show the same lines the invoice does.
+          const isBookingFee = c.type === 'booking_fee';
+          const inv = booking.invoice;
+          const lines: [string, number][] = [];
+          if (isBookingFee) {
+            if (inv.rentalTotal > 0) lines.push(['Rental', inv.rentalTotal]);
+            if (inv.fees > 0) lines.push(['Fees', inv.fees]);
+            if (inv.discount > 0) lines.push(['Discount', -inv.discount]);
+            if (inv.tax > 0) lines.push(['Tax', inv.tax]);
+            if (inv.deposit > 0) lines.push(['Security deposit', inv.deposit]);
+          }
+          return (
+            <li key={c.id}>
+              <div className="flex items-center justify-between gap-3">
+                <span className={isT2 ? 'text-[var(--text)]' : 'text-ink'}>
+                  {isBookingFee ? booking.vehicle.name : c.description || c.type}
+                </span>
+                <span className={cn('whitespace-nowrap font-medium', isT2 ? 'text-[var(--text)]' : 'text-ink')}>
+                  {money(Number(c.amount || 0))}
+                </span>
+              </div>
+              {isBookingFee ? (
+                <p className={cn('mt-0.5 text-[12px]', isT2 ? 'text-[var(--text-muted)]' : 'text-muted')}>
+                  {booking.pickUp.date} – {booking.dropOff.date}
+                </p>
+              ) : null}
+              {lines.length > 0 ? (
+                <div
+                  className={cn(
+                    'mt-2 space-y-1 border-t pt-2',
+                    isT2 ? 'border-[var(--line)]' : 'border-card-border',
+                  )}
+                >
+                  {lines.map(([label, value]) => (
+                    <div key={label} className="flex items-baseline justify-between gap-3">
+                      <span className={cn('text-[11.5px]', isT2 ? 'text-[var(--text-muted)]' : 'text-faint')}>
+                        <Dyn>{label}</Dyn>
+                      </span>
+                      <span className={cn('text-[11.5px] tabular-nums', isT2 ? 'text-[var(--text-muted)]' : 'text-muted')}>
+                        {money(value)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
