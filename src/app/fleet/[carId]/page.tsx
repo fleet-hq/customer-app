@@ -32,6 +32,7 @@ import {
 } from './fleet-detail-shared';
 import FleetDetailClientT2 from './fleet-detail-client-t2';
 import { CardConsent } from '@/components/booking/card-consent';
+import { AgreementSignBar } from '@/components/booking/agreement-sign-bar';
 
 export default function Page({ params }: { params: Promise<{ carId: string }> }) {
   const { carId } = use(params);
@@ -737,46 +738,11 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
             </button>
 
             {rentalAgreementRequired && (
-              <button
-                type="button"
-                onClick={() => setRentalAgreementModalOpen(true)}
-                className={cn(
-                  'mt-[13px] flex w-full cursor-pointer items-center justify-between gap-2 rounded-[8px] border px-3 py-2 text-left transition-colors',
-                  rentalAgreementSigned
-                    ? 'border-green-border bg-green-bg hover:bg-green-bg-2'
-                    : 'border-primary-border bg-primary-soft hover:bg-primary-soft/70',
-                )}
-              >
-                <span className="flex min-w-0 items-center gap-2.5">
-                  <span
-                    className={cn(
-                      'inline-flex h-[18px] w-[18px] flex-shrink-0 items-center justify-center rounded-[5px] border-[1.5px]',
-                      rentalAgreementSigned
-                        ? 'border-success bg-success'
-                        : 'border-primary bg-white',
-                    )}
-                  >
-                    {rentalAgreementSigned && (
-                      <Check size={11} strokeWidth={3.2} className="text-white" />
-                    )}
-                  </span>
-                  <span
-                    className={cn(
-                      'truncate text-[12px] font-semibold',
-                      rentalAgreementSigned ? 'text-success' : 'text-ink',
-                    )}
-                  >
-                    <Dyn>{rentalAgreementSigned
-                      ? 'Rental Agreement signed'
-                      : 'Sign Rental Agreement · required'}</Dyn>
-                  </span>
-                </span>
-                {rentalAgreementSigned && (
-                  <span className="flex-shrink-0 whitespace-nowrap text-[11.5px] font-semibold text-success underline">
-                    <Dyn>Review</Dyn>
-                  </span>
-                )}
-              </button>
+              <AgreementSignBar
+                signed={rentalAgreementSigned}
+                onOpen={() => setRentalAgreementModalOpen(true)}
+                className="mt-[13px]"
+              />
             )}
 
             <div className="mt-4 flex flex-col gap-[9px]">

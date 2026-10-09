@@ -27,6 +27,7 @@ import {
 } from './fleet-detail-shared';
 import styles from '@/styles/template-2.module.css';
 import { CardConsent } from '@/components/booking/card-consent';
+import { AgreementSignBar } from '@/components/booking/agreement-sign-bar';
 
 export default function FleetDetailClientT2({ carId }: { carId: string }) {
   const fd = useFleetDetail(carId);
@@ -584,16 +585,10 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
             </button>
 
             {rentalAgreementRequired ? (
-              <button
-                type="button"
-                onClick={() => setRentalAgreementModalOpen(true)}
-                className={`${styles.agreementBtn} ${rentalAgreementSigned ? styles.agreementBtnSigned : ''}`}
-              >
-                <span>
-                  <Dyn>{rentalAgreementSigned ? 'Rental Agreement signed' : 'Sign Rental Agreement · required'}</Dyn>
-                </span>
-                {rentalAgreementSigned ? <Check size={14} strokeWidth={2.4} /> : null}
-              </button>
+              <AgreementSignBar
+                signed={rentalAgreementSigned}
+                onOpen={() => setRentalAgreementModalOpen(true)}
+              />
             ) : null}
 
             <div className={styles.trustRow}>

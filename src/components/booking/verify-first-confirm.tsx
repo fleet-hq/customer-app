@@ -21,6 +21,7 @@ import type { BillingChargeRow } from '@/services/billingServices';
 import type { TripImage } from '@/services/tripImageServices';
 import { useTenant } from '@/lib/tenant-context';
 import { CardConsent } from '@/components/booking/card-consent';
+import { AgreementSignBar } from '@/components/booking/agreement-sign-bar';
 
 const PLACEHOLDER_IMAGE = '/images/vehicles/car_placeholder.svg';
 
@@ -572,19 +573,17 @@ export function VerifyFirstConfirm(props: Props) {
                 </p>
               )}
 
-              {/* Sits directly above Pay: these are the two things the
-                  renter is agreeing to, and reading them in one column
-                  while the button lives in another is how people click
-                  through without having done either. */}
-              <PayGate
-                needsAgreement={!agreementSigned && !!agreementHref}
-                onSignAgreement={onSignAgreement}
-                staffAskedForCard={!!staffAskedForCard}
-                saveCard={!!saveCard}
-                onChooseSaveCard={onChooseSaveCard}
-                companyName={companyName ?? ''}
-                depositAmount={depositAmount}
-              />
+              {mode === 'pending_verification' || mode === 'payment_due' ? (
+                <PayGate
+                  needsAgreement={!agreementSigned && !!agreementHref}
+                  onSignAgreement={onSignAgreement}
+                  staffAskedForCard={!!staffAskedForCard}
+                  saveCard={!!saveCard}
+                  onChooseSaveCard={onChooseSaveCard}
+                  companyName={companyName ?? ''}
+                  depositAmount={depositAmount}
+                />
+              ) : null}
 
               {mode === 'pending_verification' && (
                 <PayCTA
@@ -607,20 +606,6 @@ export function VerifyFirstConfirm(props: Props) {
                   }
                 />
               )}
-
-              {/* Sits directly above Pay: these are the two things the
-                  renter is agreeing to, and reading them in one column
-                  while the button lives in another is how people click
-                  through without having done either. */}
-              <PayGate
-                needsAgreement={!agreementSigned && !!agreementHref}
-                onSignAgreement={onSignAgreement}
-                staffAskedForCard={!!staffAskedForCard}
-                saveCard={!!saveCard}
-                onChooseSaveCard={onChooseSaveCard}
-                companyName={companyName ?? ''}
-                depositAmount={depositAmount}
-              />
 
               {mode === 'payment_due' && (
                 <PayCTA
@@ -1137,29 +1122,7 @@ function PayGate({
   return (
     <div className="mt-4">
       {needsAgreement ? (
-        <button
-          type="button"
-          onClick={onSignAgreement}
-          className={cn(
-            'flex w-full items-center justify-between gap-3 rounded-[10px] border px-3.5 py-3 text-left transition-colors',
-            isT2
-              ? 'border-[var(--line-strong)] bg-[var(--card)] hover:border-[var(--brass)]'
-              : 'border-line bg-white hover:border-primary',
-          )}
-        >
-          <span className="min-w-0">
-            <span className={cn('block text-[12.5px] font-semibold', isT2 ? 'text-[var(--text)]' : 'text-ink')}>
-              <Dyn>Sign the rental agreement</Dyn>
-              <span className="ml-0.5 text-danger">*</span>
-            </span>
-            <span className={cn('mt-0.5 block text-[11px]', isT2 ? 'text-[var(--text-muted)]' : 'text-faint')}>
-              <Dyn>Required before payment</Dyn>
-            </span>
-          </span>
-          <span className={cn('shrink-0 text-[12px] font-semibold', isT2 ? 'text-[var(--brass)]' : 'text-primary')}>
-            <Dyn>Review &amp; sign</Dyn>
-          </span>
-        </button>
+        <AgreementSignBar signed={false} onOpen={() => onSignAgreement?.()} />
       ) : null}
 
       {staffAskedForCard ? (
