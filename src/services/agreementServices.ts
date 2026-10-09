@@ -153,6 +153,19 @@ export interface AgreementSnapshot {
     quantity?: number;
     purchased: boolean;
   }[];
+  /** The card kept for incidentals, masked. Absent when none is held —
+   *  the agreement then shows no card section at all. The number and CVV
+   *  are never present: charges run off the provider's saved-card handle,
+   *  so nothing here needs to identify the card beyond recognisably. */
+  card_on_file?: {
+    label: string;
+    brand: string;
+    last4: string;
+    expiry: string;
+    cardholder_name: string;
+    authorized: boolean;
+    consented_at: string | null;
+  } | null;
   invoice?: {
     rental_total?: string | null;
     fees?: string | null;
@@ -194,6 +207,7 @@ export function agreementPartsFromSnapshot(snapshot: AgreementSnapshot): {
   extras: NonNullable<AgreementData['extras']>;
   addendum: BonzahAddendum | null;
   invoice: AgreementData['invoice'];
+  cardOnFile: AgreementData['cardOnFile'];
 } {
   return {
     clauses: (snapshot.clauses ?? []).map((c, i) => ({
@@ -209,6 +223,17 @@ export function agreementPartsFromSnapshot(snapshot: AgreementSnapshot): {
     })),
     addendum: snapshot.addendum ?? null,
     invoice: snapshot.invoice ? snapshotInvoice(snapshot.invoice) : undefined,
+    cardOnFile: snapshot.card_on_file
+      ? {
+          label: snapshot.card_on_file.label,
+          brand: snapshot.card_on_file.brand,
+          last4: snapshot.card_on_file.last4,
+          expiry: snapshot.card_on_file.expiry,
+          cardholderName: snapshot.card_on_file.cardholder_name,
+          authorized: snapshot.card_on_file.authorized,
+          consentedAt: snapshot.card_on_file.consented_at,
+        }
+      : null,
   };
 }
 
@@ -217,6 +242,19 @@ export interface AgreementData {
   id: number;
   status: string;
   signedAt: string | null;
+  /** The card kept for incidentals, masked. Absent when none is held —
+   *  the agreement then shows no card section at all. The number and CVV
+   *  are never present: charges run off the provider's saved-card handle,
+   *  so nothing here needs to identify the card beyond recognisably. */
+  cardOnFile?: {
+    label: string;
+    brand: string;
+    last4: string;
+    expiry: string;
+    cardholderName: string;
+    authorized: boolean;
+    consentedAt: string | null;
+  } | null;
   signatureImage: string | null;
   /** Booking's tenant TZ — pass to date formatters in the preview
    *  so the signed-on date shows the rental-location's calendar
@@ -329,6 +367,25 @@ function transformAgreement(api: ApiAgreement): AgreementData {
     status: api.status,
     signedAt: api.signed_at,
     signatureImage: api.signature_image,
+    // Signed agreements show the card frozen into the snapshot; an unsigned
+    // one falls back to the booking's live card, so staff previewing before
+    // signature still see what the renter will.
+    cardOnFile:
+      snapshot?.cardOnFile ??
+      ((api.booking_details as any)?.card_on_file
+        ? {
+            label: (api.booking_details as any).card_on_file.label,
+            brand: (api.booking_details as any).card_on_file.brand,
+            last4: (api.booking_details as any).card_on_file.last4,
+            expiry:
+              (api.booking_details as any).card_on_file.exp_month && (api.booking_details as any).card_on_file.exp_year
+                ? `${String((api.booking_details as any).card_on_file.exp_month).padStart(2, '0')}/${(api.booking_details as any).card_on_file.exp_year}`
+                : '',
+            cardholderName: '',
+            authorized: !!(api.booking_details as any).card_on_file.authorized,
+            consentedAt: (api.booking_details as any)?.card_consent_at ?? null,
+          }
+        : null),
     // Resolved tenant TZ for the booking the agreement belongs to.
     // Used so the signed-on date renders in the rental-location clock
     // rather than the customer's browser-local TZ.

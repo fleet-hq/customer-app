@@ -234,6 +234,26 @@ export function RentalAgreementPreview({ data, onSignatureChange }: RentalAgreem
     ['Driver license Expiry Date', dash(c.licenseExpiry)],
   ];
 
+  // Card on file. Masked by construction — brand, last four and expiry are
+  // all the provider ever hands back, and the charge runs off its saved-card
+  // handle, so a number or CVV is neither available nor needed here.
+  const card = d.cardOnFile;
+  const cardRows: SpecRow[] = card
+    ? [
+        ['Cardholder Name', dash(card.cardholderName || c.name)],
+        ['Card', dash(card.label)],
+        ['Expiration', dash(card.expiry)],
+        [
+          'Authorization',
+          card.authorized
+            ? card.consentedAt
+              ? `Authorized ${fmtDateLong(card.consentedAt, d.timezone)}`
+              : 'Authorized'
+            : '—',
+        ],
+      ]
+    : [];
+
   const insuranceRows: SpecRow[] = [
     ['Carrier Name', dash(d.insurance.carrierName)],
     ['Policy Number', dash(d.insurance.policyNumber)],
@@ -370,6 +390,22 @@ export function RentalAgreementPreview({ data, onSignatureChange }: RentalAgreem
               </div>
             </div>
           ))}
+
+          {card ? (
+            <>
+              <SectionTitle className="mt-10"><Dyn>Card on File</Dyn></SectionTitle>
+              <p className="mt-3 text-[10px] sm:text-[12px] leading-[1.6] text-[#131314]">
+                <Dyn>
+                  This card is kept on file for tolls, tickets, fuel, cleaning or damage
+                  arising during or after the rental. It is stored by our payment provider
+                  — we never hold the card number or security code.
+                </Dyn>
+              </p>
+              <div className="mt-4">
+                <SpecTable rows={cardRows} />
+              </div>
+            </>
+          ) : null}
 
           <SectionTitle className="mt-10"><Dyn>INSURANCE</Dyn></SectionTitle>
           <SpecTable rows={insuranceRows} />
