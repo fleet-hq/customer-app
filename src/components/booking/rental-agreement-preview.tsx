@@ -240,7 +240,7 @@ export function RentalAgreementPreview({ data, onSignatureChange }: RentalAgreem
   const card = d.cardOnFile;
   const cardRows: SpecRow[] = card
     ? [
-        ['Cardholder Name', dash(card.cardholderName || c.name)],
+        ['Cardholder Name', dash(card.cardholderName)],
         ['Card', dash(card.label)],
         ['Expiration', dash(card.expiry)],
         [
