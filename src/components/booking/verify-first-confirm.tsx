@@ -187,6 +187,14 @@ export function VerifyFirstConfirm(props: Props) {
     canUploadPhotos,
   } = props;
 
+  // Staff asked for a card, so the emailed link has to land on something
+  // the renter can act on, whatever else the booking is waiting for.
+  // Nothing left to pay means nothing else will capture the card; an
+  // unpaid balance files it through the authorization on the pay button
+  // instead, and a cancelled booking is never chased.
+  const showCardAction =
+    !!cardRequestOpen && mode !== 'cancelled' && (outstanding ?? 0) <= 0;
+
   const days = rentalDays(booking);
   const inv = booking.invoice;
   const vehicleImage = booking.vehicle.image?.trim() || PLACEHOLDER_IMAGE;
@@ -632,13 +640,12 @@ export function VerifyFirstConfirm(props: Props) {
                 />
               )}
 
-              {/* Paid, but staff asked for a card and none was kept —
-                  usually a cash settlement or a payment taken before
-                  anyone asked. Nothing to charge, so offer the $0 page. */}
-              {/* A card is already kept, so the operator's "update card"
-                  link has to land on something. Consent is on record from
-                  the first one, so this goes straight to the $0 page. */}
-              {mode === 'confirmed_paid' && cardRequestOpen && hasCardOnFile ? (
+              {/* Staff asked for a card, so the emailed link has to land
+                  on something the renter can act on — whatever else the
+                  booking is waiting for. Verification state is beside the
+                  point; only an unpaid balance is, because paying files
+                  the card through the authorization above instead. */}
+              {showCardAction && hasCardOnFile ? (
                 <button
                   type="button"
                   onClick={() => onSaveCardOnly?.()}
@@ -653,7 +660,7 @@ export function VerifyFirstConfirm(props: Props) {
                 </button>
               ) : null}
 
-              {mode === 'confirmed_paid' && cardRequestOpen && !hasCardOnFile ? (
+              {showCardAction && !hasCardOnFile ? (
                 <div className="mt-4">
                   <CardConsent
                     checked={!!saveCard}
