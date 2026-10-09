@@ -201,6 +201,31 @@ function formatSnapshotExtraPrice(price: string | null, period: string | null): 
   return `$${Number(price).toFixed(2)}/${unit}`;
 }
 
+/** The card a booking keeps, in the shape the agreement renders.
+ *
+ *  The API speaks snake_case and the renderers camelCase, and three
+ *  places needed the translation — the signed snapshot, the live
+ *  agreement, and the terms page. One mapper so a field added to the
+ *  card appears in all three or none, rather than two of them.
+ */
+export function mapCardOnFile(raw: any): AgreementData['cardOnFile'] {
+  if (!raw) return null;
+  return {
+    label: raw.label ?? '',
+    brandLabel: raw.brand_label ?? '',
+    maskedNumber: raw.masked_number ?? '',
+    brand: raw.brand ?? '',
+    last4: raw.last4 ?? '',
+    expiry:
+      raw.exp_month && raw.exp_year
+        ? `${String(raw.exp_month).padStart(2, '0')}/${raw.exp_year}`
+        : (raw.expiry ?? ''),
+    cardholderName: raw.cardholder_name ?? '',
+    authorized: !!raw.authorized,
+    consentedAt: raw.consented_at ?? null,
+  };
+}
+
 // The frozen clauses/extras/addendum from a signed agreement's snapshot,
 // shaped as AgreementData parts so a signed agreement renders exactly as
 // presented at signing, regardless of later edits to the live records.
@@ -225,19 +250,7 @@ export function agreementPartsFromSnapshot(snapshot: AgreementSnapshot): {
     })),
     addendum: snapshot.addendum ?? null,
     invoice: snapshot.invoice ? snapshotInvoice(snapshot.invoice) : undefined,
-    cardOnFile: snapshot.card_on_file
-      ? {
-          label: snapshot.card_on_file.label,
-          brandLabel: snapshot.card_on_file.brand_label,
-          maskedNumber: snapshot.card_on_file.masked_number,
-          brand: snapshot.card_on_file.brand,
-          last4: snapshot.card_on_file.last4,
-          expiry: snapshot.card_on_file.expiry,
-          cardholderName: snapshot.card_on_file.cardholder_name,
-          authorized: snapshot.card_on_file.authorized,
-          consentedAt: snapshot.card_on_file.consented_at,
-        }
-      : null,
+    cardOnFile: mapCardOnFile(snapshot.card_on_file),
   };
 }
 
@@ -379,24 +392,7 @@ function transformAgreement(api: ApiAgreement): AgreementData {
     // A signed agreement shows the card frozen at signing; an unsigned one
     // shows the booking's current card, so the renter sees it in the
     // document before agreeing to it.
-    cardOnFile:
-      snapshot?.cardOnFile ??
-      ((api as any).card_on_file
-        ? {
-            label: (api as any).card_on_file.label,
-            brandLabel: (api as any).card_on_file.brand_label || '',
-            maskedNumber: (api as any).card_on_file.masked_number || '',
-            brand: (api as any).card_on_file.brand,
-            last4: (api as any).card_on_file.last4,
-            expiry:
-              (api as any).card_on_file.exp_month && (api as any).card_on_file.exp_year
-                ? `${String((api as any).card_on_file.exp_month).padStart(2, '0')}/${(api as any).card_on_file.exp_year}`
-                : '',
-            cardholderName: (api as any).card_on_file.cardholder_name || '',
-            authorized: !!(api as any).card_on_file.authorized,
-            consentedAt: (api as any).card_on_file.consented_at ?? null,
-          }
-        : null),
+    cardOnFile: snapshot?.cardOnFile ?? mapCardOnFile((api as any).card_on_file),
     // Resolved tenant TZ for the booking the agreement belongs to.
     // Used so the signed-on date renders in the rental-location clock
     // rather than the customer's browser-local TZ.

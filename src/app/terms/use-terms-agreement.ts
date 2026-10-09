@@ -13,7 +13,7 @@ import {
   useBonzahAddendum,
 } from '@/hooks/useAgreements';
 import { useBookingDetails, useBookingDrivers } from '@/hooks/useBooking';
-import { submitBookingSignature, toAgreementExtras, type AgreementData } from '@/services/agreementServices';
+import { mapCardOnFile, submitBookingSignature, toAgreementExtras, type AgreementData } from '@/services/agreementServices';
 import { setBookingToken } from '@/utils/booking-token';
 import { milesLabel, overageLabel } from '@/lib/agreement-format';
 
@@ -172,24 +172,10 @@ export function useTermsAgreement() {
       // A signed agreement shows the card frozen at signing; otherwise the
       // booking's current one, so the renter sees it in the document they
       // are about to sign. Same precedence as invoice above.
+      // Signed shows the card frozen at signing; otherwise the booking's
+      // current one, so the renter sees it in the document they sign.
       cardOnFile:
-        signedSnapshot?.cardOnFile ??
-        (bookingData.cardOnFile
-          ? {
-              label: bookingData.cardOnFile.label,
-              brandLabel: bookingData.cardOnFile.brand_label ?? '',
-              maskedNumber: bookingData.cardOnFile.masked_number ?? '',
-              brand: bookingData.cardOnFile.brand ?? '',
-              last4: bookingData.cardOnFile.last4 ?? '',
-              expiry:
-                bookingData.cardOnFile.exp_month && bookingData.cardOnFile.exp_year
-                  ? `${String(bookingData.cardOnFile.exp_month).padStart(2, '0')}/${bookingData.cardOnFile.exp_year}`
-                  : '',
-              cardholderName: bookingData.cardOnFile.cardholder_name ?? '',
-              authorized: !!bookingData.cardOnFile.authorized,
-              consentedAt: bookingData.cardConsentAt ?? null,
-            }
-          : null),
+        signedSnapshot?.cardOnFile ?? mapCardOnFile(bookingData.cardOnFile),
       invoice: signedSnapshot?.invoice ?? {
         rentalTotal: `$${bookingData.invoice.rentalTotal.toFixed(2)}`,
         fees: bookingData.invoice.fees > 0 ? `$${bookingData.invoice.fees.toFixed(2)}` : undefined,
