@@ -214,7 +214,10 @@ export function tenantFromApi(detail: ApiCompanyDetail, locations: ApiLocation[]
     },
     footer: {
       description: nonEmpty(footer.description),
-      socials: footer.socials ?? [],
+      // A social row the operator added but never filled in has no
+      // platform, and the footer renders on every page — one blank row
+      // used to take a whole tenant's site down with a 500.
+      socials: (footer.socials ?? []).filter((s) => nonEmpty(s?.platform).trim() !== ''),
       contact: {
         phone: nonEmpty(footer.contact?.phone) || nonEmpty(detail.phone_no),
         email: nonEmpty(footer.contact?.email) || nonEmpty(detail.email),
