@@ -933,6 +933,11 @@ export interface CreateBookingPayload {
    *  BookingSignature row when the payment webhook creates the
    *  Booking. Omit when the tenant has no active clauses. */
   signature_image?: string;
+  /** The renter authorized their card being kept for incidentals. The
+   *  server re-stamps this with its own timestamp and IP — sending `true`
+   *  only says they ticked it. Without it no card is filed, even though
+   *  the provider keeps one. */
+  card_consent?: boolean;
 }
 
 // Create booking API response

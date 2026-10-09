@@ -755,6 +755,7 @@ export function useFleetDetail(carId: string) {
 
     if (freshPolicyMode === 'before') {
       const sharedPayload = {
+        card_consent: cardConsent,
         first_name: firstName,
         last_name: lastName,
         email: fields.email.trim(),
@@ -796,6 +797,10 @@ export function useFleetDetail(carId: string) {
     }
 
     const commonPayload = {
+      // Checkout keeps a reusable card with the provider either way; this
+      // is what tells the server it may actually file it. reserve() has
+      // already refused to get here without the tick.
+      card_consent: cardConsent,
       fleet_id: Number(vehicle.id),
       customer: {
         first_name: firstName,
