@@ -10,6 +10,7 @@ import { cn, money } from '@/lib/utils';
 import { Dyn } from '@/components/i18n/Dyn';
 import { usePayBooking } from './use-pay-booking';
 import PayBookingClientT2 from './pay-booking-client-t2';
+import { CardConsent } from '@/components/booking/card-consent';
 
 function PayBookingPageInner({ bookingId }: { bookingId: string }) {
   const pb = usePayBooking(bookingId);
@@ -19,12 +20,16 @@ function PayBookingPageInner({ bookingId }: { bookingId: string }) {
   }
 
   const {
+    tenant,
     token,
     tokenReady,
     isLoading,
     isError,
     booking,
     balanceLoading,
+    staffAskedForCard,
+    saveCard,
+    chooseSaveCard,
     t,
     payLoading,
     handlePay,
@@ -159,6 +164,17 @@ function PayBookingPageInner({ bookingId }: { bookingId: string }) {
                   <Dyn>Across</Dyn> {unpaid.length} <Dyn>unpaid</Dyn> {unpaid.length === 1 ? t('item') : t('items')}.
                 </p>
               )}
+              {/* E8.5: offered only when staff asked for a card. The
+                  renter may untick it and still pay — the booking is then
+                  flagged for staff rather than silently left without one. */}
+              {staffAskedForCard && outstanding > 0 ? (
+                <CardConsent
+                  checked={saveCard}
+                  onChange={chooseSaveCard}
+                  companyName={tenant.name}
+                  depositAmount={booking?.invoice.deposit}
+                />
+              ) : null}
               <button
                 onClick={handlePay}
                 disabled={payLoading || outstanding <= 0}

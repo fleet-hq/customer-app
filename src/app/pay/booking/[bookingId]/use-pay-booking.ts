@@ -43,6 +43,20 @@ export function usePayBooking(bookingId: string) {
     'Outstanding balance',
   ]);
 
+  // E8.5: staff's request pre-ticks the box, and the renter may untick
+  // it. Seeded once the booking arrives rather than on every render, so
+  // an untick isn't undone by a refetch.
+  const staffAskedForCard = !!booking?.cardOnFileRequested;
+  const [saveCard, setSaveCard] = useState(false);
+  const [saveCardTouched, setSaveCardTouched] = useState(false);
+  useEffect(() => {
+    if (!saveCardTouched) setSaveCard(staffAskedForCard);
+  }, [staffAskedForCard, saveCardTouched]);
+  const chooseSaveCard = (next: boolean) => {
+    setSaveCardTouched(true);
+    setSaveCard(next);
+  };
+
   const [payLoading, setPayLoading] = useState(false);
   const handlePay = async () => {
     if (payLoading) return;
@@ -53,6 +67,10 @@ export function usePayBooking(bookingId: string) {
       const result = await createBillingCheckoutSession({
         successUrl: `${origin}/booking/${bookingId}${suffix}`,
         cancelUrl: `${origin}/pay/booking/${bookingId}${suffix}`,
+        // Only offered when staff asked; otherwise the renter is never
+        // shown the box and the booking's own setting decides.
+        saveCard: staffAskedForCard ? saveCard : undefined,
+        cardConsent: staffAskedForCard && saveCard,
       });
       window.location.href = result.checkout_url;
     } catch {
@@ -99,6 +117,9 @@ export function usePayBooking(bookingId: string) {
     t,
     payLoading,
     handlePay,
+    staffAskedForCard,
+    saveCard,
+    chooseSaveCard,
     outstanding,
     payments,
     refunds,

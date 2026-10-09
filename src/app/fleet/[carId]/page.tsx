@@ -31,6 +31,7 @@ import {
   INSURANCE_DETAILS,
 } from './fleet-detail-shared';
 import FleetDetailClientT2 from './fleet-detail-client-t2';
+import { CardConsent } from '@/components/booking/card-consent';
 
 export default function Page({ params }: { params: Promise<{ carId: string }> }) {
   const { carId } = use(params);
@@ -100,6 +101,9 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
     setPromoError,
     fields,
     errors,
+    cardConsent,
+    setCardConsent,
+    cardConsentError,
     checkoutError,
     rentalAgreementSignature,
     rentalAgreementModalOpen,
@@ -704,6 +708,17 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                 <Dyn>{checkoutError || 'Please fix the highlighted fields to continue.'}</Dyn>
               </div>
             )}
+
+            {/* E8.6: every website checkout leaves a reusable card with
+                the provider, so the renter authorizes that before paying. */}
+            <CardConsent
+              checked={cardConsent}
+              onChange={setCardConsent}
+              companyName={tenant.name}
+              depositAmount={Number(vehicle?.securityDeposit) || 0}
+              required
+              showError={cardConsentError}
+            />
 
             <button
               onClick={() => reserve()}

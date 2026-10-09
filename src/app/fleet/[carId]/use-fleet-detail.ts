@@ -138,6 +138,11 @@ export function useFleetDetail(carId: string) {
   const [fields, setFields] = useState<Fields>({ firstName: '', lastName: '', email: '', phone: '', license: '' });
   const [errors, setErrors] = useState<Partial<Record<keyof Fields, string>>>({});
   const [checkoutError, setCheckoutError] = useState('');
+  // E8.6: website checkouts are created with setup_future_usage=off_session,
+  // so every one of them leaves a reusable card behind. The renter has to
+  // authorize that before they can pay.
+  const [cardConsent, setCardConsent] = useState(false);
+  const [cardConsentError, setCardConsentError] = useState(false);
   const [rentalAgreementSignature, setRentalAgreementSignature] = useState<string | null>(null);
   const [rentalAgreementModalOpen, setRentalAgreementModalOpen] = useState(false);
   const { data: rentalAgreementTemplate } = useDefaultAgreementTemplate();
@@ -483,6 +488,12 @@ export function useFleetDetail(carId: string) {
     fields,
     setFields,
     errors,
+    cardConsent,
+    setCardConsent: (next: boolean) => {
+      setCardConsent(next);
+      if (next) setCardConsentError(false);
+    },
+    cardConsentError,
     setErrors,
     checkoutError,
     setCheckoutError,
@@ -650,7 +661,9 @@ export function useFleetDetail(carId: string) {
   const reserve = async () => {
     const e = validate();
     setErrors(e);
-    if (Object.keys(e).length > 0) return;
+    if (!cardConsent) setCardConsentError(true);
+    if (Object.keys(e).length > 0 || !cardConsent) return;
+    setCardConsentError(false);
     setCheckoutError('');
 
     if (!pickupDate || !pickupTime || !returnDate || !returnTime) {

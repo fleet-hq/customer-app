@@ -520,6 +520,9 @@ export interface BookingDetails {
   bookingRef: string;
   totalPrice: string;
   paymentStatus: string;
+  /** Staff asked for a card on file; the pay page offers the renter the
+   *  choice, and the server refuses to keep one without consent. */
+  cardOnFileRequested: boolean;
   holdExpiresAt: string | null;
   agreementId?: number;
   agreementStatus?: string;
@@ -829,6 +832,7 @@ function transformBooking(api: ApiBooking): BookingDetails {
     bookingRef: api.booking_reference || String(api.id),
     totalPrice: api.total_price != null ? String(api.total_price) : '',
     paymentStatus: api.payment_status || '',
+    cardOnFileRequested: !!(api as any).card_on_file_requested,
     holdExpiresAt: api.hold_expires_at ?? null,
     canModify: api.can_modify || { cancel: false, swap: false, reduce: false, extend: false },
     extensionMods: (Array.isArray((api as any).modification_requests) ? (api as any).modification_requests : [])

@@ -76,12 +76,21 @@ export interface CheckoutSessionResult {
 export async function createBillingCheckoutSession(args: {
   successUrl: string;
   cancelUrl: string;
+  /** The renter's own answer on whether their card is kept for
+   *  incidentals. Omitted means the page could not ask, and staff's
+   *  choice on the booking stands. */
+  saveCard?: boolean;
+  /** Set when the renter ticked the authorization. The server refuses to
+   *  keep a card without it. */
+  cardConsent?: boolean;
 }): Promise<CheckoutSessionResult> {
   const res = await axios.post<CheckoutSessionResult>(
     `${API_URL}/api/billing/public/bookings/checkout/`,
     {
       success_url: args.successUrl,
       cancel_url: args.cancelUrl,
+      ...(args.saveCard === undefined ? {} : { save_card: args.saveCard }),
+      ...(args.cardConsent ? { card_consent: true } : {}),
     },
     { headers: getBookingTokenHeaders() },
   );
