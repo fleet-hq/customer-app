@@ -241,7 +241,8 @@ export function RentalAgreementPreview({ data, onSignatureChange }: RentalAgreem
   const cardRows: SpecRow[] = card
     ? [
         ['Cardholder Name', dash(card.cardholderName)],
-        ['Card', dash(card.label)],
+        ['Card Type', dash(card.brandLabel)],
+        ['Card Number', dash(card.maskedNumber)],
         ['Expiration', dash(card.expiry)],
         [
           'Authorization',

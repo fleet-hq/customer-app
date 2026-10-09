@@ -159,6 +159,8 @@ export interface AgreementSnapshot {
    *  so nothing here needs to identify the card beyond recognisably. */
   card_on_file?: {
     label: string;
+    brand_label: string;
+    masked_number: string;
     brand: string;
     last4: string;
     expiry: string;
@@ -226,6 +228,8 @@ export function agreementPartsFromSnapshot(snapshot: AgreementSnapshot): {
     cardOnFile: snapshot.card_on_file
       ? {
           label: snapshot.card_on_file.label,
+          brandLabel: snapshot.card_on_file.brand_label,
+          maskedNumber: snapshot.card_on_file.masked_number,
           brand: snapshot.card_on_file.brand,
           last4: snapshot.card_on_file.last4,
           expiry: snapshot.card_on_file.expiry,
@@ -248,6 +252,8 @@ export interface AgreementData {
    *  so nothing here needs to identify the card beyond recognisably. */
   cardOnFile?: {
     label: string;
+    brandLabel: string;
+    maskedNumber: string;
     brand: string;
     last4: string;
     expiry: string;
@@ -378,6 +384,8 @@ function transformAgreement(api: ApiAgreement): AgreementData {
       ((api as any).card_on_file
         ? {
             label: (api as any).card_on_file.label,
+            brandLabel: (api as any).card_on_file.brand_label || '',
+            maskedNumber: (api as any).card_on_file.masked_number || '',
             brand: (api as any).card_on_file.brand,
             last4: (api as any).card_on_file.last4,
             expiry:
