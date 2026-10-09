@@ -6,6 +6,7 @@ import type { BookingMode } from '@/components/booking/verify-first-confirm';
 import { useBookingDetails, useBookingDrivers } from '@/hooks/useBooking';
 import { useBookingBalance } from '@/hooks/useBookingBalance';
 import { useAgreementByBooking } from '@/hooks/useAgreements';
+import { useAgreementDocument } from '@/components/booking/use-agreement-document';
 import { submitBookingSignature } from '@/services/agreementServices';
 import { useBookingImages } from '@/hooks/useTripImages';
 import {
@@ -97,6 +98,10 @@ export function useBookingDetail(id: string) {
   // a hook that only runs on the ready path changes the hook count
   // between renders and React refuses to continue.
   const [agreementModalOpen, setAgreementModalOpen] = useState(false);
+  // The whole document, built from the booking. An unsigned booking has
+  // no signature row, and handing the modal nothing makes it fall back
+  // to the clauses-only view the renter should never be signing.
+  const agreementDocument = useAgreementDocument(fetchId, booking);
   const { data: secondaryDrivers } = useBookingDrivers(fetchId);
   const { data: bookingImages = [] } = useBookingImages(fetchId);
   const { data: verificationPolicy } = useBookingVerificationPolicy();
@@ -458,9 +463,7 @@ export function useBookingDetail(id: string) {
       await submitBookingSignature(id, dataUri);
       await refetchAgreement();
     },
-    // The agreement endpoint already returns the whole document, so the
-    // signing modal can show it in full rather than the clauses alone.
-    agreementPreviewData: agreementApi ?? null,
+    agreementPreviewData: agreementDocument,
     setAgreementModalOpen,
     mode,
     preTrip,
