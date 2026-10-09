@@ -88,6 +88,7 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
     checkoutError,
     rentalAgreementSignature,
     rentalAgreementModalOpen,
+    agreementPreviewData,
     setRentalAgreementModalOpen,
     rentalAgreementRequired,
     rentalAgreementSigned,
@@ -778,6 +779,7 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
         onClose={() => setRentalAgreementModalOpen(false)}
         initialSignature={rentalAgreementSignature}
         showBonzahAddendum={selectedInsurance.size > 0}
+        data={agreementPreviewData}
         onSigned={(dataUri) => {
           fd.setRentalAgreementSignature(dataUri);
           setRentalAgreementModalOpen(false);
