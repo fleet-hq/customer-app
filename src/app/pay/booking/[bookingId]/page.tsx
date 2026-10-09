@@ -30,6 +30,7 @@ function PayBookingPageInner({ bookingId }: { bookingId: string }) {
     staffAskedForCard,
     saveCard,
     chooseSaveCard,
+    consentBlocked,
     t,
     payLoading,
     handlePay,
@@ -164,20 +165,21 @@ function PayBookingPageInner({ bookingId }: { bookingId: string }) {
                   <Dyn>Across</Dyn> {unpaid.length} <Dyn>unpaid</Dyn> {unpaid.length === 1 ? t('item') : t('items')}.
                 </p>
               )}
-              {/* E8.5: offered only when staff asked for a card. The
-                  renter may untick it and still pay — the booking is then
-                  flagged for staff rather than silently left without one. */}
+              {/* E8.5: shown only when staff asked for a card, and
+                  required once they have — the same gate the booking
+                  page applies, so no surface is the lenient one. */}
               {staffAskedForCard && outstanding > 0 ? (
                 <CardConsent
                   checked={saveCard}
                   onChange={chooseSaveCard}
                   companyName={tenant.name}
                   depositAmount={booking?.invoice.deposit}
+                  required
                 />
               ) : null}
               <button
                 onClick={handlePay}
-                disabled={payLoading || outstanding <= 0}
+                disabled={payLoading || outstanding <= 0 || consentBlocked}
                 className="mt-4 w-full rounded-lg bg-primary px-5 py-[11px] text-[14px] font-semibold text-white transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:bg-primary-disabled"
               >
                 {payLoading ? t('Redirecting…') : outstanding > 0 ? `${t('Pay')} ${money(outstanding)}` : t('Paid in full')}

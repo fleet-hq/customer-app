@@ -96,6 +96,9 @@ export function usePaymentPending(id: string) {
     staffAskedForCard,
     saveCard,
     chooseSaveCard,
+    // Same gate as the booking page: the card authorization is not
+    // optional once staff have asked for it.
+    consentBlocked: staffAskedForCard && !saveCard,
     outstanding,
     totalCharged,
     totalPaid,

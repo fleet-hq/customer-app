@@ -34,6 +34,7 @@ export default function PaymentPendingPage({ params }: { params: Promise<{ id: s
     staffAskedForCard,
     saveCard,
     chooseSaveCard,
+    consentBlocked,
     outstanding,
     totalCharged,
     totalPaid,
@@ -166,11 +167,12 @@ export default function PaymentPendingPage({ params }: { params: Promise<{ id: s
                   onChange={chooseSaveCard}
                   companyName={tenant.name}
                   depositAmount={booking?.invoice.deposit}
+                  required
                 />
               ) : null}
               <button
                 onClick={handlePay}
-                disabled={payLoading || outstanding <= 0}
+                disabled={payLoading || outstanding <= 0 || consentBlocked}
                 className="mt-4 w-full rounded-lg bg-primary px-5 py-[11px] text-[14px] font-semibold text-white transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:bg-primary-disabled"
               >
                 {payLoading ? t('Redirecting…') : outstanding > 0 ? `${t('Pay')} ${money(outstanding)}` : t('Paid in full')}

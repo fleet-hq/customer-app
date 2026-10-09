@@ -104,7 +104,6 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
     errors,
     cardConsent,
     setCardConsent,
-    cardConsentError,
     checkoutError,
     rentalAgreementSignature,
     rentalAgreementModalOpen,
@@ -144,6 +143,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
     rentalHours,
     minDuration,
     meetsMinDuration,
+    reserveBlocked,
     tenant: tenantData,
     vehicle,
     plans,
@@ -718,18 +718,11 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               companyName={tenant.name}
               depositAmount={Number(vehicle?.securityDeposit) || 0}
               required
-              showError={cardConsentError}
             />
 
             <button
               onClick={() => reserve()}
-              disabled={
-                startCheckout.isPending ||
-                startVerification.isPending ||
-                startEmbedPayment.isPending ||
-                !meetsMinDuration ||
-                (rentalAgreementRequired && !rentalAgreementSigned)
-              }
+              disabled={reserveBlocked}
               className="mt-[14px] block w-full cursor-pointer rounded-[10px] bg-primary py-[13px] text-center text-sm font-bold text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Dyn>{startCheckout.isPending || startVerification.isPending || startEmbedPayment.isPending

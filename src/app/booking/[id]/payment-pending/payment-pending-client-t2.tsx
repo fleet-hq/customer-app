@@ -26,6 +26,7 @@ export default function PaymentPendingClientT2({ id }: { id: string }) {
     staffAskedForCard,
     saveCard,
     chooseSaveCard,
+    consentBlocked,
     outstanding,
     totalCharged,
     totalPaid,
@@ -141,12 +142,13 @@ export default function PaymentPendingClientT2({ id }: { id: string }) {
                   onChange={chooseSaveCard}
                   companyName={tenant.name}
                   depositAmount={booking?.invoice.deposit}
+                  required
                 />
               ) : null}
               <button
                 type="button"
                 onClick={handlePay}
-                disabled={payLoading || outstanding <= 0}
+                disabled={payLoading || outstanding <= 0 || consentBlocked}
                 className={`${styles.btn} ${styles.btnBrass} ${styles.reserveBtn}`}
               >
                 {payLoading ? t('Redirecting…') : outstanding > 0 ? `${t('Pay')} ${money(outstanding)}` : t('Paid in full')}

@@ -15,7 +15,6 @@ interface CardConsentProps {
    *  renter paying a link decline and pay anyway. */
   required?: boolean;
   /** Shown once they've tried to continue without ticking. */
-  showError?: boolean;
 }
 
 const money = (n: number) => `$${n.toFixed(2)}`;
@@ -35,7 +34,6 @@ export function CardConsent({
   depositAmount,
   depositChargedUpfront = false,
   required = false,
-  showError = false,
 }: CardConsentProps) {
   const hasDeposit = typeof depositAmount === 'number' && depositAmount > 0;
 
@@ -46,7 +44,6 @@ export function CardConsent({
           type="checkbox"
           checked={checked}
           onChange={(e) => onChange(e.target.checked)}
-          aria-invalid={showError || undefined}
           className="mt-[2px] h-[14px] w-[14px] flex-shrink-0 accent-primary"
         />
         <span className="text-[11.5px] leading-[1.5] text-ink">
@@ -59,12 +56,6 @@ export function CardConsent({
           {required ? <span className="ml-0.5 text-danger">*</span> : null}
         </span>
       </label>
-
-      {showError ? (
-        <p className="mt-1.5 pl-[24px] text-[11px] font-medium text-danger">
-          <Dyn>Please authorize this before continuing.</Dyn>
-        </p>
-      ) : null}
 
       <p className="mt-1.5 pl-[24px] text-[11px] leading-[1.45] text-faint">
         {hasDeposit ? (

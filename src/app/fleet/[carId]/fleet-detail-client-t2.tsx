@@ -85,7 +85,6 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
     errors,
     cardConsent,
     setCardConsent,
-    cardConsentError,
     checkoutError,
     rentalAgreementSignature,
     rentalAgreementModalOpen,
@@ -126,6 +125,7 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
     rentalHours,
     minDuration,
     meetsMinDuration,
+    reserveBlocked,
     tenant,
     vehicle,
     plans,
@@ -564,19 +564,12 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
               companyName={tenant.name}
               depositAmount={Number(vehicle?.securityDeposit) || 0}
               required
-              showError={cardConsentError}
             />
 
             <button
               type="button"
               onClick={() => reserve()}
-              disabled={
-                startCheckout.isPending ||
-                startVerification.isPending ||
-                startEmbedPayment.isPending ||
-                !meetsMinDuration ||
-                (rentalAgreementRequired && !rentalAgreementSigned)
-              }
+              disabled={reserveBlocked}
               className={`${styles.btn} ${styles.btnBrass} ${styles.reserveBtn}`}
             >
               <Dyn>{startCheckout.isPending || startVerification.isPending || startEmbedPayment.isPending
