@@ -523,6 +523,19 @@ export interface BookingDetails {
   /** Staff asked for a card on file; the pay page offers the renter the
    *  choice, and the server refuses to keep one without consent. */
   cardOnFileRequested: boolean;
+  /** The card actually kept, masked. Null when none is held. */
+  cardOnFile: {
+    label: string;
+    brand_label?: string;
+    masked_number?: string;
+    brand?: string;
+    last4?: string;
+    exp_month?: number | null;
+    exp_year?: number | null;
+    cardholder_name?: string;
+    authorized?: boolean;
+  } | null;
+  cardConsentAt: string | null;
   holdExpiresAt: string | null;
   agreementId?: number;
   agreementStatus?: string;
@@ -833,6 +846,8 @@ function transformBooking(api: ApiBooking): BookingDetails {
     totalPrice: api.total_price != null ? String(api.total_price) : '',
     paymentStatus: api.payment_status || '',
     cardOnFileRequested: !!(api as any).card_on_file_requested,
+    cardOnFile: (api as any).card_on_file ?? null,
+    cardConsentAt: (api as any).card_consent_at ?? null,
     holdExpiresAt: api.hold_expires_at ?? null,
     canModify: api.can_modify || { cancel: false, swap: false, reduce: false, extend: false },
     extensionMods: (Array.isArray((api as any).modification_requests) ? (api as any).modification_requests : [])

@@ -169,6 +169,27 @@ export function useTermsAgreement() {
         minDriverAge: bookingData.vehicle.minDriverAge ?? null,
         maxDriverAge: bookingData.vehicle.maxDriverAge ?? null,
       },
+      // A signed agreement shows the card frozen at signing; otherwise the
+      // booking's current one, so the renter sees it in the document they
+      // are about to sign. Same precedence as invoice above.
+      cardOnFile:
+        signedSnapshot?.cardOnFile ??
+        (bookingData.cardOnFile
+          ? {
+              label: bookingData.cardOnFile.label,
+              brandLabel: bookingData.cardOnFile.brand_label ?? '',
+              maskedNumber: bookingData.cardOnFile.masked_number ?? '',
+              brand: bookingData.cardOnFile.brand ?? '',
+              last4: bookingData.cardOnFile.last4 ?? '',
+              expiry:
+                bookingData.cardOnFile.exp_month && bookingData.cardOnFile.exp_year
+                  ? `${String(bookingData.cardOnFile.exp_month).padStart(2, '0')}/${bookingData.cardOnFile.exp_year}`
+                  : '',
+              cardholderName: bookingData.cardOnFile.cardholder_name ?? '',
+              authorized: !!bookingData.cardOnFile.authorized,
+              consentedAt: bookingData.cardConsentAt ?? null,
+            }
+          : null),
       invoice: signedSnapshot?.invoice ?? {
         rentalTotal: `$${bookingData.invoice.rentalTotal.toFixed(2)}`,
         fees: bookingData.invoice.fees > 0 ? `$${bookingData.invoice.fees.toFixed(2)}` : undefined,
