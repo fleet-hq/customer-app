@@ -370,20 +370,23 @@ function transformAgreement(api: ApiAgreement): AgreementData {
     // Signed agreements show the card frozen into the snapshot; an unsigned
     // one falls back to the booking's live card, so staff previewing before
     // signature still see what the renter will.
+    // A signed agreement shows the card frozen at signing; an unsigned one
+    // shows the booking's current card, so the renter sees it in the
+    // document before agreeing to it.
     cardOnFile:
       snapshot?.cardOnFile ??
-      ((api.booking_details as any)?.card_on_file
+      ((api as any).card_on_file
         ? {
-            label: (api.booking_details as any).card_on_file.label,
-            brand: (api.booking_details as any).card_on_file.brand,
-            last4: (api.booking_details as any).card_on_file.last4,
+            label: (api as any).card_on_file.label,
+            brand: (api as any).card_on_file.brand,
+            last4: (api as any).card_on_file.last4,
             expiry:
-              (api.booking_details as any).card_on_file.exp_month && (api.booking_details as any).card_on_file.exp_year
-                ? `${String((api.booking_details as any).card_on_file.exp_month).padStart(2, '0')}/${(api.booking_details as any).card_on_file.exp_year}`
+              (api as any).card_on_file.exp_month && (api as any).card_on_file.exp_year
+                ? `${String((api as any).card_on_file.exp_month).padStart(2, '0')}/${(api as any).card_on_file.exp_year}`
                 : '',
-            cardholderName: '',
-            authorized: !!(api.booking_details as any).card_on_file.authorized,
-            consentedAt: (api.booking_details as any)?.card_consent_at ?? null,
+            cardholderName: (api as any).card_on_file.cardholder_name || '',
+            authorized: !!(api as any).card_on_file.authorized,
+            consentedAt: (api as any).card_on_file.consented_at ?? null,
           }
         : null),
     // Resolved tenant TZ for the booking the agreement belongs to.
