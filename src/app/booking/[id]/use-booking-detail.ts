@@ -93,6 +93,10 @@ export function useBookingDetail(id: string) {
     pollFast: idSent || insuranceSent,
   });
   const { data: agreementApi, refetch: refetchAgreement } = useAgreementByBooking(fetchId);
+  // Declared here, above the loading/not-found early returns below:
+  // a hook that only runs on the ready path changes the hook count
+  // between renders and React refuses to continue.
+  const [agreementModalOpen, setAgreementModalOpen] = useState(false);
   const { data: secondaryDrivers } = useBookingDrivers(fetchId);
   const { data: bookingImages = [] } = useBookingImages(fetchId);
   const { data: verificationPolicy } = useBookingVerificationPolicy();
@@ -394,7 +398,6 @@ export function useBookingDetail(id: string) {
   // Everything that must be settled before money moves. The agreement
   // and the card authorization are consent, not verification, so they sit
   // beside the ID/insurance checks rather than inside them.
-  const [agreementModalOpen, setAgreementModalOpen] = useState(false);
   const needsConsent = staffAskedForCard && !saveCard;
   const needsAgreement = !!agreementHref && !agreementSigned;
   if (needsAgreement) pendingChecks.push('sign the rental agreement');
