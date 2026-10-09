@@ -1,7 +1,6 @@
 'use client';
 
 import { Dyn } from '@/components/i18n/Dyn';
-import { paths } from '@/lib/paths';
 
 interface CardConsentProps {
   checked: boolean;
@@ -41,46 +40,41 @@ export function CardConsent({
   const hasDeposit = typeof depositAmount === 'number' && depositAmount > 0;
 
   return (
-    <div className="mt-4 rounded-[10px] border border-line bg-white p-4">
-      <label className="flex cursor-pointer items-start gap-3">
+    <div className="mt-3 rounded-[10px] border border-line bg-white px-3.5 py-3">
+      <label className="flex cursor-pointer items-start gap-2.5">
         <input
           type="checkbox"
           checked={checked}
           onChange={(e) => onChange(e.target.checked)}
           aria-invalid={showError || undefined}
-          className="mt-[3px] h-[15px] w-[15px] flex-shrink-0 accent-primary"
+          className="mt-[2px] h-[14px] w-[14px] flex-shrink-0 accent-primary"
         />
-        <span className="text-[12.5px] leading-[1.6] text-ink">
+        <span className="text-[11.5px] leading-[1.5] text-ink">
+          {/* The agreement is on this same page, so the words stay words —
+              a link here only invites the renter to navigate away from the
+              thing they are part-way through. */}
           <Dyn>
-            {`I authorize ${companyName} to charge this card for tolls, tickets, fuel, cleaning or damage during or after my rental, as described in the`}
-          </Dyn>{' '}
-          <a
-            href={paths.terms}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-medium text-primary underline"
-          >
-            <Dyn>Rental Agreement</Dyn>
-          </a>
-          {required ? <span className="ml-1 text-danger">*</span> : null}
+            {`I authorize ${companyName} to charge this card for tolls, tickets, fuel, cleaning or damage during or after my rental, as described in the Rental Agreement.`}
+          </Dyn>
+          {required ? <span className="ml-0.5 text-danger">*</span> : null}
         </span>
       </label>
 
       {showError ? (
-        <p className="mt-2 pl-[27px] text-[11.5px] font-medium text-danger">
+        <p className="mt-1.5 pl-[24px] text-[11px] font-medium text-danger">
           <Dyn>Please authorize this before continuing.</Dyn>
         </p>
       ) : null}
 
-      <p className="mt-3 border-t border-line pt-3 pl-[27px] text-[11.5px] leading-[1.6] text-faint">
+      <p className="mt-1.5 pl-[24px] text-[11px] leading-[1.45] text-faint">
         {hasDeposit ? (
           depositChargedUpfront ? (
             <Dyn>
-              {`${money(depositAmount!)} security deposit is charged at checkout and refunded after the vehicle is returned and inspected.`}
+              {`${money(depositAmount!)} deposit charged at checkout, refunded after return and inspection.`}
             </Dyn>
           ) : (
             <Dyn>
-              {`${money(depositAmount!)} held on your card at pick-up, released after inspection.`}
+              {`${money(depositAmount!)} held at pick-up, released after inspection.`}
             </Dyn>
           )
         ) : (
