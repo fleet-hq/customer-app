@@ -6,6 +6,7 @@ import { paths } from '@/lib/paths';
 import { Dyn } from '@/components/i18n/Dyn';
 import { useBookingDetail } from './use-booking-detail';
 import styles from '@/styles/template-2.module.css';
+import { RentalAgreementSignModal } from '@/components/booking/rental-agreement-sign-modal';
 
 export default function BookingDetailClientT2({ id }: { id: string }) {
   const bd = useBookingDetail(id);
@@ -79,6 +80,13 @@ export default function BookingDetailClientT2({ id }: { id: string }) {
     payLoading,
     payError,
     agreementSigned,
+    staffAskedForCard,
+    saveCard,
+    chooseSaveCard,
+    agreementModalOpen,
+    signAgreement,
+    setAgreementModalOpen,
+    agreementPreviewData,
     agreementHref,
     secondaryDrivers,
     tokenReady,
@@ -138,6 +146,12 @@ export default function BookingDetailClientT2({ id }: { id: string }) {
         payError={payError}
         agreementSigned={agreementSigned}
         agreementHref={agreementHref}
+        staffAskedForCard={staffAskedForCard}
+        saveCard={saveCard}
+        onChooseSaveCard={chooseSaveCard}
+        companyName={tenant.name}
+        depositAmount={booking?.invoice.deposit}
+        onSignAgreement={() => setAgreementModalOpen(true)}
         bookingId={id}
         token={token}
         secondaryDrivers={secondaryDrivers ?? []}
@@ -168,6 +182,15 @@ export default function BookingDetailClientT2({ id }: { id: string }) {
           onSubmit={handleSquarePaySubmit}
         />
       )}
+      <RentalAgreementSignModal
+        open={agreementModalOpen}
+        onClose={() => setAgreementModalOpen(false)}
+        data={agreementPreviewData ?? undefined}
+        onSigned={async (dataUri) => {
+          await signAgreement(dataUri);
+          setAgreementModalOpen(false);
+        }}
+      />
     </div>
   );
 }

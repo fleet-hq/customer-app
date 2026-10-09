@@ -20,6 +20,7 @@ import { useState } from 'react';
 import type { BillingChargeRow } from '@/services/billingServices';
 import type { TripImage } from '@/services/tripImageServices';
 import { useTenant } from '@/lib/tenant-context';
+import { CardConsent } from '@/components/booking/card-consent';
 
 const PLACEHOLDER_IMAGE = '/images/vehicles/car_placeholder.svg';
 
@@ -96,6 +97,14 @@ interface Props {
   payError: string | null;
   agreementSigned: boolean;
   agreementHref: string | null;
+  /** Staff asked for a card; the renter authorizes it here before paying. */
+  staffAskedForCard?: boolean;
+  saveCard?: boolean;
+  onChooseSaveCard?: (next: boolean) => void;
+  companyName?: string;
+  depositAmount?: number;
+  /** Opens the signing modal instead of navigating away mid-payment. */
+  onSignAgreement?: () => void;
   bookingId: string;
   token: string | null;
   secondaryDrivers: BookingDriver[];
@@ -147,6 +156,12 @@ export function VerifyFirstConfirm(props: Props) {
     payError,
     agreementSigned,
     agreementHref,
+    staffAskedForCard,
+    saveCard,
+    onChooseSaveCard,
+    companyName,
+    depositAmount,
+    onSignAgreement,
     bookingId,
     token,
     secondaryDrivers,
@@ -416,7 +431,21 @@ export function VerifyFirstConfirm(props: Props) {
               signed={agreementSigned}
               href={agreementHref}
               mode={mode}
+              onSign={onSignAgreement}
             />
+
+            {/* Both are consent rather than verification: the renter is
+                agreeing to terms and to a card being kept, and neither can
+                be given on their behalf. Pay stays disabled until both. */}
+            {staffAskedForCard && mode === 'payment_due' ? (
+              <CardConsent
+                checked={!!saveCard}
+                onChange={(next) => onChooseSaveCard?.(next)}
+                companyName={companyName ?? ''}
+                depositAmount={depositAmount}
+                required
+              />
+            ) : null}
 
             {mode !== 'cancelled' && (
               <TripPhotos
@@ -1026,10 +1055,14 @@ function AgreementCard({
   signed,
   href,
   mode,
+  onSign,
 }: {
   signed: boolean;
   href: string | null;
   mode: BookingMode;
+  /** Opens the signing modal in place. Falls back to the link when the
+   *  caller has no modal — the agreement pages still link out. */
+  onSign?: () => void;
 }) {
   const isT2 = useIsT2();
   if (!href && !signed) return null;
@@ -1070,10 +1103,8 @@ function AgreementCard({
             </p>
           </div>
         </div>
-        {href && (
-          <Link
-            href={href}
-            className={cn(
+        {href && (() => {
+          const actionClass = cn(
               'inline-flex flex-shrink-0 items-center justify-center rounded-[9px] px-4 py-2 text-[12.5px] font-semibold transition-colors',
               isT2
                 ? signed
@@ -1082,11 +1113,20 @@ function AgreementCard({
                 : signed
                   ? 'border border-line bg-white text-ink hover:bg-subtle'
                   : 'bg-primary text-white hover:bg-primary-hover',
-            )}
-          >
-            <Dyn>{primary}</Dyn>
-          </Link>
-        )}
+          );
+          // Signing in place keeps the renter on the page they are paying
+          // from; without a handler we still link out, which is what the
+          // standalone agreement pages do.
+          return !signed && onSign ? (
+            <button type="button" onClick={onSign} className={actionClass}>
+              <Dyn>{primary}</Dyn>
+            </button>
+          ) : (
+            <Link href={href} className={actionClass}>
+              <Dyn>{primary}</Dyn>
+            </Link>
+          );
+        })()}
       </div>
     </div>
   );

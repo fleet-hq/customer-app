@@ -7,6 +7,7 @@ import { SquarePayModal } from '@/components/booking/square-pay-modal';
 import { paths } from '@/lib/paths';
 import { useBookingDetail } from './use-booking-detail';
 import BookingDetailClientT2 from './booking-detail-client-t2';
+import { RentalAgreementSignModal } from '@/components/booking/rental-agreement-sign-modal';
 
 export default function BookingPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -99,6 +100,13 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
     payLoading,
     payError,
     agreementSigned,
+    staffAskedForCard,
+    saveCard,
+    chooseSaveCard,
+    agreementModalOpen,
+    signAgreement,
+    setAgreementModalOpen,
+    agreementPreviewData,
     agreementHref,
     secondaryDrivers,
     tokenReady,
@@ -152,6 +160,12 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
       payError={payError}
       agreementSigned={agreementSigned}
       agreementHref={agreementHref}
+      staffAskedForCard={staffAskedForCard}
+      saveCard={saveCard}
+      onChooseSaveCard={chooseSaveCard}
+      companyName={tenant.name}
+      depositAmount={booking?.invoice.deposit}
+      onSignAgreement={() => setAgreementModalOpen(true)}
       bookingId={id}
       token={token}
       secondaryDrivers={secondaryDrivers ?? []}
@@ -166,6 +180,16 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
       onManualUploaded={refetchManual}
       canUploadPhotos={tokenReady && !isCancelled}
     />
+      <RentalAgreementSignModal
+        open={agreementModalOpen}
+        onClose={() => setAgreementModalOpen(false)}
+        data={agreementPreviewData ?? undefined}
+        onSigned={async (dataUri) => {
+          await signAgreement(dataUri);
+          setAgreementModalOpen(false);
+        }}
+      />
+
     {providersData?.square && (
       <SquarePayModal
         open={squareModalOpen}

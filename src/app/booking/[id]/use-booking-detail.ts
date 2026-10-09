@@ -6,6 +6,7 @@ import type { BookingMode } from '@/components/booking/verify-first-confirm';
 import { useBookingDetails, useBookingDrivers } from '@/hooks/useBooking';
 import { useBookingBalance } from '@/hooks/useBookingBalance';
 import { useAgreementByBooking } from '@/hooks/useAgreements';
+import { submitBookingSignature } from '@/services/agreementServices';
 import { useBookingImages } from '@/hooks/useTripImages';
 import {
   useVerificationStatus,
@@ -91,7 +92,7 @@ export function useBookingDetail(id: string) {
   const { data: verificationStatus } = useVerificationStatus(fetchId, {
     pollFast: idSent || insuranceSent,
   });
-  const { data: agreementApi } = useAgreementByBooking(fetchId);
+  const { data: agreementApi, refetch: refetchAgreement } = useAgreementByBooking(fetchId);
   const { data: secondaryDrivers } = useBookingDrivers(fetchId);
   const { data: bookingImages = [] } = useBookingImages(fetchId);
   const { data: verificationPolicy } = useBookingVerificationPolicy();
@@ -150,16 +151,6 @@ export function useBookingDetail(id: string) {
   const handlePay = async () => {
     if (payLoading) return;
     setPayError(null);
-    // Staff asked for a card, so the renter has to be given the chance to
-    // authorize it before paying. This bar has no room for that question,
-    // and the payment-pending page already asks it — send them there
-    // rather than straight to the provider, where the card would be kept
-    // by the provider and then refused filing for want of consent.
-    if (staffAskedForCard && !isVerifyFirst) {
-      const suffix = token ? `?token=${token}` : '';
-      window.location.href = `/booking/${id}/payment-pending${suffix}`;
-      return;
-    }
     if (
       isVerifyFirst
       && token
@@ -378,7 +369,7 @@ export function useBookingDetail(id: string) {
   const pendingChecks: string[] = [];
   if (requireId && !idVerified) pendingChecks.push('verify your ID');
   if (requireInsurance && !insuranceVerified) pendingChecks.push('verify your insurance');
-  const allRequiredChecksDone = pendingChecks.length === 0;
+
   const isReserved = String(booking.status ?? '').toLowerCase() === 'reserved';
   const manualIdSubmission = latestSubmissionFor(manualSubmissions, 'id');
   const manualInsuranceSubmission = latestSubmissionFor(manualSubmissions, 'insurance');
@@ -400,6 +391,15 @@ export function useBookingDetail(id: string) {
 
   const agreementSigned = !!agreementApi?.signatureImage;
   const agreementHref = `${paths.terms}?bookingId=${id}${token ? `&token=${token}` : ''}`;
+  // Everything that must be settled before money moves. The agreement
+  // and the card authorization are consent, not verification, so they sit
+  // beside the ID/insurance checks rather than inside them.
+  const [agreementModalOpen, setAgreementModalOpen] = useState(false);
+  const needsConsent = staffAskedForCard && !saveCard;
+  const needsAgreement = !!agreementHref && !agreementSigned;
+  if (needsAgreement) pendingChecks.push('sign the rental agreement');
+  if (needsConsent) pendingChecks.push('authorize the card on file');
+  const allRequiredChecksDone = pendingChecks.length === 0;
 
   const payAmount = isVerifyFirst
     ? Number(booking.totalPrice) || booking.invoice.total
@@ -430,6 +430,17 @@ export function useBookingDetail(id: string) {
     requireInsurance,
     showInsuranceStep,
     allRequiredChecksDone,
+    needsAgreement,
+    needsConsent,
+    agreementModalOpen,
+    signAgreement: async (dataUri: string) => {
+      await submitBookingSignature(id, dataUri);
+      await refetchAgreement();
+    },
+    // The agreement endpoint already returns the whole document, so the
+    // signing modal can show it in full rather than the clauses alone.
+    agreementPreviewData: agreementApi ?? null,
+    setAgreementModalOpen,
     mode,
     preTrip,
     postTrip,
