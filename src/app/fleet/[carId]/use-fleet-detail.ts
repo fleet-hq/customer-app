@@ -25,7 +25,7 @@ import { checkFleetAvailability, validatePromoCode } from '@/services/bookingSer
 import type { InsuranceOption } from '@/services/bookingServices';
 import { toUtcIso } from '@/utils/datetime';
 import { todayISO } from '@/lib/time-slots';
-import { rentalDays } from '@/lib/utils';
+import { rentalDays, zonedTimeToMs } from '@/lib/utils';
 import { buildUnavailabilityIndex, slotsBlockedOn, firstBlockInSpan } from '@/lib/unavailable-slots';
 import { formatInTimeZone } from 'date-fns-tz';
 import { useEmbedBridge } from '@/hooks';
@@ -278,22 +278,22 @@ export function useFleetDetail(carId: string) {
     setDropoffLocId(String(dropDef.id));
   }, [companyLocations, defaultLoc, pickupLocId]);
 
-  const days = rentalDays(pickupDate, returnDate, pickupTime, returnTime);
+  const days = rentalDays(pickupDate, returnDate, pickupTime, returnTime, fleetTz);
   const rentalHours = useMemo(() => {
-    const pickupMs = new Date(`${pickupDate}T${pickupTime || '00:00'}:00`).getTime();
-    const dropoffMs = new Date(`${returnDate}T${returnTime || '00:00'}:00`).getTime();
+    const pickupMs = zonedTimeToMs(pickupDate, pickupTime, fleetTz);
+    const dropoffMs = zonedTimeToMs(returnDate, returnTime, fleetTz);
     if (Number.isNaN(pickupMs) || Number.isNaN(dropoffMs)) return Math.max(1, days * 24);
     return Math.max(1, Math.ceil((dropoffMs - pickupMs) / 3600000));
-  }, [pickupDate, pickupTime, returnDate, returnTime, days]);
+  }, [pickupDate, pickupTime, returnDate, returnTime, days, fleetTz]);
 
   const minDuration = vehicle?.minDuration ?? 1;
   const isHourlyFleet = (vehicle?.pricePerHour ?? 0) > 0;
   const rawRentalHours = useMemo(() => {
-    const pickupMs = new Date(`${pickupDate}T${pickupTime || '00:00'}:00`).getTime();
-    const dropoffMs = new Date(`${returnDate}T${returnTime || '00:00'}:00`).getTime();
+    const pickupMs = zonedTimeToMs(pickupDate, pickupTime, fleetTz);
+    const dropoffMs = zonedTimeToMs(returnDate, returnTime, fleetTz);
     if (Number.isNaN(pickupMs) || Number.isNaN(dropoffMs)) return days * 24;
     return (dropoffMs - pickupMs) / 3600000;
-  }, [pickupDate, pickupTime, returnDate, returnTime, days]);
+  }, [pickupDate, pickupTime, returnDate, returnTime, days, fleetTz]);
   // Mirrors bookings/duration.py on the server. With the operator's
   // short-trip allowance the question is what the renter is billed —
   // `days` already rounds part-days up the way the invoice does — so a

@@ -30,16 +30,58 @@ export function formatLongDate(iso: string): string {
   return `${days[d.getDay()]}, ${pad(d.getDate())} ${months[d.getMonth()]} ${d.getFullYear()}`;
 }
 
+/** The instant a wall-clock date and time refer to in a given zone.
+ *
+ *  "9:00 on Nov 3 in New York" is a different moment depending on
+ *  whether the clocks have gone back, and ``new Date('...T09:00')``
+ *  answers for the viewer's own zone instead. A renter browsing from
+ *  Karachi would otherwise measure a New York trip with Karachi hours.
+ */
+export function zonedTimeToMs(
+  date: string,
+  time: string = '00:00',
+  timeZone?: string | null,
+): number {
+  const wall = Date.parse(`${date}T${time || '00:00'}:00Z`);
+  if (Number.isNaN(wall)) return NaN;
+  if (!timeZone) return new Date(`${date}T${time || '00:00'}:00`).getTime();
+
+  const dtf = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    hour12: false,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+  });
+  // Two passes settle the offset either side of a DST transition.
+  let guess = wall;
+  for (let i = 0; i < 2; i += 1) {
+    const parts = Object.fromEntries(
+      dtf.formatToParts(new Date(guess)).map((p) => [p.type, p.value]),
+    ) as Record<string, string>;
+    const seen = Date.UTC(
+      Number(parts.year), Number(parts.month) - 1, Number(parts.day),
+      Number(parts.hour) % 24, Number(parts.minute), Number(parts.second),
+    );
+    guess = wall - (seen - guess);
+  }
+  return guess;
+}
+
+/** Billable days, counted the way the backend counts them
+ *  (``common/tz.py::block_days``): elapsed hours rounded up, then 24-hour
+ *  blocks rounded up. Pass the rental location's zone — without it a
+ *  trip across a DST change is measured an hour short and loses a day. */
 export function rentalDays(
   fromDate: string,
   toDate: string,
   fromTime: string = '00:00',
   toTime: string = '00:00',
+  timeZone?: string | null,
 ): number {
-  const a = new Date(`${fromDate}T${fromTime}:00`);
-  const b = new Date(`${toDate}T${toTime}:00`);
-  if (isNaN(a.getTime()) || isNaN(b.getTime())) return 1;
-  const hours = Math.max(1, Math.ceil((b.getTime() - a.getTime()) / 3600000));
+  const a = zonedTimeToMs(fromDate, fromTime, timeZone);
+  const b = zonedTimeToMs(toDate, toTime, timeZone);
+  if (Number.isNaN(a) || Number.isNaN(b)) return 1;
+  const hours = Math.max(1, Math.ceil((b - a) / 3600000));
   return Math.max(1, Math.ceil(hours / 24));
 }
 
