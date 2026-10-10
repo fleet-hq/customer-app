@@ -1,3 +1,4 @@
+import { fromZonedTime } from 'date-fns-tz';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -30,41 +31,17 @@ export function formatLongDate(iso: string): string {
   return `${days[d.getDay()]}, ${pad(d.getDate())} ${months[d.getMonth()]} ${d.getFullYear()}`;
 }
 
-/** The instant a wall-clock date and time refer to in a given zone.
- *
- *  "9:00 on Nov 3 in New York" is a different moment depending on
- *  whether the clocks have gone back, and ``new Date('...T09:00')``
- *  answers for the viewer's own zone instead. A renter browsing from
- *  Karachi would otherwise measure a New York trip with Karachi hours.
- */
-export function zonedTimeToMs(
-  date: string,
-  time: string = '00:00',
-  timeZone?: string | null,
-): number {
-  const wall = Date.parse(`${date}T${time || '00:00'}:00Z`);
-  if (Number.isNaN(wall)) return NaN;
-  if (!timeZone) return new Date(`${date}T${time || '00:00'}:00`).getTime();
-
-  const dtf = new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    hour12: false,
-    year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', second: '2-digit',
-  });
-  // Two passes settle the offset either side of a DST transition.
-  let guess = wall;
-  for (let i = 0; i < 2; i += 1) {
-    const parts = Object.fromEntries(
-      dtf.formatToParts(new Date(guess)).map((p) => [p.type, p.value]),
-    ) as Record<string, string>;
-    const seen = Date.UTC(
-      Number(parts.year), Number(parts.month) - 1, Number(parts.day),
-      Number(parts.hour) % 24, Number(parts.minute), Number(parts.second),
-    );
-    guess = wall - (seen - guess);
+/** A wall clock read in the rental's zone, the same conversion the
+ *  booking itself is built with (``toUtcIso``). Without a zone it falls
+ *  back to the viewer's, which is only safe for display. */
+function wallClockMs(date: string, time: string, timeZone?: string | null): number {
+  const wall = `${date}T${time || '00:00'}:00`;
+  if (!timeZone) return new Date(wall).getTime();
+  try {
+    return fromZonedTime(wall, timeZone).getTime();
+  } catch {
+    return new Date(wall).getTime();
   }
-  return guess;
 }
 
 /** Billable days, counted the way the backend counts them
@@ -78,8 +55,8 @@ export function rentalDays(
   toTime: string = '00:00',
   timeZone?: string | null,
 ): number {
-  const a = zonedTimeToMs(fromDate, fromTime, timeZone);
-  const b = zonedTimeToMs(toDate, toTime, timeZone);
+  const a = wallClockMs(fromDate, fromTime, timeZone);
+  const b = wallClockMs(toDate, toTime, timeZone);
   if (Number.isNaN(a) || Number.isNaN(b)) return 1;
   const hours = Math.max(1, Math.ceil((b - a) / 3600000));
   return Math.max(1, Math.ceil(hours / 24));

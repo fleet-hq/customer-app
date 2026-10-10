@@ -25,7 +25,7 @@ import { checkFleetAvailability, validatePromoCode } from '@/services/bookingSer
 import type { InsuranceOption } from '@/services/bookingServices';
 import { toUtcIso } from '@/utils/datetime';
 import { todayISO } from '@/lib/time-slots';
-import { rentalDays, zonedTimeToMs } from '@/lib/utils';
+import { rentalDays } from '@/lib/utils';
 import { buildUnavailabilityIndex, slotsBlockedOn, firstBlockInSpan } from '@/lib/unavailable-slots';
 import { formatInTimeZone } from 'date-fns-tz';
 import { useEmbedBridge } from '@/hooks';
@@ -280,8 +280,12 @@ export function useFleetDetail(carId: string) {
 
   const days = rentalDays(pickupDate, returnDate, pickupTime, returnTime, fleetTz);
   const rentalHours = useMemo(() => {
-    const pickupMs = zonedTimeToMs(pickupDate, pickupTime, fleetTz);
-    const dropoffMs = zonedTimeToMs(returnDate, returnTime, fleetTz);
+    const pickupMs = fleetTz
+      ? Date.parse(toUtcIso(pickupDate, pickupTime || '00:00', fleetTz))
+      : new Date(`${pickupDate}T${pickupTime || '00:00'}:00`).getTime();
+    const dropoffMs = fleetTz
+      ? Date.parse(toUtcIso(returnDate, returnTime || '00:00', fleetTz))
+      : new Date(`${returnDate}T${returnTime || '00:00'}:00`).getTime();
     if (Number.isNaN(pickupMs) || Number.isNaN(dropoffMs)) return Math.max(1, days * 24);
     return Math.max(1, Math.ceil((dropoffMs - pickupMs) / 3600000));
   }, [pickupDate, pickupTime, returnDate, returnTime, days, fleetTz]);
@@ -289,8 +293,12 @@ export function useFleetDetail(carId: string) {
   const minDuration = vehicle?.minDuration ?? 1;
   const isHourlyFleet = (vehicle?.pricePerHour ?? 0) > 0;
   const rawRentalHours = useMemo(() => {
-    const pickupMs = zonedTimeToMs(pickupDate, pickupTime, fleetTz);
-    const dropoffMs = zonedTimeToMs(returnDate, returnTime, fleetTz);
+    const pickupMs = fleetTz
+      ? Date.parse(toUtcIso(pickupDate, pickupTime || '00:00', fleetTz))
+      : new Date(`${pickupDate}T${pickupTime || '00:00'}:00`).getTime();
+    const dropoffMs = fleetTz
+      ? Date.parse(toUtcIso(returnDate, returnTime || '00:00', fleetTz))
+      : new Date(`${returnDate}T${returnTime || '00:00'}:00`).getTime();
     if (Number.isNaN(pickupMs) || Number.isNaN(dropoffMs)) return days * 24;
     return (dropoffMs - pickupMs) / 3600000;
   }, [pickupDate, pickupTime, returnDate, returnTime, days, fleetTz]);
