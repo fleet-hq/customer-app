@@ -60,6 +60,9 @@ export interface UseBookingInvoiceParams {
     pricePerDay: number;
     pricePerHour?: number;
     autoCapEnabled?: boolean;
+    /** Per-day rates for the fetched window — what the renter sees
+     *  listed, and what the base price is summed from. */
+    dailyRates?: { rate: number }[] | null;
     discounts?: { unitType: string; units: number; percentage: number }[];
     securityDeposit?: number;
     bookingFee?: number;
@@ -126,6 +129,7 @@ export function useBookingInvoice({
       rentalDays,
       rentalHours,
       autoCapEnabled: vehicleData.autoCapEnabled !== false,
+      dailyRates: vehicleData.dailyRates,
     });
   }, [vehicleData, rentalDays, rentalHours]);
 

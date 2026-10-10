@@ -20,6 +20,10 @@ interface CalculateBasePriceArgs {
   rentalDays: number;
   rentalHours: number;
   autoCapEnabled?: boolean;
+  /** The per-day rates the API resolved for this exact window, peak
+   *  days included. Present whenever the vehicle was fetched with
+   *  dates. */
+  dailyRates?: { rate: number }[] | null;
 }
 
 /**
@@ -39,6 +43,7 @@ export function calculateBasePrice({
   rentalDays,
   rentalHours,
   autoCapEnabled = true,
+  dailyRates,
 }: CalculateBasePriceArgs): BasePriceResult {
   const hasDaily = pricePerDay > 0;
   const hasHourly = pricePerHour > 0;
@@ -52,6 +57,18 @@ export function calculateBasePrice({
   }
 
   if (hasDaily) {
+    // ``pricePerDay`` is an average across the fetched window, so
+    // multiplying it by a day count is only right while that window and
+    // the selected one are the same. They come apart the moment the
+    // renter edits a date — a 7-day average of 800 charged over 6 days
+    // read $4,800 against per-day rows totalling $5,280 — and an average
+    // cannot represent peak days anyway. Sum the rates when they cover
+    // the selection; they are what the renter is shown.
+    const rates = (dailyRates ?? []).map((d) => Number(d.rate)).filter(Number.isFinite);
+    if (rates.length === rentalDays && rentalDays > 0) {
+      const total = rates.reduce((sum, rate) => sum + rate, 0);
+      return { total, unit: 'day', quantity: rentalDays, unitPrice: total / rentalDays };
+    }
     return { total: pricePerDay * rentalDays, unit: 'day', quantity: rentalDays, unitPrice: pricePerDay };
   }
 
