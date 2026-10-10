@@ -12,6 +12,10 @@ interface RentalBreakdownProps {
   days: number;
   dailyRates?: DailyRate[] | null;
   total: number;
+  /** These figures were fetched for the dates selected a moment ago.
+   *  Shown faded rather than as a settled price, because an amount for
+   *  a trip nobody asked for reads exactly like a real one. */
+  stale?: boolean;
 }
 
 export function RentalBreakdown({
@@ -22,13 +26,14 @@ export function RentalBreakdown({
   days,
   dailyRates,
   total,
+  stale = false,
 }: RentalBreakdownProps) {
   const breakdown = deriveDailyBreakdown(rateUnit, dailyRates);
   const summary = formatRentalSummary(rateUnit, pricePerHour, rentalHours, pricePerDay, days);
 
   if (breakdown) {
     return (
-      <div>
+      <div aria-busy={stale} className={stale ? 'opacity-50 transition-opacity' : undefined}>
         <div className="flex items-start justify-between text-[13px]">
           <div className="font-medium text-ink"><Dyn>Car rental</Dyn></div>
           <span className="font-medium text-ink">{money(total)}</span>
@@ -51,7 +56,10 @@ export function RentalBreakdown({
   }
 
   return (
-    <div className="flex items-start justify-between text-[13px]">
+    <div
+      aria-busy={stale}
+      className={`flex items-start justify-between text-[13px]${stale ? ' opacity-50 transition-opacity' : ''}`}
+    >
       <div>
         <div className="font-medium text-ink"><Dyn>Car rental</Dyn></div>
         <div className="mt-px text-[11.5px] text-muted"><Dyn>{summary}</Dyn></div>

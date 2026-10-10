@@ -159,6 +159,7 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
     dropoffMinTime,
     dropoffMaxTime,
     pricing,
+    pricingStale,
     extraInvoiceItems,
     insuranceLabel,
   } = fd;
@@ -408,6 +409,7 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
               days={days}
               dailyRates={vehicle.dailyRates}
               total={pricing.subtotal - pricing.insuranceCost - pricing.extrasCost}
+              stale={pricingStale}
             />
             <div className={styles.priceDivider} />
 

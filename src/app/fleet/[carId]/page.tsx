@@ -176,6 +176,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
     dropoffMinTime,
     dropoffMaxTime,
     pricing,
+    pricingStale,
     extraInvoiceItems,
     insuranceLabel,
     agreementPreviewData,
@@ -502,6 +503,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               days={days}
               dailyRates={vehicle.dailyRates}
               total={pricing.subtotal - pricing.insuranceCost - pricing.extrasCost}
+              stale={pricingStale}
             />
             <div className="my-[14px] h-px bg-card-border" />
 

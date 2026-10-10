@@ -323,6 +323,7 @@ export function useFleetDetail(carId: string) {
             pricePerDay: vehicle.pricePerDay,
             pricePerHour: vehicle.pricePerHour,
             autoCapEnabled: vehicle.autoCapEnabled,
+            dailyRates: vehicle.dailyRates,
             discounts: vehicle.discounts,
             securityDeposit: vehicle.securityDeposit,
             bookingFee: vehicle.bookingFee,
@@ -536,6 +537,10 @@ export function useFleetDetail(carId: string) {
     minDuration,
     isHourlyFleet,
     meetsMinDuration,
+    // The fleet payload is kept on screen while a date change refetches,
+    // so its figures can belong to the previous window. Both templates
+    // use this to stop presenting them as final.
+    pricingStale: pricing.stale,
     // One rule for both templates. The agreement and the card
     // authorization are the renter's two consents, and neither is
     // optional, so neither lets the button through.

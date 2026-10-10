@@ -32,6 +32,11 @@ export interface ExtraInvoiceItem {
 
 export interface BookingPricing {
   subtotal: number;
+  /** The payload these numbers came from covers a different window than
+   *  the dates now selected — React Query keeps the previous fleet
+   *  visible while refetching, so an old average would otherwise be
+   *  multiplied by a new day count. */
+  stale: boolean;
   insuranceCost: number;
   extrasCost: number;
   locationCharges: number;
@@ -136,6 +141,7 @@ export function useBookingInvoice({
   const pricing = useMemo<BookingPricing>(() => {
     if (!vehicleData || !basePrice) {
       return {
+        stale: false,
         subtotal: 0, insuranceCost: 0, extrasCost: 0, locationCharges: 0,
         discount: 0, fleetDiscount: 0, fleetDiscountTier: null,
         tax: 0, total: 0, deposit: 0, bookingFee: 0,
@@ -240,7 +246,15 @@ export function useBookingInvoice({
 
     const total = subtotal - discount + tax + locationCharges + bookingFee;
 
+    // Day rows that do not cover the selected days mean this payload was
+    // fetched for a different window, so every figure derived from it is
+    // about a trip the renter is no longer asking for.
+    const rowCount = (vehicleData.dailyRates ?? []).length;
+    const stale =
+      basePrice.unit === 'day' && rowCount > 0 && rowCount !== rentalDays;
+
     return {
+      stale,
       subtotal, insuranceCost, extrasCost, locationCharges,
       discount, fleetDiscount, fleetDiscountTier,
       tax, total, deposit, bookingFee,
