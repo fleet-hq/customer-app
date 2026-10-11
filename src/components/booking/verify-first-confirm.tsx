@@ -5,6 +5,7 @@ import { Check, Clock, Close, Download, IdCard, Pencil, ShieldCheck, Swap } from
 import { BackLink } from '@/components/ui/back-link';
 import { cn, money } from '@/lib/utils';
 import { Dyn } from '@/components/i18n/Dyn';
+import { useIsT2 } from '@/lib/use-is-t2';
 import { insuranceCoverageLines } from '@/lib/insurance-lines';
 import { paths } from '@/lib/paths';
 import { TripPhotos } from '@/components/booking/side-panels';
@@ -31,10 +32,6 @@ const T2_FAILED_PILL_CLASSES =
   'bg-[color-mix(in_srgb,var(--danger)_16%,var(--card))] text-[var(--danger)]';
 const T2_FAILED_BUTTON_CLASSES =
   'bg-[color-mix(in_srgb,var(--danger)_14%,var(--card))] text-[var(--danger)] hover:bg-[color-mix(in_srgb,var(--danger)_22%,var(--card))]';
-
-function useIsT2(): boolean {
-  return useTenant().websiteTemplate === 'template_2';
-}
 
 function rentalDays(booking: BookingDetails): number {
   const start = new Date(booking.pickUp.rawDatetime).getTime();

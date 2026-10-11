@@ -2,7 +2,7 @@
 
 import { Check } from '@/components/ui/icons';
 import { Dyn } from '@/components/i18n/Dyn';
-import { useTenant } from '@/lib/tenant-context';
+import { useIsT2 } from '@/lib/use-is-t2';
 import { cn } from '@/lib/utils';
 import styles from '@/styles/template-2.module.css';
 
@@ -20,7 +20,7 @@ interface AgreementSignBarProps {
  *  are handled here so neither page has to know which one it is in.
  */
 export function AgreementSignBar({ signed, onOpen, className }: AgreementSignBarProps) {
-  const isT2 = useTenant().websiteTemplate === 'template_2';
+  const isT2 = useIsT2();
 
   if (isT2) {
     return (
