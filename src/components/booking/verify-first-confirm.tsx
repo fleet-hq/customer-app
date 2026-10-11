@@ -20,7 +20,6 @@ import { FailedInsurancePanel } from '@/components/booking/failed-insurance-pane
 import { useState } from 'react';
 import type { BillingChargeRow } from '@/services/billingServices';
 import type { TripImage } from '@/services/tripImageServices';
-import { useTenant } from '@/lib/tenant-context';
 import { CardConsent } from '@/components/booking/card-consent';
 import { AgreementSignBar } from '@/components/booking/agreement-sign-bar';
 
