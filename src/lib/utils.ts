@@ -1,4 +1,3 @@
-import { fromZonedTime } from 'date-fns-tz';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -31,32 +30,24 @@ export function formatLongDate(iso: string): string {
   return `${days[d.getDay()]}, ${pad(d.getDate())} ${months[d.getMonth()]} ${d.getFullYear()}`;
 }
 
-/** A wall clock read in the rental's zone, the same conversion the
- *  booking itself is built with (``toUtcIso``). Without a zone it falls
- *  back to the viewer's, which is only safe for display. */
-function wallClockMs(date: string, time: string, timeZone?: string | null): number {
-  const wall = `${date}T${time || '00:00'}:00`;
-  if (!timeZone) return new Date(wall).getTime();
-  try {
-    return fromZonedTime(wall, timeZone).getTime();
-  } catch {
-    return new Date(wall).getTime();
-  }
-}
-
-/** Billable days, counted the way the backend counts them
- *  (``common/tz.py::block_days``): elapsed hours rounded up, then 24-hour
- *  blocks rounded up. Pass the rental location's zone — without it a
- *  trip across a DST change is measured an hour short and loses a day. */
+/** Billable days, counted the way the server counts them
+ *  (``common/tz.py::block_days``): hours on the wall clock rounded up,
+ *  then 24-hour blocks rounded up.
+ *
+ *  Reading both ends as UTC is what makes it the wall clock — no zone
+ *  has a transition in UTC, so the arithmetic is pure "9am to 9am six
+ *  days later is six days". Resolving the two ends into real instants
+ *  instead would measure elapsed time, and the night the clocks go back
+ *  runs 25 hours, which buys the renter a day they never had.
+ */
 export function rentalDays(
   fromDate: string,
   toDate: string,
   fromTime: string = '00:00',
   toTime: string = '00:00',
-  timeZone?: string | null,
 ): number {
-  const a = wallClockMs(fromDate, fromTime, timeZone);
-  const b = wallClockMs(toDate, toTime, timeZone);
+  const a = Date.parse(`${fromDate}T${fromTime || '00:00'}:00Z`);
+  const b = Date.parse(`${toDate}T${toTime || '00:00'}:00Z`);
   if (Number.isNaN(a) || Number.isNaN(b)) return 1;
   const hours = Math.max(1, Math.ceil((b - a) / 3600000));
   return Math.max(1, Math.ceil(hours / 24));

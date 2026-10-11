@@ -278,7 +278,7 @@ export function useFleetDetail(carId: string) {
     setDropoffLocId(String(dropDef.id));
   }, [companyLocations, defaultLoc, pickupLocId]);
 
-  const days = rentalDays(pickupDate, returnDate, pickupTime, returnTime, fleetTz);
+  const days = rentalDays(pickupDate, returnDate, pickupTime, returnTime);
   const rentalHours = useMemo(() => {
     const pickupMs = fleetTz
       ? Date.parse(toUtcIso(pickupDate, pickupTime || '00:00', fleetTz))
