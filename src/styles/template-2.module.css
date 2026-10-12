@@ -897,6 +897,24 @@
 .fcol ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.6rem; }
 .fcol a { text-decoration: none; color: var(--on-ink); font-size: 0.9rem; opacity: 0.85; }
 .fcol a:hover { opacity: 1; color: var(--brass-bright); }
+.footerSocials { margin-top: 1.4rem; display: flex; gap: 0.6rem; flex-wrap: wrap; }
+.footerSocials a {
+  width: 2rem;
+  height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid rgba(239, 233, 221, 0.22);
+  color: var(--on-ink);
+  text-decoration: none;
+  transition: color 0.2s, border-color 0.2s, background-color 0.2s;
+}
+.footerSocials a:hover {
+  color: var(--ink);
+  border-color: var(--brass-bright);
+  background: var(--brass-bright);
+}
 .footerBottom {
   margin-top: 2.5rem;
   padding-top: 1.5rem;
