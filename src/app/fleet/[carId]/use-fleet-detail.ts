@@ -14,12 +14,10 @@ import {
   usePublicPaymentProviders,
   useCheckoutHoldRelease,
 } from '@/hooks';
-import { buildDepositConsentCopy, type SquareCardEntryHandle } from '@/components/checkout/square-card-entry';
 import { useBookingInvoice } from '@/hooks/useBookingInvoice';
 import { useDefaultTaxProfile } from '@/hooks/useTaxProfiles';
 import { useBookingVerificationPolicy, useStartVerificationFirstBooking } from '@/hooks/useBookingPolicy';
 import { getBookingVerificationPolicy } from '@/services/bookingPolicyServices';
-import { squareCreatePaymentForPending } from '@/services/squarePaymentServices';
 import { useDefaultLocation } from '@/contexts';
 import { checkFleetAvailability, validatePromoCode } from '@/services/bookingServices';
 import type { InsuranceOption } from '@/services/bookingServices';
@@ -53,8 +51,6 @@ export function useFleetDetail(carId: string) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const embed = useEmbedBridge();
-  const squareCardRef = useRef<SquareCardEntryHandle | null>(null);
-  const [squareCardError, setSquareCardError] = useState<string | null>(null);
   const tenant = useTenant();
   const { t } = useDynamicTranslation([
     'First name',
@@ -78,8 +74,6 @@ export function useFleetDetail(carId: string) {
   // gateway at a time on the Integrations page — customer-central
   // just uses whatever's on. No picker, no per-request override.
   const { data: providersData } = usePublicPaymentProviders();
-  const activeProvider: 'stripe' | 'square' =
-    (providersData?.providers?.[0] as 'stripe' | 'square') ?? 'stripe';
   const [embedIntent, setEmbedIntent] = useState<null | {
     provider: 'stripe' | 'square';
     clientSecret: string;
@@ -451,9 +445,6 @@ export function useFleetDetail(carId: string) {
     router,
     searchParams,
     embed,
-    squareCardRef,
-    squareCardError,
-    setSquareCardError,
     tenant,
     t,
     manualInsurancePackages,
@@ -465,7 +456,6 @@ export function useFleetDetail(carId: string) {
     suppressRelease,
     releaseNow,
     providersData,
-    activeProvider,
     embedIntent,
     setEmbedIntent,
     paymentAnchorRef,
@@ -840,61 +830,6 @@ export function useFleetDetail(carId: string) {
       ...(promoApplied && promoCode ? { promo_code: promoCode } : {}),
       ...signaturePayload,
     };
-
-    // Square uses the always-visible inline card entry — tokenize the
-    // card the user already filled in, THEN create the pending row +
-    // charge. Stripe/embed path keeps the two-step "reserve → panel"
-    // flow because Stripe Elements needs a client_secret from a
-    // pre-created PaymentIntent to render its PaymentElement.
-    if (!embed.embedded && activeProvider === 'square') {
-      const deposit = Number((vehicle as any)?.securityDeposit) || 0;
-      if (!squareCardRef.current || !squareCardRef.current.isReady()) {
-        setCheckoutError('Card entry is still loading — please wait a moment and try again.');
-        return;
-      }
-      if (deposit > 0 && !squareCardRef.current.consentChecked()) {
-        setCheckoutError('Please agree to the security deposit to continue.');
-        return;
-      }
-      const tokens = await squareCardRef.current.tokenize({ withSaveCard: deposit > 0 });
-      if (!tokens) {
-        // SquareCardEntry set the error via onError → surface it as
-        // the checkout error too so it lands in the banner.
-        setCheckoutError(squareCardError || 'Please check your card details and try again.');
-        return;
-      }
-      try {
-        const data = await startEmbedPayment.mutateAsync({ payload: commonPayload });
-        registerHold(data.pending_id);
-        try { window.sessionStorage.removeItem(persistKey); } catch { /* ignore */ }
-        const consentCopy = buildDepositConsentCopy({
-          tenantName: tenant?.name,
-          amount: deposit,
-          currency: data.currency,
-        });
-        const body = await squareCreatePaymentForPending({
-          pendingId: data.pending_id,
-          sourceId: tokens.paymentSourceId,
-          amount: data.amount,
-          currency: data.currency,
-          returnUrl: `${origin}/booking/success?session_id=${data.pending_id}`,
-          deposit: tokens.saveCardSourceId
-            ? { saveCardSourceId: tokens.saveCardSourceId, consentCopy }
-            : null,
-        });
-        suppressRelease({ clear: true });
-        if (body.booking_id && body.access_token) {
-          window.location.href = `/booking/${body.booking_id}?token=${encodeURIComponent(body.access_token)}`;
-          return;
-        }
-        window.location.href = `/booking/success?session_id=${encodeURIComponent(data.pending_id)}`;
-      } catch (error) {
-        setCheckoutError(
-          extractApiErrorMessage(error, 'We couldn’t start checkout. Please check your details and try again.'),
-        );
-      }
-      return;
-    }
 
     // Widget-embed path (iframe hosts still use the two-step reveal).
     if (embed.embedded) {

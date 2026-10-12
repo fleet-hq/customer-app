@@ -10,7 +10,6 @@ import { Dialog } from '@/components/ui/dialog';
 import { DateDealsCallout } from '@/components/booking/date-deals-callout';
 import { RentalBreakdown } from '@/components/booking/rental-breakdown';
 import { EmbedPaymentPanel } from '@/components/checkout/embed-payment-panel';
-import { SquareCardEntry, buildDepositConsentCopy } from '@/components/checkout/square-card-entry';
 import ProtectionSection from '@/components/checkout/protection-section';
 import { RentalAgreementSignModal } from '@/components/booking/rental-agreement-sign-modal';
 import { toUtcIso } from '@/utils/datetime';
@@ -72,11 +71,6 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   const {
     t,
     embed,
-    squareCardRef,
-    squareCardError,
-    setSquareCardError,
-    providersData,
-    activeProvider,
     embedIntent,
     setEmbedIntent,
     paymentAnchorRef,
@@ -401,27 +395,6 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               </div>
             </div>
 
-            {!embed.embedded && activeProvider === 'square' && providersData?.square && verificationPolicy?.mode !== 'before' ? (
-              <div className="mt-6">
-                <SquareCardEntry
-                  ref={squareCardRef}
-                  applicationId={providersData.square.application_id}
-                  locationId={providersData.square.location_id}
-                  environment={(providersData.square.environment as 'sandbox' | 'production') || 'production'}
-                  requiresDeposit={Number((vehicle as any)?.securityDeposit) > 0}
-                  depositConsentCopy={
-                    Number((vehicle as any)?.securityDeposit) > 0
-                      ? buildDepositConsentCopy({
-                          tenantName: tenantData?.name,
-                          amount: Number((vehicle as any)?.securityDeposit) || 0,
-                          currency: 'usd',
-                        })
-                      : undefined
-                  }
-                  onError={setSquareCardError}
-                />
-              </div>
-            ) : null}
 
             {embedIntent ? (
               <div ref={paymentAnchorRef}>
