@@ -6,7 +6,7 @@ import { useTenant } from '@/lib/tenant-context';
 import { paths } from '@/lib/paths';
 import { Mail, MapPin, Phone } from '@/components/ui/icons';
 import { Dyn } from '@/components/i18n/Dyn';
-import { SocialGlyph } from '@/components/layout/social-glyph';
+import { SocialLinks } from '@/components/layout/social-glyph';
 
 const DEFAULT_EXPLORE_LINKS = [
   { label: 'About Us', href: `${paths.home}#about` },
@@ -46,22 +46,11 @@ export function Footer() {
             {description ? (
               <p className={`mb-5 text-[11px] leading-[1.65] font-light text-white/60${brand.logoMono ? '' : ' mt-8'}`}>{description}</p>
             ) : null}
-            {socials.length > 0 ? (
-              <div className="flex gap-[10px]">
-                {socials.map((s) => (
-                  <a
-                    key={`${s.platform}-${s.url}`}
-                    href={s.url || '#'}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={s.platform}
-                    className="flex h-8 w-8 items-center justify-center rounded-full border border-white/20 text-white transition-colors hover:border-primary hover:bg-primary"
-                  >
-                    <SocialGlyph label={s.platform} />
-                  </a>
-                ))}
-              </div>
-            ) : null}
+            <SocialLinks
+              socials={socials}
+              className="flex gap-[10px]"
+              linkClassName="flex h-8 w-8 items-center justify-center rounded-full border border-white/20 text-white transition-colors hover:border-primary hover:bg-primary"
+            />
           </div>
 
           <div>

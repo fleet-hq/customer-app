@@ -6,7 +6,7 @@ import { useTenant } from '@/lib/tenant-context';
 import { paths } from '@/lib/paths';
 import { Dyn } from '@/components/i18n/Dyn';
 import styles from '@/styles/template-2.module.css';
-import { SocialGlyph } from '@/components/layout/social-glyph';
+import { SocialLinks } from '@/components/layout/social-glyph';
 
 /** Template-2 footer. Same fields as the template-1 Footer
  *  (`brand.logoMono`/`brand.description`, `footer.description`,
@@ -29,21 +29,7 @@ export function FooterT2() {
               <span className={styles.brandName}>{tenant.name}</span>
             </div>
             {description ? <p className={styles.footerBlurb}>{description}</p> : null}
-            {footer.socials.length > 0 ? (
-              <div className={styles.footerSocials}>
-                {footer.socials.map((s) => (
-                  <a
-                    key={`${s.platform}-${s.url}`}
-                    href={s.url || '#'}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={s.platform}
-                  >
-                    <SocialGlyph label={s.platform} />
-                  </a>
-                ))}
-              </div>
-            ) : null}
+            <SocialLinks socials={footer.socials} className={styles.footerSocials} />
           </div>
 
           <div className={styles.fcol}>
