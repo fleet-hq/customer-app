@@ -232,7 +232,12 @@ export function withCardClause(
   cardClause?: { title: string; content: string } | null,
 ): NonNullable<AgreementData['clauses']> {
   if (!cardClause) return clauses;
-  if (clauses.some((c) => c.title === cardClause.title)) return clauses;
+  const existing = clauses.findIndex((c) => c.title === cardClause.title);
+  if (existing !== -1) {
+    const next = [...clauses];
+    next[existing] = { ...next[existing], content: cardClause.content };
+    return next;
+  }
   return [
     ...clauses,
     {
