@@ -227,25 +227,26 @@ export function mapCardOnFile(raw: any): AgreementData['cardOnFile'] {
   };
 }
 
-export function withCardClause(
+export const CARD_CLAUSE_TITLE = 'Card Authorization';
+
+/** Separate the card authorization from the numbered terms.
+ *
+ *  It is rendered under the Card on File table, not as a term. Agreements
+ *  signed before the move have it frozen inside the snapshot's clauses, so
+ *  it is pulled out of there rather than shown twice.
+ */
+export function splitCardClause(
   clauses: NonNullable<AgreementData['clauses']>,
   cardClause?: { title: string; content: string } | null,
-): NonNullable<AgreementData['clauses']> {
-  if (!cardClause) return clauses;
-  const existing = clauses.findIndex((c) => c.title === cardClause.title);
-  if (existing !== -1) {
-    const next = [...clauses];
-    next[existing] = { ...next[existing], content: cardClause.content };
-    return next;
-  }
-  return [
-    ...clauses,
-    {
-      id: (clauses[clauses.length - 1]?.id ?? 0) + 1,
-      title: cardClause.title,
-      content: cardClause.content,
-    },
-  ];
+): {
+  clauses: NonNullable<AgreementData['clauses']>;
+  cardClause: { title: string; content: string } | null;
+} {
+  const frozen = clauses.find((c) => c.title === CARD_CLAUSE_TITLE) ?? null;
+  return {
+    clauses: clauses.filter((c) => c.title !== CARD_CLAUSE_TITLE),
+    cardClause: cardClause ?? frozen,
+  };
 }
 
 // The frozen clauses/extras/addendum from a signed agreement's snapshot,
@@ -485,16 +486,19 @@ function transformAgreement(api: ApiAgreement): AgreementData {
     extras: snapshot?.extras,
     addendum: snapshot?.addendum ?? undefined,
     fromSnapshot: !!snapshot,
-    clauses:
-      snapshot?.clauses ??
-      withCardClause(
-        api.template?.template_clauses?.map((tc) => ({
-          id: tc.clause.id,
-          title: tc.clause.title,
-          content: tc.clause.content,
-        })) ?? [],
+    ...(() => {
+      const split = splitCardClause(
+        snapshot?.clauses ??
+          api.template?.template_clauses?.map((tc) => ({
+            id: tc.clause.id,
+            title: tc.clause.title,
+            content: tc.clause.content,
+          })) ??
+          [],
         api.card_clause,
-      ),
+      );
+      return { clauses: split.clauses, cardClause: split.cardClause };
+    })(),
     template: {
       title: api.template?.title || 'Rental Agreement',
       description: api.template?.description || '',

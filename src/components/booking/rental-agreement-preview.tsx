@@ -405,6 +405,12 @@ export function RentalAgreementPreview({ data, onSignatureChange }: RentalAgreem
               <div className="mt-4">
                 <SpecTable rows={cardRows} />
               </div>
+              {d.cardClause ? (
+                <div
+                  className="mt-4 text-[10px] sm:text-[12px] leading-[1.6] text-[#131314] [&_p]:mt-2 [&_p:first-child]:mt-0"
+                  dangerouslySetInnerHTML={{ __html: d.cardClause.content }}
+                />
+              ) : null}
             </>
           ) : null}
 

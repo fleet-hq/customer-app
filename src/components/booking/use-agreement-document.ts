@@ -12,7 +12,7 @@ import {
   agreementPartsFromSnapshot,
   mapCardOnFile,
   toAgreementExtras,
-  withCardClause,
+  splitCardClause,
   type AgreementData,
 } from '@/services/agreementServices';
 import { useTenant } from '@/lib/tenant-context';
@@ -127,9 +127,13 @@ export function useAgreementDocument(
       extras: signedSnapshot
         ? signedSnapshot.extras
         : toAgreementExtras(bookingData.availableExtras ?? []),
-      clauses:
-        signedSnapshot?.clauses ??
-        withCardClause(template?.clauses ?? [], apiAgreement?.cardClause),
+      ...(() => {
+        const split = splitCardClause(
+          signedSnapshot?.clauses ?? template?.clauses ?? [],
+          apiAgreement?.cardClause,
+        );
+        return { clauses: split.clauses, cardClause: split.cardClause };
+      })(),
       addendum: signedSnapshot
         ? signedSnapshot.addendum ?? null
         : ins && (ins.status === 'ACTIVE' || ins.status === 'EXPIRED') && bonzahAddendum
