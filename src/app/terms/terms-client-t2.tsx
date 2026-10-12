@@ -51,7 +51,7 @@ export default function TermsClientT2() {
   if (isBound) {
     if (!tokenReady || bookingLoading) {
       return (
-        <div className={styles.container}>
+        <div className={styles.centerState}>
           <p className={styles.eyebrow}>
             <Dyn>Loading agreement…</Dyn>
           </p>
@@ -61,7 +61,7 @@ export default function TermsClientT2() {
 
     if (bookingError || !agreement) {
       return (
-        <div className={styles.container}>
+        <div className={styles.centerState}>
           <div className={styles.articleHead}>
             <h1>
               <Dyn>Agreement not found</Dyn>
