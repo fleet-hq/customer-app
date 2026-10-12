@@ -45,13 +45,21 @@ function Paper({ children, className = 'pt-10 pb-14' }: { children: React.ReactN
   );
 }
 
+/** Section heading for the agreement.
+ *
+ *  The spacing rides on a wrapper rather than the h2 itself. Template 2's
+ *  stylesheet resets `.t2 h1, .t2 h2, .t2 h3 { margin: 0 }`, and because a
+ *  CSS module is unlayered while Tailwind's utilities sit in @layer
+ *  utilities, that reset beats `mt-10` outright — specificity never comes
+ *  into it. A div is not an h2, so it keeps its margin in both templates.
+ */
 function SectionTitle({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
-    <h2
-      className={`font-manrope font-bold text-[12px] sm:text-[14px] leading-[85%] tracking-normal text-[#131314] text-center pb-4 ${className}`}
-    >
-      {children}
-    </h2>
+    <div className={className}>
+      <h2 className="font-manrope font-bold text-[12px] sm:text-[14px] leading-[85%] tracking-normal text-[#131314] text-center pb-4">
+        {children}
+      </h2>
+    </div>
   );
 }
 
@@ -407,7 +415,7 @@ export function RentalAgreementPreview({ data, onSignatureChange }: RentalAgreem
               </div>
               {d.cardClause ? (
                 <div
-                  className="mt-4 text-[10px] sm:text-[12px] leading-[1.6] text-[#131314] [&_p]:mt-2 [&_p:first-child]:mt-0"
+                  className="mt-4 text-[10px] sm:text-[12px] leading-[1.6] text-[#131314] [&_p]:mt-2! [&_p:first-child]:mt-0!"
                   dangerouslySetInnerHTML={{ __html: d.cardClause.content }}
                 />
               ) : null}
