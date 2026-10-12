@@ -48,7 +48,7 @@ function Paper({ children, className = 'pt-10 pb-14' }: { children: React.ReactN
 function SectionTitle({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
     <h2
-      className={`font-manrope font-bold text-[12px] sm:text-[14px] leading-tight tracking-tight-2 text-[#131314] text-center pb-4 ${className}`}
+      className={`font-manrope font-bold text-[12px] sm:text-[14px] leading-[85%] tracking-normal text-[#131314] text-center pb-4 ${className}`}
     >
       {children}
     </h2>
@@ -354,7 +354,7 @@ export function RentalAgreementPreview({ data, onSignatureChange }: RentalAgreem
             </>
           )}
 
-          <SectionTitle className="mt-8"><Dyn>RENTAL FEES</Dyn></SectionTitle>
+          <SectionTitle className="mt-10"><Dyn>RENTAL FEES</Dyn></SectionTitle>
           {feeRows.length > 0 ? (
             <SpecTable rows={feeRows} />
           ) : (
@@ -363,7 +363,7 @@ export function RentalAgreementPreview({ data, onSignatureChange }: RentalAgreem
         </Paper>
 
         <Paper>
-          <SectionTitle><Dyn>Driver Details</Dyn></SectionTitle>
+          <SectionTitle className="mt-10"><Dyn>Driver Details</Dyn></SectionTitle>
           <p className="mt-3 text-[10px] sm:text-[12px] leading-[1.6] text-[#131314]">
             <Dyn>No additional authorized driver without our prior written consent.</Dyn>
           </p>
@@ -373,7 +373,7 @@ export function RentalAgreementPreview({ data, onSignatureChange }: RentalAgreem
 
           {(d.secondaryDrivers ?? []).map((sd, i) => (
             <div key={i} className="mt-8">
-              <SectionTitle><Dyn>{`Additional Driver ${i + 1}`}</Dyn></SectionTitle>
+              <SectionTitle className="mt-10"><Dyn>{`Additional Driver ${i + 1}`}</Dyn></SectionTitle>
               <div className="mt-4">
                 <SpecTable
                   rows={[
@@ -441,7 +441,7 @@ export function RentalAgreementPreview({ data, onSignatureChange }: RentalAgreem
 
         {d.addendum && d.addendum.sections.length > 0 && (
           <Paper>
-            <SectionTitle><Dyn>{d.addendum.title}</Dyn></SectionTitle>
+            <SectionTitle className="mt-10"><Dyn>{d.addendum.title}</Dyn></SectionTitle>
             <div className="mt-4 space-y-5">
               {d.addendum.sections.map((sec, index) => (
                 <div key={index} className="clause-block">
@@ -456,7 +456,7 @@ export function RentalAgreementPreview({ data, onSignatureChange }: RentalAgreem
         )}
 
         <Paper>
-          <SectionTitle><Dyn>SIGNATURE AND DATE</Dyn></SectionTitle>
+          <SectionTitle className="mt-10"><Dyn>SIGNATURE AND DATE</Dyn></SectionTitle>
           <p className="mt-3 text-[10px] sm:text-[12px] leading-[1.6] text-[#131314]">
             <b className="font-bold"><Dyn>IN WITNESS WHEREOF</Dyn></b><Dyn>, the parties have executed this Vehicle Rental Agreement as of the date first written above. By signing, the renter party acknowledges that they have read, understand, and agree to be bound by all terms and conditions contained herein.</Dyn>
           </p>
