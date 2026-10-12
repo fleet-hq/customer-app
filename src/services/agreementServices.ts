@@ -35,6 +35,7 @@ export interface ApiAgreement {
   signed_at: string | null;
   signature_image: string | null;
   agreement_snapshot?: AgreementSnapshot | null;
+  card_clause?: { title: string; content: string } | null;
   created_at: string;
   updated_at: string;
   // Populated from booking
@@ -226,6 +227,22 @@ export function mapCardOnFile(raw: any): AgreementData['cardOnFile'] {
   };
 }
 
+export function withCardClause(
+  clauses: NonNullable<AgreementData['clauses']>,
+  cardClause?: { title: string; content: string } | null,
+): NonNullable<AgreementData['clauses']> {
+  if (!cardClause) return clauses;
+  if (clauses.some((c) => c.title === cardClause.title)) return clauses;
+  return [
+    ...clauses,
+    {
+      id: (clauses[clauses.length - 1]?.id ?? 0) + 1,
+      title: cardClause.title,
+      content: cardClause.content,
+    },
+  ];
+}
+
 // The frozen clauses/extras/addendum from a signed agreement's snapshot,
 // shaped as AgreementData parts so a signed agreement renders exactly as
 // presented at signing, regardless of later edits to the live records.
@@ -357,6 +374,7 @@ export interface AgreementData {
    *  rather than live data — builders use it to stop overriding with
    *  current records. */
   fromSnapshot?: boolean;
+  cardClause?: { title: string; content: string } | null;
 }
 
 // formatDate and formatDateTime are imported from @/lib/utils
@@ -464,16 +482,19 @@ function transformAgreement(api: ApiAgreement): AgreementData {
     fromSnapshot: !!snapshot,
     clauses:
       snapshot?.clauses ??
-      api.template?.template_clauses?.map((tc) => ({
-        id: tc.clause.id,
-        title: tc.clause.title,
-        content: tc.clause.content,
-      })) ??
-      [],
+      withCardClause(
+        api.template?.template_clauses?.map((tc) => ({
+          id: tc.clause.id,
+          title: tc.clause.title,
+          content: tc.clause.content,
+        })) ?? [],
+        api.card_clause,
+      ),
     template: {
       title: api.template?.title || 'Rental Agreement',
       description: api.template?.description || '',
     },
+    cardClause: api.card_clause ?? null,
   };
 }
 
