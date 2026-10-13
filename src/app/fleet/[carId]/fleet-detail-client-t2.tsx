@@ -7,7 +7,7 @@ import { Check, Info, Close, ChevronLeft } from '@/components/ui/icons';
 import { Dialog } from '@/components/ui/dialog';
 import { DateDealsCallout } from '@/components/booking/date-deals-callout';
 import { RentalBreakdown } from '@/components/booking/rental-breakdown';
-import NmiCardEntry from '@/components/checkout/nmi-card-entry';
+import { NmiPayModal } from '@/components/booking/nmi-pay-modal';
 import { EmbedPaymentPanel } from '@/components/checkout/embed-payment-panel';
 import ProtectionSection from '@/components/checkout/protection-section';
 import { RentalAgreementSignModal } from '@/components/booking/rental-agreement-sign-modal';
@@ -55,11 +55,12 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
     t,
     embed,
     embedIntent,
-    activeProvider,
     nmiConfig,
-    nmiCardRef,
+    nmiPay,
+    closeNmiPay,
+    nmiSubmitting,
+    submitNmiPayment,
     nmiCardError,
-    setNmiCardError,
     setEmbedIntent,
     paymentAnchorRef,
     verificationPolicy,
@@ -320,20 +321,17 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
                   {errors.phone && <FieldError><Dyn>{errors.phone}</Dyn></FieldError>}
                 </div>
               </div>
-
-
-              {!embed.embedded && activeProvider === 'nmi' ? (
-                <div className={styles.paymentWrap}>
-                  <NmiCardEntry
-                    ref={nmiCardRef}
-                    tokenizationKey={nmiConfig?.publishable_key || ''}
-                                  onError={setNmiCardError}
-                  />
-                  {nmiCardError ? (
-                    <p className="mt-2 text-sm text-red-600">{nmiCardError}</p>
-                  ) : null}
-                </div>
-              ) : null}
+              <NmiPayModal
+                open={!!nmiPay}
+                onClose={closeNmiPay}
+                tokenizationKey={nmiConfig?.publishable_key || ''}
+                amount={nmiPay?.amount ?? 0}
+                currency={nmiPay?.currency ?? 'usd'}
+                deposit={nmiPay?.deposit ?? 0}
+                submitting={nmiSubmitting}
+                error={nmiCardError}
+                onSubmit={submitNmiPayment}
+              />
 
               {embedIntent ? (
                 <div ref={paymentAnchorRef} className={styles.paymentWrap}>

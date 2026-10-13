@@ -14,7 +14,6 @@ import {
   usePublicPaymentProviders,
   useCheckoutHoldRelease,
 } from '@/hooks';
-import type { NmiCardEntryHandle } from '@/components/checkout/nmi-card-entry';
 import { nmiCreatePaymentForPending } from '@/services/nmiPaymentServices';
 import { useBookingInvoice } from '@/hooks/useBookingInvoice';
 import { useDefaultTaxProfile } from '@/hooks/useTaxProfiles';
@@ -71,7 +70,13 @@ export function useFleetDetail(carId: string) {
   const defaultLoc = useDefaultLocation();
   const startCheckout = useStartBookingCheckout();
   const startEmbedPayment = useStartEmbedBookingPayment();
-  const nmiCardRef = useRef<NmiCardEntryHandle | null>(null);
+  const [nmiPay, setNmiPay] = useState<null | {
+    pendingId: string;
+    amount: number;
+    currency: string;
+    deposit: number;
+  }>(null);
+  const [nmiSubmitting, setNmiSubmitting] = useState(false);
   const [nmiCardError, setNmiCardError] = useState<string | null>(null);
   const { registerHold, suppressRelease, releaseNow } = useCheckoutHoldRelease(carId);
   // Single-provider policy: the tenant admin enables exactly one
@@ -464,7 +469,18 @@ export function useFleetDetail(carId: string) {
     providersData,
     activeProvider,
     nmiConfig,
-    nmiCardRef,
+    nmiPay,
+    closeNmiPay: () => {
+      // Backing out of the window abandons the reservation it was
+      // opened against, so hand the car straight back rather than
+      // leaving it held for the rest of the window.
+      releaseNow();
+      setNmiPay(null);
+      setNmiSubmitting(false);
+      setNmiCardError(null);
+    },
+    nmiSubmitting,
+    submitNmiPayment,
     nmiCardError,
     setNmiCardError,
     embedIntent,
@@ -842,40 +858,25 @@ export function useFleetDetail(carId: string) {
       ...signaturePayload,
     };
 
-    // NMI: the renter's card is already tokenized in the page, so the
-    // hold and the charge happen back to back and the booking exists
-    // by the time we navigate. NMI files the card in that same call.
+    // NMI: no hosted page exists to send the renter to, so the hold is
+    // placed first and the card is taken in a payment window over this
+    // page. Entering a card against a real reservation also means a
+    // decline cannot lose their place.
     if (!embed.embedded && activeProvider === 'nmi') {
-      const token = nmiCardRef.current?.getToken();
-      if (!token) {
-        setCheckoutError(
-          nmiCardError || 'Please finish entering your card details.',
-        );
-        return;
-      }
-      // The page's own authorization tickbox is the record of consent;
-      // reserve() has already refused to get here without it.
-      const wantsCard =
-        cardConsent ||
-        Number((vehicle as { securityDeposit?: number })?.securityDeposit) > 0;
       try {
         const data = await startEmbedPayment.mutateAsync({ payload: commonPayload });
         registerHold(data.pending_id);
         try { window.sessionStorage.removeItem(persistKey); } catch { /* ignore */ }
-        const body = await nmiCreatePaymentForPending({
+        setNmiCardError(null);
+        setNmiPay({
           pendingId: data.pending_id,
-          paymentToken: token,
-          saveCard: wantsCard || cardConsent,
+          amount: Number(data.amount) || pricing.total,
+          currency: data.currency || 'usd',
+          deposit: Number((vehicle as { securityDeposit?: number })?.securityDeposit) || 0,
         });
-        suppressRelease({ clear: true });
-        if (body.booking_id && body.access_token) {
-          window.location.href = `/booking/${body.booking_id}?token=${encodeURIComponent(body.access_token)}`;
-          return;
-        }
-        window.location.href = `/booking/success?session_id=${encodeURIComponent(data.pending_id)}`;
       } catch (error) {
         setCheckoutError(
-          extractApiErrorMessage(error, 'We couldn\u2019t take that payment. Please check your card and try again.'),
+          extractApiErrorMessage(error, 'We couldn\u2019t start checkout. Please check your details and try again.'),
         );
       }
       return;
@@ -922,6 +923,31 @@ export function useFleetDetail(carId: string) {
       );
     }
   };
+
+  /** Charge the card the payment window collected. */
+  async function submitNmiPayment({ paymentToken }: { paymentToken: string }) {
+    if (!nmiPay) return;
+    setNmiSubmitting(true);
+    setNmiCardError(null);
+    try {
+      const body = await nmiCreatePaymentForPending({
+        pendingId: nmiPay.pendingId,
+        paymentToken,
+        saveCard: cardConsent || nmiPay.deposit > 0,
+      });
+      suppressRelease({ clear: true });
+      if (body.booking_id && body.access_token) {
+        window.location.href = `/booking/${body.booking_id}?token=${encodeURIComponent(body.access_token)}`;
+        return;
+      }
+      window.location.href = `/booking/success?session_id=${encodeURIComponent(nmiPay.pendingId)}`;
+    } catch (error) {
+      setNmiCardError(
+        extractApiErrorMessage(error, 'We couldn\u2019t take that payment. Please check your card and try again.'),
+      );
+      setNmiSubmitting(false);
+    }
+  }
 
   const applyPromo = async () => {
     const c = promoInput.trim().toUpperCase();
