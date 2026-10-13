@@ -19,33 +19,25 @@ import { Dyn } from '@/components/i18n/Dyn';
 export interface NmiCardEntryHandle {
   /** The payment token, or null when the fields are not complete. */
   getToken(): string | null;
-  /** Whether the renter has ticked the save-card consent box. */
-  consentChecked(): boolean;
   /** True once the card fields are usable. */
   isReady(): boolean;
 }
 
 interface Props {
   tokenizationKey: string;
-  /** Show the authorization tickbox — the fleet takes a deposit or the
-   *  operator keeps a card for incidentals. */
-  requiresConsent?: boolean;
-  consentCopy?: string;
   onError?: (message: string | null) => void;
 }
 
 const NmiCardEntry = forwardRef<NmiCardEntryHandle, Props>(function NmiCardEntry(
-  { tokenizationKey, requiresConsent = false, consentCopy, onError },
+  { tokenizationKey, onError },
   ref,
 ) {
   const tokenRef = useRef<string | null>(null);
   const [complete, setComplete] = useState(false);
   const [ready, setReady] = useState(false);
-  const [consent, setConsent] = useState(false);
 
   useImperativeHandle(ref, () => ({
     getToken: () => (complete ? tokenRef.current : null),
-    consentChecked: () => consent,
     isReady: () => ready && !!tokenizationKey,
   }));
 
@@ -64,6 +56,12 @@ const NmiCardEntry = forwardRef<NmiCardEntryHandle, Props>(function NmiCardEntry
     <div className="space-y-3">
       <NmiPayments
         tokenizationKey={tokenizationKey}
+        // Card only. The wallets want an amount passed up front, which
+        // this page does not know until the renter has picked dates and
+        // extras — and without one the component renders "Apple Pay
+        // requires amount to be specified" and never finishes loading
+        // the card fields at all.
+        paymentMethods={['card']}
         onFieldsAvailable={() => setReady(true)}
         onChange={(event) => {
           // The token only arrives once every field validates, so
@@ -75,19 +73,6 @@ const NmiCardEntry = forwardRef<NmiCardEntryHandle, Props>(function NmiCardEntry
         }}
       />
 
-      {requiresConsent && (
-        <label className="flex cursor-pointer items-start gap-2 text-xs leading-snug">
-          <input
-            type="checkbox"
-            checked={consent}
-            onChange={(e) => setConsent(e.target.checked)}
-            className="mt-0.5 h-4 w-4 shrink-0"
-          />
-          <span>
-            <Dyn>{consentCopy || 'I authorize this card to be kept on file.'}</Dyn>
-          </span>
-        </label>
-      )}
     </div>
   );
 });

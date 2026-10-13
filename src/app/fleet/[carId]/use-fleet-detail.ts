@@ -853,12 +853,11 @@ export function useFleetDetail(carId: string) {
         );
         return;
       }
+      // The page's own authorization tickbox is the record of consent;
+      // reserve() has already refused to get here without it.
       const wantsCard =
+        cardConsent ||
         Number((vehicle as { securityDeposit?: number })?.securityDeposit) > 0;
-      if (wantsCard && !nmiCardRef.current?.consentChecked()) {
-        setCheckoutError('Please agree to the card authorization to continue.');
-        return;
-      }
       try {
         const data = await startEmbedPayment.mutateAsync({ payload: commonPayload });
         registerHold(data.pending_id);

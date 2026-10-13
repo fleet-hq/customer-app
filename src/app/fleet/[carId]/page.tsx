@@ -407,8 +407,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                 <NmiCardEntry
                   ref={nmiCardRef}
                   tokenizationKey={nmiConfig?.publishable_key || ''}
-                  requiresConsent={Number((vehicle as { securityDeposit?: number })?.securityDeposit) > 0}
-                  onError={setNmiCardError}
+                              onError={setNmiCardError}
                 />
                 {nmiCardError ? (
                   <p className="mt-2 text-sm text-red-600">{nmiCardError}</p>
