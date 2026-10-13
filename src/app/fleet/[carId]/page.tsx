@@ -9,6 +9,7 @@ import { Check, Info, Pencil, ImageIcon, Close, ChevronLeft } from '@/components
 import { Dialog } from '@/components/ui/dialog';
 import { DateDealsCallout } from '@/components/booking/date-deals-callout';
 import { RentalBreakdown } from '@/components/booking/rental-breakdown';
+import NmiCardEntry from '@/components/checkout/nmi-card-entry';
 import { EmbedPaymentPanel } from '@/components/checkout/embed-payment-panel';
 import ProtectionSection from '@/components/checkout/protection-section';
 import { RentalAgreementSignModal } from '@/components/booking/rental-agreement-sign-modal';
@@ -72,6 +73,11 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
     t,
     embed,
     embedIntent,
+    activeProvider,
+    nmiConfig,
+    nmiCardRef,
+    nmiCardError,
+    setNmiCardError,
     setEmbedIntent,
     paymentAnchorRef,
     verificationPolicy,
@@ -395,6 +401,20 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               </div>
             </div>
 
+
+            {!embed.embedded && activeProvider === 'nmi' ? (
+              <div className="mt-6">
+                <NmiCardEntry
+                  ref={nmiCardRef}
+                  tokenizationKey={nmiConfig?.publishable_key || ''}
+                  requiresConsent={Number((vehicle as { securityDeposit?: number })?.securityDeposit) > 0}
+                  onError={setNmiCardError}
+                />
+                {nmiCardError ? (
+                  <p className="mt-2 text-sm text-red-600">{nmiCardError}</p>
+                ) : null}
+              </div>
+            ) : null}
 
             {embedIntent ? (
               <div ref={paymentAnchorRef}>

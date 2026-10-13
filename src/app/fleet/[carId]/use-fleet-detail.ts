@@ -14,6 +14,8 @@ import {
   usePublicPaymentProviders,
   useCheckoutHoldRelease,
 } from '@/hooks';
+import type { NmiCardEntryHandle } from '@/components/checkout/nmi-card-entry';
+import { nmiCreatePaymentForPending } from '@/services/nmiPaymentServices';
 import { useBookingInvoice } from '@/hooks/useBookingInvoice';
 import { useDefaultTaxProfile } from '@/hooks/useTaxProfiles';
 import { useBookingVerificationPolicy, useStartVerificationFirstBooking } from '@/hooks/useBookingPolicy';
@@ -69,11 +71,15 @@ export function useFleetDetail(carId: string) {
   const defaultLoc = useDefaultLocation();
   const startCheckout = useStartBookingCheckout();
   const startEmbedPayment = useStartEmbedBookingPayment();
+  const nmiCardRef = useRef<NmiCardEntryHandle | null>(null);
+  const [nmiCardError, setNmiCardError] = useState<string | null>(null);
   const { registerHold, suppressRelease, releaseNow } = useCheckoutHoldRelease(carId);
   // Single-provider policy: the tenant admin enables exactly one
   // gateway at a time on the Integrations page — customer-central
   // just uses whatever's on. No picker, no per-request override.
   const { data: providersData } = usePublicPaymentProviders();
+  const activeProvider = (providersData?.providers?.[0] as string) ?? 'stripe';
+  const nmiConfig = (providersData as { nmi?: { publishable_key?: string } } | undefined)?.nmi;
   const [embedIntent, setEmbedIntent] = useState<null | {
     provider: 'stripe' | 'square';
     clientSecret: string;
@@ -456,6 +462,11 @@ export function useFleetDetail(carId: string) {
     suppressRelease,
     releaseNow,
     providersData,
+    activeProvider,
+    nmiConfig,
+    nmiCardRef,
+    nmiCardError,
+    setNmiCardError,
     embedIntent,
     setEmbedIntent,
     paymentAnchorRef,
@@ -830,6 +841,46 @@ export function useFleetDetail(carId: string) {
       ...(promoApplied && promoCode ? { promo_code: promoCode } : {}),
       ...signaturePayload,
     };
+
+    // NMI: the renter's card is already tokenized in the page, so the
+    // hold and the charge happen back to back and the booking exists
+    // by the time we navigate. NMI files the card in that same call.
+    if (!embed.embedded && activeProvider === 'nmi') {
+      const token = nmiCardRef.current?.getToken();
+      if (!token) {
+        setCheckoutError(
+          nmiCardError || 'Please finish entering your card details.',
+        );
+        return;
+      }
+      const wantsCard =
+        Number((vehicle as { securityDeposit?: number })?.securityDeposit) > 0;
+      if (wantsCard && !nmiCardRef.current?.consentChecked()) {
+        setCheckoutError('Please agree to the card authorization to continue.');
+        return;
+      }
+      try {
+        const data = await startEmbedPayment.mutateAsync({ payload: commonPayload });
+        registerHold(data.pending_id);
+        try { window.sessionStorage.removeItem(persistKey); } catch { /* ignore */ }
+        const body = await nmiCreatePaymentForPending({
+          pendingId: data.pending_id,
+          paymentToken: token,
+          saveCard: wantsCard || cardConsent,
+        });
+        suppressRelease({ clear: true });
+        if (body.booking_id && body.access_token) {
+          window.location.href = `/booking/${body.booking_id}?token=${encodeURIComponent(body.access_token)}`;
+          return;
+        }
+        window.location.href = `/booking/success?session_id=${encodeURIComponent(data.pending_id)}`;
+      } catch (error) {
+        setCheckoutError(
+          extractApiErrorMessage(error, 'We couldn\u2019t take that payment. Please check your card and try again.'),
+        );
+      }
+      return;
+    }
 
     // Widget-embed path (iframe hosts still use the two-step reveal).
     if (embed.embedded) {
