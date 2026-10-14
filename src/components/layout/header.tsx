@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTenant } from '@/lib/tenant-context';
+import { navDropdownFor } from '@/lib/nav-dropdowns';
 import { cn } from '@/lib/utils';
 import { DEMO_USER } from '@/lib/mock-data';
 import { paths } from '@/lib/paths';
@@ -48,22 +49,8 @@ export function Header({
 }: HeaderProps) {
   const tenant = useTenant();
   const { t } = useDynamicTranslation(['Open menu', 'Close menu']);
-  const serviceLinks = (tenant.sections.services?.blocks ?? [])
-    .filter((b) => b.href)
-    .map((b) => ({ href: b.href as string, label: b.heading || b.link_label || '' }))
-    .filter((s) => s.label);
-
-  // A nav item that points at a content page whose blocks each link
-  // somewhere gets those blocks as a dropdown, so an operator who has
-  // built an overview page does not have to duplicate it in the nav.
-  const dropdownFor = (href: string) => {
-    if (href === '/services') return serviceLinks;
-    const page = tenant.sections.pages?.[href.replace(/^\//, '')];
-    if (!page) return [];
-    return (page.blocks ?? [])
-      .map((b) => ({ href: b.link?.href ?? '', label: b.heading ?? '' }))
-      .filter((s) => s.href && s.label);
-  };
+  // Shared with the template-2 header — see lib/nav-dropdowns.
+  const dropdownFor = (href: string) => navDropdownFor(tenant, href);
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);

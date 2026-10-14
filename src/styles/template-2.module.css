@@ -250,6 +250,28 @@
 .navLinks { display: flex; align-items: center; gap: 1.9rem; list-style: none; margin: 0; padding: 0; }
 .navLinks a { text-decoration: none; font-size: 0.9rem; color: var(--text-muted); position: relative; padding: 0.2rem 0; }
 .navLinks a:hover { color: var(--text); }
+/* Nav dropdown. Opens on hover and on keyboard focus, so it is reachable
+   without a pointer; on the mobile sheet the nav is already a stacked
+   list, so the children simply indent instead of floating. */
+.navHasChildren { position: relative; }
+.navCaret { font-size: 0.6rem; margin-left: 0.3rem; opacity: 0.7; }
+.navDropdown {
+  position: absolute; top: 100%; left: 0; z-index: 40;
+  display: none; min-width: 15rem; margin: 0; padding: 0.5rem 0;
+  list-style: none; background: var(--card); border: 1px solid var(--line);
+  border-radius: 3px; box-shadow: 0 18px 40px rgb(0 0 0 / 0.16);
+}
+.navHasChildren:hover > .navDropdown,
+.navHasChildren:focus-within > .navDropdown { display: block; }
+.navDropdown a { display: block; padding: 0.5rem 1rem; font-size: 0.86rem; white-space: nowrap; }
+.navDropdown a:hover { background: var(--band, rgb(0 0 0 / 0.04)); color: var(--text); }
+@media (max-width: 900px) {
+  .navDropdown {
+    position: static; display: block; min-width: 0; border: 0;
+    box-shadow: none; background: transparent; padding: 0.2rem 0 0.4rem 0.9rem;
+  }
+  .navCaret { display: none; }
+}
 .navCta { display: flex; align-items: center; gap: 1.1rem; flex: none; }
 .navMenuOnly { display: none; }
 .navPhone { font-family: var(--t2-font-mono, 'IBM Plex Mono'), monospace; font-size: 0.82rem; color: var(--text); text-decoration: none; white-space: nowrap; }

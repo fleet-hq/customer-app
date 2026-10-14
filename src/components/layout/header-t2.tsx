@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useTenant } from '@/lib/tenant-context';
+import { navDropdownFor } from '@/lib/nav-dropdowns';
 import { paths } from '@/lib/paths';
 import { Close } from '@/components/ui/icons';
 import { Dyn } from '@/components/i18n/Dyn';
@@ -30,6 +31,9 @@ export function HeaderT2({ minimal = false }: { minimal?: boolean } = {}) {
   const tenant = useTenant();
   const [open, setOpen] = useState(false);
   const phone = tenant.footer.contact.phone;
+  // Same rule as template 1: a nav item pointing at an overview page
+  // expands to that page's linked sections.
+  const dropdownFor = (href: string) => navDropdownFor(tenant, href);
 
   return (
     <header className={`no-print ${styles.nav}`}>
@@ -49,13 +53,37 @@ export function HeaderT2({ minimal = false }: { minimal?: boolean } = {}) {
         {minimal ? null : (
         <nav aria-label="Primary" className={open ? styles.navOpen : undefined}>
           <ul className={styles.navLinks}>
-            {tenant.brand.navLinks.map((link) => (
-              <li key={link.href}>
-                <Link href={link.href} onClick={() => setOpen(false)}>
-                  <Dyn>{link.label}</Dyn>
-                </Link>
-              </li>
-            ))}
+            {tenant.brand.navLinks.map((link) => {
+              const children = dropdownFor(link.href);
+              if (!children.length) {
+                return (
+                  <li key={link.href}>
+                    <Link href={link.href} onClick={() => setOpen(false)}>
+                      <Dyn>{link.label}</Dyn>
+                    </Link>
+                  </li>
+                );
+              }
+              return (
+                <li key={link.href} className={styles.navHasChildren}>
+                  <Link href={link.href} onClick={() => setOpen(false)} aria-haspopup="true">
+                    <Dyn>{link.label}</Dyn>
+                    <span aria-hidden="true" className={styles.navCaret}>
+                      ▾
+                    </span>
+                  </Link>
+                  <ul className={styles.navDropdown}>
+                    {children.map((child) => (
+                      <li key={child.href}>
+                        <Link href={child.href} onClick={() => setOpen(false)}>
+                          <Dyn>{child.label}</Dyn>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              );
+            })}
             <li className={styles.navMenuOnly}>
               <Link href={paths.manage} onClick={() => setOpen(false)}>
                 <Dyn>Manage Bookings</Dyn>
