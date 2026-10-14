@@ -75,7 +75,11 @@ export function NmiPayModal({
   const handlePayClick = () => {
     if (submitting) return;
     setCardError(null);
-    const token = cardRef.current?.getToken();
+    if (!cardRef.current?.isReady()) {
+      setCardError('The card form is still loading. Give it a moment and try again.');
+      return;
+    }
+    const token = cardRef.current.getToken();
     if (!token) {
       setCardError('Please finish entering your card details.');
       return;
