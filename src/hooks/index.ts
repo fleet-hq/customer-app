@@ -20,6 +20,7 @@ export {
   useBookingDrivers,
   useCreateBookingDriver,
   usePublicPaymentProviders,
+  useActivePaymentProvider,
 } from './useBooking';
 export { useCompanyLocations } from './useLocations';
 export { useStripePublishableKey, useCreateCheckoutSession, useCreatePaymentIntent } from './useStripe';

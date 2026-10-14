@@ -28,7 +28,7 @@ import { useCardConsent } from '@/components/booking/use-card-consent';
 import { createBillingCheckoutSession, createSaveCardSession } from '@/services/billingServices';
 import { bookingHasInsuranceCover } from '@/lib/insurance-extras';
 import { setBookingToken } from '@/utils/booking-token';
-import { usePublicPaymentProviders } from '@/hooks';
+import { usePublicPaymentProviders, useActivePaymentProvider } from '@/hooks';
 import { useTenant } from '@/lib/tenant-context';
 import { paths } from '@/lib/paths';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -152,10 +152,9 @@ export function useBookingDetail(id: string) {
   }, [fetchId, queryClient]);
   const tenant = useTenant();
   const { data: providersData } = usePublicPaymentProviders();
+  const resolvedProvider = useActivePaymentProvider();
   const activeProvider: 'stripe' | 'square' =
-    providerOverride
-      ?? (providersData?.providers?.[0] as 'stripe' | 'square')
-      ?? 'stripe';
+    providerOverride ?? (resolvedProvider as 'stripe' | 'square');
 
   const handlePay = async () => {
     if (payLoading) return;

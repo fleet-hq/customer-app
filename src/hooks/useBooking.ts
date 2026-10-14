@@ -137,3 +137,16 @@ export const usePublicPaymentProviders = () =>
     // a provider off mid-checkout is reflected without a page reload.
     refetchOnWindowFocus: true,
   });
+
+/** The gateway a tenant's checkout should actually use.
+ *
+ *  The backend sends both the list and the tenant's chosen default, and
+ *  every caller was reading `providers[0]` — the order the server
+ *  happened to return, not what the operator picked. It only ever
+ *  agreed by luck, because almost every tenant runs one gateway.
+ */
+export const useActivePaymentProvider = (): string => {
+  const { data } = usePublicPaymentProviders();
+  const payload = data as { default?: string; providers?: string[] } | undefined;
+  return payload?.default ?? payload?.providers?.[0] ?? 'stripe';
+};

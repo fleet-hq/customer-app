@@ -12,6 +12,7 @@ import {
   useCompanyLocations,
   useFleetUnavailableRanges,
   usePublicPaymentProviders,
+  useActivePaymentProvider,
   useCheckoutHoldRelease,
 } from '@/hooks';
 import { nmiCreatePaymentForPending } from '@/services/nmiPaymentServices';
@@ -83,7 +84,7 @@ export function useFleetDetail(carId: string) {
   // gateway at a time on the Integrations page — customer-central
   // just uses whatever's on. No picker, no per-request override.
   const { data: providersData } = usePublicPaymentProviders();
-  const activeProvider = (providersData?.providers?.[0] as string) ?? 'stripe';
+  const activeProvider = useActivePaymentProvider();
   const nmiConfig = (providersData as { nmi?: { publishable_key?: string } } | undefined)?.nmi;
   const [embedIntent, setEmbedIntent] = useState<null | {
     provider: 'stripe' | 'square';
