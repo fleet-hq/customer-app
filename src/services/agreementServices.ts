@@ -224,6 +224,11 @@ export function mapCardOnFile(raw: any): AgreementData['cardOnFile'] {
     cardholderName: raw.cardholder_name ?? '',
     authorized: !!raw.authorized,
     consentedAt: raw.consented_at ?? null,
+    // Not every saved method is a card. A row written before the
+    // backend reported this is a card if it has digits.
+    isCard: raw.is_card ?? !!raw.last4,
+    methodLabel: raw.method_label ?? '',
+    methodDetail: raw.method_detail ?? '',
   };
 }
 
@@ -296,6 +301,12 @@ export interface AgreementData {
     cardholderName: string;
     authorized: boolean;
     consentedAt: string | null;
+    /** False for Stripe Link and other non-card methods, which carry no
+     *  brand, number or expiry anywhere — the agreement names the method
+     *  instead of printing a card with three empty rows. */
+    isCard: boolean;
+    methodLabel: string;
+    methodDetail: string;
   } | null;
   signatureImage: string | null;
   /** Booking's tenant TZ — pass to date formatters in the preview

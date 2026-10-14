@@ -246,22 +246,38 @@ export function RentalAgreementPreview({ data, onSignatureChange }: RentalAgreem
   // all the provider ever hands back, and the charge runs off its saved-card
   // handle, so a number or CVV is neither available nor needed here.
   const card = d.cardOnFile;
-  const cardRows: SpecRow[] = card
-    ? [
-        ['Cardholder Name', dash(card.cardholderName)],
-        ['Card Type', dash(card.brandLabel)],
-        ['Card Number', dash(card.maskedNumber)],
-        ['Expiration', dash(card.expiry)],
-        [
-          'Authorization',
-          card.authorized
-            ? card.consentedAt
-              ? `Authorized ${fmtDateLong(card.consentedAt, d.timezone)}`
-              : 'Authorized'
-            : '—',
-        ],
-      ]
-    : [];
+  const authorizationRow: SpecRow = [
+    'Authorization',
+    card?.authorized
+      ? card.consentedAt
+        ? `Authorized ${fmtDateLong(card.consentedAt, d.timezone)}`
+        : 'Authorized'
+      : '—',
+  ];
+  // Stripe Link and its kind have no brand, number or expiry to print —
+  // asking for them produced an agreement listing a Card Number of "—".
+  // Name the method instead; the rows that cannot be filled are omitted
+  // rather than shown empty.
+  const cardRows: SpecRow[] = !card
+    ? []
+    : card.isCard
+      ? [
+          ['Cardholder Name', dash(card.cardholderName)],
+          ['Card Type', dash(card.brandLabel)],
+          ['Card Number', dash(card.maskedNumber)],
+          ['Expiration', dash(card.expiry)],
+          authorizationRow,
+        ]
+      : [
+          ['Name on Account', dash(card.cardholderName)],
+          ...(card.methodLabel
+            ? ([['Payment Method', card.methodLabel]] as SpecRow[])
+            : []),
+          ...(card.methodDetail
+            ? ([['Account', card.methodDetail]] as SpecRow[])
+            : []),
+          authorizationRow,
+        ];
 
   const insuranceRows: SpecRow[] = [
     ['Carrier Name', dash(d.insurance.carrierName)],
@@ -402,12 +418,14 @@ export function RentalAgreementPreview({ data, onSignatureChange }: RentalAgreem
 
           {card ? (
             <>
-              <SectionTitle className="mt-10"><Dyn>Card on File</Dyn></SectionTitle>
+              <SectionTitle className="mt-10">
+                <Dyn>{card && !card.isCard ? 'Payment Method on File' : 'Card on File'}</Dyn>
+              </SectionTitle>
               <p className="mt-3 text-[10px] sm:text-[12px] leading-[1.6] text-[#131314]">
                 <Dyn>
-                  This card is kept on file for tolls, tickets, fuel, cleaning or damage
-                  arising during or after the rental. It is stored by our payment provider
-                  — we never hold the card number or security code.
+                  {card && !card.isCard
+                    ? 'This payment method is kept on file for tolls, tickets, fuel, cleaning or damage arising during or after the rental. It is stored by our payment provider — we never hold the account details.'
+                    : 'This card is kept on file for tolls, tickets, fuel, cleaning or damage arising during or after the rental. It is stored by our payment provider — we never hold the card number or security code.'}
                 </Dyn>
               </p>
               <div className="mt-4">
