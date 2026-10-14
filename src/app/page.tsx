@@ -3,6 +3,8 @@ import type { Metadata } from 'next';
 import { getCurrentTenant, TenantNotFoundError } from '@/lib/get-tenant';
 import { withCompany } from '@/lib/tenant';
 import { pageMetadata } from '@/lib/seo';
+import { homeFaqSchema } from '@/lib/schema';
+import { JsonLd } from '@/components/seo/json-ld';
 import HomeClient from './home-client';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -32,6 +34,17 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-export default function HomePage() {
-  return <HomeClient />;
+export default async function HomePage() {
+  let faqSchema = null;
+  try {
+    faqSchema = homeFaqSchema(await getCurrentTenant());
+  } catch (err) {
+    if (!(err instanceof TenantNotFoundError)) throw err;
+  }
+  return (
+    <>
+      {faqSchema ? <JsonLd data={faqSchema} /> : null}
+      <HomeClient />
+    </>
+  );
 }

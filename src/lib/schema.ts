@@ -53,6 +53,25 @@ function faqNode(faqs: FaqItem[]): Node {
   };
 }
 
+function validFaqs(items: FaqItem[]): FaqItem[] {
+  const seen = new Set<string>();
+  return items.filter((f) => {
+    const question = f.question?.trim();
+    if (!question || !f.answer?.trim()) return false;
+    const key = question.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function collectFaqs(page: ContentPage): FaqItem[] {
+  return validFaqs([
+    ...(page.faqs ?? []),
+    ...(page.blocks ?? []).flatMap((b) => b.faqs ?? []),
+  ]);
+}
+
 function breadcrumbNode(tenant: Tenant, page: ContentPage, path: string): Node {
   const origin = siteOrigin(tenant);
   const trail =
@@ -91,7 +110,8 @@ export function contentPageSchema(tenant: Tenant, page: ContentPage, path: strin
   const seo = tenant.sections.seo;
   const graph: Node[] = [breadcrumbNode(tenant, page, path)];
 
-  if (page.faqs?.length) graph.push(faqNode(page.faqs));
+  const faqs = collectFaqs(page);
+  if (faqs.length) graph.push(faqNode(faqs));
 
   if (types.has('Service')) {
     graph.push(
@@ -146,8 +166,13 @@ export function contentPageSchema(tenant: Tenant, page: ContentPage, path: strin
   return { '@context': CONTEXT, '@graph': graph };
 }
 
-export function faqPageSchema(faqs: FaqItem[]): Node {
-  return { '@context': CONTEXT, ...faqNode(faqs) };
+export function homeFaqSchema(tenant: Tenant): Node | null {
+  const home = tenant.sections.pages?.home;
+  const faqs = validFaqs([
+    ...(tenant.sections.faqs?.items ?? []),
+    ...(home ? collectFaqs(home) : []),
+  ]);
+  return faqs.length ? { '@context': CONTEXT, ...faqNode(faqs) } : null;
 }
 
 function trailNode(tenant: Tenant, trail: ContentLink[]): Node {
