@@ -11,7 +11,7 @@ import { SocialLinks } from '@/components/layout/social-glyph';
 /** Template-2 footer. Same fields as the template-1 Footer
  *  (`brand.logoMono`/`brand.description`, `footer.description`,
  *  `footer.socials`, `footer.contact.*`) — nothing new to configure. */
-export function FooterT2() {
+export function FooterT2({ minimal = false }: { minimal?: boolean } = {}) {
   const tenant = useTenant();
   const { brand, footer } = tenant;
   const description = footer.description || brand.description;
@@ -32,6 +32,8 @@ export function FooterT2() {
             <SocialLinks socials={footer.socials} className={styles.footerSocials} />
           </div>
 
+{minimal ? null : (
+            <>
           <div className={styles.fcol}>
             <h4>
               <Dyn>Explore</Dyn>
@@ -72,6 +74,8 @@ export function FooterT2() {
               </li>
             </ul>
           </div>
+            </>
+          )}
 
           <div className={styles.fcol}>
             <h4>

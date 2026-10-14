@@ -344,7 +344,10 @@ export interface ContentPageCta {
 }
 
 export interface ContentPage {
-  layout?: 'default' | 'about' | 'contact';
+  /** ``landing`` is an advert's destination: the chrome strips to a
+   *  logo, phone and one button, and the footer drops its link
+   *  columns. Pair it with ``meta.noindex``. */
+  layout?: 'default' | 'about' | 'contact' | 'landing';
   eyebrow?: string;
   h1?: string;
   intro?: string[];

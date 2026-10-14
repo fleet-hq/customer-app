@@ -26,7 +26,7 @@ function BrandMark() {
  *  (`tenant.name`, `tenant.brand.logo`, `tenant.brand.navLinks`,
  *  `footer.contact.phone`) so switching templates never needs new
  *  operator-supplied fields. */
-export function HeaderT2() {
+export function HeaderT2({ minimal = false }: { minimal?: boolean } = {}) {
   const tenant = useTenant();
   const [open, setOpen] = useState(false);
   const phone = tenant.footer.contact.phone;
@@ -43,6 +43,10 @@ export function HeaderT2() {
           <span className={styles.brandName}>{tenant.name}</span>
         </Link>
 
+        {/* A landing page has one job. Navigation away from it is the
+            opposite of that, so the menu and the secondary actions go,
+            leaving the logo, the phone number and one button. */}
+        {minimal ? null : (
         <nav aria-label="Primary" className={open ? styles.navOpen : undefined}>
           <ul className={styles.navLinks}>
             {tenant.brand.navLinks.map((link) => (
@@ -59,6 +63,7 @@ export function HeaderT2() {
             </li>
           </ul>
         </nav>
+        )}
 
         <div className={styles.navCta}>
           {phone ? (
@@ -66,12 +71,15 @@ export function HeaderT2() {
               {phone}
             </a>
           ) : null}
-          <Link href={paths.manage} className={`${styles.btn} ${styles.btnGhost} ${styles.navManage}`} onClick={() => setOpen(false)}>
-            <Dyn>Manage Bookings</Dyn>
-          </Link>
+          {minimal ? null : (
+            <Link href={paths.manage} className={`${styles.btn} ${styles.btnGhost} ${styles.navManage}`} onClick={() => setOpen(false)}>
+              <Dyn>Manage Bookings</Dyn>
+            </Link>
+          )}
           <Link href={paths.fleet} className={`${styles.btn} ${styles.btnBrass}`}>
             <Dyn>Book now</Dyn>
           </Link>
+          {minimal ? null : (
           <button
             type="button"
             className={styles.navToggle}
@@ -81,6 +89,7 @@ export function HeaderT2() {
           >
             {open ? <Close size={16} /> : '☰'}
           </button>
+          )}
         </div>
       </div>
     </header>

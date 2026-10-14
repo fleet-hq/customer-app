@@ -11,6 +11,20 @@ import { useTenant } from '@/lib/tenant-context';
 
 const HIDE_CHROME_PREFIXES = ['/sign-in', '/register'];
 
+/** A content page declaring ``layout: 'landing'`` is an advert's
+ *  destination: one message, one action, nowhere else to go. It keeps a
+ *  stripped header — logo, phone, one button — and drops the footer's
+ *  link columns, so the page itself decides this rather than the chrome
+ *  carrying a list of landing-page paths. */
+function isLandingPath(
+  pages: Record<string, { layout?: string } | undefined> | null | undefined,
+  pathname: string,
+) {
+  const slug = pathname.replace(/^\/+|\/+$/g, '');
+  if (!slug) return false;
+  return pages?.[slug]?.layout === 'landing';
+}
+
 export function LayoutChrome({ children }: { children: ReactNode }) {
   const tenant = useTenant();
   const isT2 = tenant.websiteTemplate === 'template_2';
@@ -22,6 +36,7 @@ export function LayoutChrome({ children }: { children: ReactNode }) {
     setInsideIframe(typeof window !== 'undefined' && window.parent !== window);
   }, []);
 
+  const landing = isLandingPath(tenant.sections.pages, pathname);
   const hideChrome =
     searchParams.get('embed') === '1' ||
     insideIframe ||
@@ -39,9 +54,9 @@ export function LayoutChrome({ children }: { children: ReactNode }) {
   if (isT2) {
     return (
       <T2Shell>
-        {!hideChrome && <HeaderT2 />}
+        {!hideChrome && <HeaderT2 minimal={landing} />}
         <main>{children}</main>
-        {!hideChrome && <FooterT2 />}
+        {!hideChrome && <FooterT2 minimal={landing} />}
       </T2Shell>
     );
   }
