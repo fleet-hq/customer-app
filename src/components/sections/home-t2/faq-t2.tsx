@@ -9,14 +9,24 @@ interface FaqT2Props {
   eyebrow?: string;
   title: string;
   items: FaqItem[];
+  /** Rendered within an article column rather than as a full-bleed
+   *  section. */
+  inline?: boolean;
 }
 
-export function FaqT2({ eyebrow, title, items }: FaqT2Props) {
+export function FaqT2({ eyebrow, title, items, inline = false }: FaqT2Props) {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
+  // Inside an article the page is already a reading column, so the
+  // two-column split that works full-bleed on the home page leaves the
+  // questions in a sliver. Inline stacks the heading above the list and
+  // lets it use the whole column.
   return (
-    <section className={`${styles.section} ${styles.faq}`} id="faqs">
-      <div className={styles.container}>
+    <section
+      className={`${inline ? styles.faqInline : styles.section} ${styles.faq}`}
+      id="faqs"
+    >
+      <div className={inline ? undefined : styles.container}>
         <div className={styles.sectionHead}>
           {eyebrow ? (
             <p className={styles.eyebrow}>

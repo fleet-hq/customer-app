@@ -75,14 +75,14 @@ export function ContentPageT2({ tenant, page, path, showNap = true }: ContentPag
         ))}
 
         {page.faqs?.length && !blocks.some((b) => b.faqs?.length) ? (
-          <FaqT2 title="Frequently Asked Questions" items={page.faqs} />
+          <FaqT2 title="Frequently Asked Questions" items={page.faqs} inline />
         ) : null}
 
         {showNap ? <NapBlockT2 tenant={tenant} /> : null}
       </div>
 
       {cta && (cta.title || cta.description || cta.cta_label) ? (
-        <div className={`${styles.cta} ${styles.section}`}>
+        <div className={`${styles.cta} ${styles.articleCta}`}>
           <div className={styles.container}>
             {cta.eyebrow ? (
               <p className={styles.eyebrow}>
@@ -111,7 +111,13 @@ export function ContentPageT2({ tenant, page, path, showNap = true }: ContentPag
 
 function BlockT2({ block, co }: { block: ContentBlock; co: (t: string) => string }) {
   if (block.faqs?.length) {
-    return <FaqT2 title={block.heading ? co(block.heading) : 'Frequently Asked Questions'} items={block.faqs} />;
+    return (
+      <FaqT2
+        title={block.heading ? co(block.heading) : 'Frequently Asked Questions'}
+        items={block.faqs}
+        inline
+      />
+    );
   }
 
   return (
