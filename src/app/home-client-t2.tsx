@@ -150,6 +150,8 @@ export default function HomeClientT2() {
 
       {ctaVisible ? (
         <CtaT2
+          image={tenant.images.cta_image}
+          imageAlt={co(cta?.title ?? '')}
           eyebrow={cta?.eyebrow}
           title={co(cta?.title ?? '')}
           description={cta?.description ? co(cta.description) : undefined}

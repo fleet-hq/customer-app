@@ -52,6 +52,9 @@ export interface ImagesPayload {
   hero_mobile: string | null;
   why_choose: string | null;
   cta_background: string | null;
+  /** Shown beside the closing call-to-action, not behind it. Absent
+   *  leaves the CTA exactly as it was — a centred block of copy. */
+  cta_image: string | null;
   feature_banners: (string | null)[];
 }
 

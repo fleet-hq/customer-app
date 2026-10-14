@@ -567,6 +567,21 @@
 .cta h2 { font-size: clamp(2rem, 1.5rem + 2.6vw, 3.2rem); letter-spacing: -0.02em; }
 .cta p { color: var(--on-ink-muted); max-width: 44ch; }
 .ctaActions { display: flex; gap: 0.9rem; flex-wrap: wrap; justify-content: center; margin-top: 0.5rem; }
+/* With an image the CTA becomes two columns and the copy left-aligns;
+   without one it keeps the centred treatment above, so adding an image
+   is the only thing that changes the layout. */
+.ctaWithImage .container { flex-direction: row; text-align: left; align-items: center; gap: clamp(1.5rem, 4vw, 3.5rem); }
+.ctaWithImage .ctaCopy { display: flex; flex-direction: column; align-items: flex-start; gap: 1.2rem; flex: 1 1 0; min-width: 0; }
+.ctaWithImage .ctaCopy p { max-width: 48ch; }
+.ctaWithImage .ctaActions { justify-content: flex-start; }
+.ctaMedia { flex: 0 1 42%; min-width: 0; }
+.ctaMedia img { width: 100%; height: auto; display: block; border-radius: 3px; object-fit: cover; aspect-ratio: 4 / 3; }
+@media (max-width: 820px) {
+  .ctaWithImage .container { flex-direction: column; text-align: center; }
+  .ctaWithImage .ctaCopy { align-items: center; }
+  .ctaWithImage .ctaActions { justify-content: center; }
+  .ctaMedia { flex: 1 1 auto; width: 100%; }
+}
 
 /* ---------- FLEET LISTING PAGE ---------- */
 .pageHead { border-bottom: 1px solid var(--line); padding-block: clamp(3rem, 6vw, 4.5rem) clamp(2rem, 4vw, 3rem); }

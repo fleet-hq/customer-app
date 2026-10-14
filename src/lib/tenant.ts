@@ -233,6 +233,7 @@ export function tenantFromApi(detail: ApiCompanyDetail, locations: ApiLocation[]
       hero_mobile: images.hero_mobile ?? null,
       why_choose: images.why_choose ?? null,
       cta_background: images.cta_background ?? null,
+      cta_image: images.cta_image ?? null,
       feature_banners: (images.feature_banners ?? []).slice(0, 2),
     },
     sections: {
