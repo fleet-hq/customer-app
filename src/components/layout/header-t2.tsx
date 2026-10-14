@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useTenant } from '@/lib/tenant-context';
 import { navDropdownFor } from '@/lib/nav-dropdowns';
 import { paths } from '@/lib/paths';
+import { telHref } from '@/lib/seo';
 import { Close } from '@/components/ui/icons';
 import { Dyn } from '@/components/i18n/Dyn';
 import styles from '@/styles/template-2.module.css';
@@ -95,7 +96,7 @@ export function HeaderT2({ minimal = false }: { minimal?: boolean } = {}) {
 
         <div className={styles.navCta}>
           {phone ? (
-            <a href={`tel:${phone}`} className={styles.navPhone}>
+            <a href={telHref(phone) ?? undefined} className={styles.navPhone}>
               {phone}
             </a>
           ) : null}

@@ -1,5 +1,5 @@
 import type { Tenant } from '@/lib/tenant';
-import { tenantWhatsapp } from '@/lib/seo';
+import { tenantWhatsapp, telHref } from '@/lib/seo';
 import styles from '@/styles/template-2.module.css';
 
 export function NapBlockT2({ tenant }: { tenant: Tenant }) {
@@ -13,7 +13,7 @@ export function NapBlockT2({ tenant }: { tenant: Tenant }) {
       <strong>{seo?.og_site_name || tenant.name}</strong>
       {serving ? <p>{serving}</p> : null}
       <div className={styles.napContacts}>
-        {phone ? <a href={wa || `tel:${phone}`}>{phone}</a> : null}
+        {phone ? <a href={wa || telHref(phone) || undefined}>{phone}</a> : null}
         {email ? <a href={`mailto:${email}`}>{email}</a> : null}
       </div>
     </div>

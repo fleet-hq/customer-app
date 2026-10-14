@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useTenant } from '@/lib/tenant-context';
 import { paths } from '@/lib/paths';
+import { telHref } from '@/lib/seo';
 import { Dyn } from '@/components/i18n/Dyn';
 import styles from '@/styles/template-2.module.css';
 import { SocialLinks } from '@/components/layout/social-glyph';
@@ -89,7 +90,7 @@ export function FooterT2({ minimal = false }: { minimal?: boolean } = {}) {
               ) : null}
               {footer.contact.phone ? (
                 <li>
-                  <a href={`tel:${footer.contact.phone}`}>{footer.contact.phone}</a>
+                  <a href={telHref(footer.contact.phone) ?? undefined}>{footer.contact.phone}</a>
                 </li>
               ) : null}
               {footer.contact.email ? (

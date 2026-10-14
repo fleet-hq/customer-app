@@ -28,6 +28,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }
 
   const lastModified = new Date();
+  const listed = new Set<string>(STATIC_PATHS);
   const entries: MetadataRoute.Sitemap = STATIC_PATHS.map((path) => ({
     url: `${origin}${path}`,
     lastModified,
@@ -40,8 +41,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   for (const slug of Object.keys(tenant.sections.pages ?? {})) {
     const page = tenant.sections.pages?.[slug];
     if (page?.meta?.noindex) continue;
-    // /contact already has a canonical entry above.
-    if (`/${slug}` === paths.contact) continue;
+    if (slug === 'home' || listed.has(paths.page(slug))) continue;
+    listed.add(paths.page(slug));
     entries.push({
       url: `${origin}${paths.page(slug)}`,
       lastModified,

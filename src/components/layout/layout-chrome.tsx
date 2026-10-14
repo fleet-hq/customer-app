@@ -7,6 +7,7 @@ import { Footer } from './footer';
 import { HeaderT2 } from './header-t2';
 import { FooterT2 } from './footer-t2';
 import { T2Shell } from './t2-shell';
+import { MobileContactBar } from './mobile-contact-bar';
 import { useTenant } from '@/lib/tenant-context';
 
 const HIDE_CHROME_PREFIXES = ['/sign-in', '/register'];
@@ -57,6 +58,7 @@ export function LayoutChrome({ children }: { children: ReactNode }) {
         {!hideChrome && <HeaderT2 minimal={landing} />}
         <main>{children}</main>
         {!hideChrome && <FooterT2 minimal={landing} />}
+        {!hideChrome && <MobileContactBar />}
       </T2Shell>
     );
   }
@@ -66,6 +68,7 @@ export function LayoutChrome({ children }: { children: ReactNode }) {
       {!hideChrome && <Header />}
       <main className={bareBackground ? 'text-ink' : 'bg-white text-ink'}>{children}</main>
       {!hideChrome && <Footer />}
+      {!hideChrome && <MobileContactBar />}
     </>
   );
 }

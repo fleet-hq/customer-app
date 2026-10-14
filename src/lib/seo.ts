@@ -19,12 +19,28 @@ export function absoluteUrl(tenant: Tenant, pathOrUrl?: string | null): string {
   return `${origin}${pathOrUrl.startsWith('/') ? '' : '/'}${pathOrUrl}`;
 }
 
-export function whatsappHref(rawNumber?: string | null): string | null {
+function intlDigits(rawNumber?: string | null): string | null {
   if (!rawNumber) return null;
-  const digits = rawNumber.replace(/\D/g, '');
+  const trimmed = rawNumber.trim();
+  const digits = trimmed.replace(/\D/g, '');
   if (!digits) return null;
-  const intl = digits.length === 10 ? `1${digits}` : digits;
-  return `https://wa.me/${intl}`;
+  if (trimmed.startsWith('+')) return digits;
+  return digits.length === 10 ? `1${digits}` : digits;
+}
+
+export function whatsappHref(rawNumber?: string | null): string | null {
+  const intl = intlDigits(rawNumber);
+  return intl ? `https://wa.me/${intl}` : null;
+}
+
+export function telHref(rawNumber?: string | null): string | null {
+  const intl = intlDigits(rawNumber);
+  return intl ? `tel:+${intl}` : null;
+}
+
+export function smsHref(rawNumber?: string | null): string | null {
+  const intl = intlDigits(rawNumber);
+  return intl ? `sms:+${intl}` : null;
 }
 
 export function tenantWhatsapp(tenant: Tenant): string | null {
@@ -59,7 +75,7 @@ export function pageMetadata(input: PageMetaInput): Metadata {
     description,
     alternates: canonicalUrl ? { canonical: canonicalUrl } : undefined,
     robots: noindex
-      ? { index: false, follow: false }
+      ? { index: false, follow: true }
       : { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1, 'max-video-preview': -1 },
     openGraph: {
       type: 'website',

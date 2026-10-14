@@ -1,5 +1,5 @@
 import type { Tenant } from '@/lib/tenant';
-import { tenantWhatsapp } from '@/lib/seo';
+import { tenantWhatsapp, telHref } from '@/lib/seo';
 import { Phone, Mail } from '@/components/ui/icons';
 
 export function NapBlock({ tenant }: { tenant: Tenant }) {
@@ -16,7 +16,7 @@ export function NapBlock({ tenant }: { tenant: Tenant }) {
       {serving ? <p className="mt-[6px] text-[14.5px] leading-[1.6] text-muted">{serving}</p> : null}
       <div className="mt-[16px] flex flex-col gap-[10px] text-[14.5px] text-label">
         {phone ? (
-          <a href={wa || `tel:${phone}`} className="inline-flex items-center gap-[10px] hover:text-primary">
+          <a href={wa || telHref(phone) || undefined} className="inline-flex items-center gap-[10px] hover:text-primary">
             <Phone size={16} />
             <span>{phone}</span>
           </a>

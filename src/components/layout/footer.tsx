@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useTenant } from '@/lib/tenant-context';
 import { paths } from '@/lib/paths';
+import { telHref } from '@/lib/seo';
 import { Mail, MapPin, Phone } from '@/components/ui/icons';
 import { Dyn } from '@/components/i18n/Dyn';
 import { SocialLinks } from '@/components/layout/social-glyph';
@@ -76,7 +77,7 @@ export function Footer() {
             </h4>
             <div className="flex flex-col gap-[13px]">
               {footer.contact.phone ? (
-                <a href={`tel:${footer.contact.phone}`} className="flex items-center gap-[10px] text-[13px] text-white/80">
+                <a href={telHref(footer.contact.phone) ?? undefined} className="flex items-center gap-[10px] text-[13px] text-white/80">
                   <Phone size={15} className="flex-shrink-0 text-primary" />
                   <span>{footer.contact.phone}</span>
                 </a>
