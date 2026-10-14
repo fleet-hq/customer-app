@@ -16,6 +16,15 @@ import { useTenant } from '@/lib/tenant-context';
 import { withCompany } from '@/lib/tenant';
 import { useFleetDiscountsSummary } from '@/hooks/useFleetDiscounts';
 
+/* Sections this page reads are also the tabs the Websites editor
+   offers for template 2. Adding one here means adding it in three
+   places or an operator can never fill it in:
+     1. ContentSections in services/companyContentServices.ts (both repos)
+     2. fleet-admin TABS in app/dashboard/websites/[companyId]/page.tsx
+        — with `templates` set if it is not shared (template 1 renders Categories instead)
+     3. the backend serializer, if it needs a new model field
+   Nothing fails loudly when this is missed; the section simply
+   never appears. */
 /** Template-2 home page. Same rule as home-client.tsx: every section
  *  renders ONLY when the operator has filled it in — no FE-invented
  *  copy or images. Reads the identical `tenant.sections.*` fields
@@ -151,7 +160,6 @@ export default function HomeClientT2() {
       {ctaVisible ? (
         <CtaT2
           image={tenant.images.cta_image}
-          imageAlt={co(cta?.title ?? '')}
           eyebrow={cta?.eyebrow}
           title={co(cta?.title ?? '')}
           description={cta?.description ? co(cta.description) : undefined}

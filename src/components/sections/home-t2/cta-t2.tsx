@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { paths } from '@/lib/paths';
 import { Dyn } from '@/components/i18n/Dyn';
@@ -12,17 +13,9 @@ interface CtaT2Props {
   /** Optional. Present turns the CTA into two columns; absent leaves
    *  the centred block untouched. */
   image?: string | null;
-  imageAlt?: string;
 }
 
-export function CtaT2({
-  eyebrow,
-  title,
-  description,
-  ctaLabel,
-  image,
-  imageAlt,
-}: CtaT2Props) {
+export function CtaT2({ eyebrow, title, description, ctaLabel, image }: CtaT2Props) {
   const body = (
     <>
       {eyebrow ? (
@@ -59,10 +52,12 @@ export function CtaT2({
       <Reveal className={styles.container}>
         <div className={styles.ctaCopy}>{body}</div>
         <div className={styles.ctaMedia}>
-          {/* Operator-supplied; next/image would need the host allow-listed
-              per tenant, which the other section images avoid the same way. */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={image} alt={imageAlt || ''} loading="lazy" />
+          {/* ``unoptimized`` for the same reason as the hero and about
+              images: the source is an operator upload on a tenant domain
+              the optimizer has no allow-list entry for. Decorative, so
+              the alt stays empty — the heading beside it carries the
+              meaning. */}
+          <Image src={image} alt="" width={700} height={525} unoptimized />
         </div>
       </Reveal>
     </section>

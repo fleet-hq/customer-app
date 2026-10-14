@@ -23,6 +23,16 @@ import HomeClientT2 from './home-client-t2';
 /** Every section below is rendered ONLY when the operator has filled
  *  it in. There are no FE-side copy or image fallbacks — a tenant
  *  without content for a surface simply hides that surface. */
+/* Sections this page reads are also the tabs the Websites editor
+   offers for template 1. Adding one here means adding it in three
+   places or an operator can never fill it in:
+     1. ContentSections in services/companyContentServices.ts (both repos)
+     2. fleet-admin TABS in app/dashboard/websites/[companyId]/page.tsx
+        — with `templates` set if it is not shared (template 2 renders
+        Stats and About instead of Categories)
+     3. the backend serializer, if it needs a new model field
+   Nothing fails loudly when this is missed; the section simply
+   never appears. */
 export default function HomeClient() {
   const tenant = useTenant();
   const { sections, images } = tenant;
