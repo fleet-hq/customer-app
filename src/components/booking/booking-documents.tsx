@@ -10,6 +10,7 @@ import {
   DOCUMENT_TYPES_FOR_KIND,
   DOCUMENT_TYPE_LABELS,
   MAX_DOCUMENT_BYTES,
+  deleteManualDocument,
   uploadManualVerification,
   type ManualDocumentType,
   type ManualVerificationKind,
@@ -55,6 +56,8 @@ export function BookingDocuments({
   const inputRef = useRef<HTMLInputElement>(null);
   const [documentType, setDocumentType] = useState<ManualDocumentType>('licence');
   const [uploading, setUploading] = useState(false);
+  const [removingId, setRemovingId] = useState<number | null>(null);
+  const [confirmId, setConfirmId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const uploaded = useMemo(
@@ -83,6 +86,26 @@ export function BookingDocuments({
     } finally {
       setUploading(false);
       if (inputRef.current) inputRef.current.value = '';
+    }
+  };
+
+  const onRemove = async (documentId: number) => {
+    setError(null);
+    // Asked once before it goes: an upload the renter cannot get back
+    // is worse than one extra click.
+    if (confirmId !== documentId) {
+      setConfirmId(documentId);
+      return;
+    }
+    setRemovingId(documentId);
+    try {
+      await deleteManualDocument(documentId);
+      onUploaded();
+    } catch {
+      setError('We could not remove that file. Please try again.');
+    } finally {
+      setRemovingId(null);
+      setConfirmId(null);
     }
   };
 
@@ -121,19 +144,38 @@ export function BookingDocuments({
                   <Dyn>{DOCUMENT_TYPE_LABELS[doc.documentType]}</Dyn> · {sizeLabel(doc.sizeBytes)}
                 </p>
               </div>
-              {doc.fileUrl && (
-                <a
-                  href={doc.fileUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
+              <div className="flex shrink-0 items-center gap-3">
+                {doc.fileUrl && (
+                  <a
+                    href={doc.fileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={cn(
+                      'text-[12px] font-semibold',
+                      isT2 ? 'text-[var(--brass)]' : 'text-secondary',
+                    )}
+                  >
+                    <Dyn>View</Dyn>
+                  </a>
+                )}
+                <button
+                  type="button"
+                  onClick={() => onRemove(doc.id)}
+                  disabled={removingId === doc.id}
                   className={cn(
-                    'shrink-0 text-[12px] font-semibold',
-                    isT2 ? 'text-[var(--brass)]' : 'text-secondary',
+                    'text-[12px] font-semibold disabled:opacity-50',
+                    isT2 ? 'text-[var(--danger)]' : 'text-danger',
                   )}
                 >
-                  <Dyn>View</Dyn>
-                </a>
-              )}
+                  <Dyn>
+                    {removingId === doc.id
+                      ? 'Removing…'
+                      : confirmId === doc.id
+                        ? 'Confirm'
+                        : 'Remove'}
+                  </Dyn>
+                </button>
+              </div>
             </li>
           ))}
         </ul>

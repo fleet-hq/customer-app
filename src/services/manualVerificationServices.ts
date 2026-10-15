@@ -97,6 +97,13 @@ export async function uploadManualVerification(
   return mapSubmission(res.data);
 }
 
+export async function deleteManualDocument(documentId: number): Promise<void> {
+  await axios.delete(
+    `${API_URL}/api/manual-verification/customer/documents/${documentId}/`,
+    { headers: getBookingTokenHeaders() },
+  );
+}
+
 export function latestSubmissionFor(
   submissions: ManualVerificationSubmission[],
   kind: ManualVerificationKind,
