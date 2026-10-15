@@ -114,8 +114,7 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
     tokenReady,
     isCancelled,
     isReserved,
-    manualIdSubmission,
-    manualInsuranceSubmission,
+    manualSubmissions,
     refetchManual,
     preTrip,
     postTrip,
@@ -181,9 +180,8 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
       preTripPhotos={preTrip}
       postTripPhotos={postTrip}
       isReserved={isReserved}
-      manualIdSubmission={manualIdSubmission}
-      manualInsuranceSubmission={manualInsuranceSubmission}
-      onManualUploaded={refetchManual}
+      documentSubmissions={manualSubmissions}
+      onDocumentUploaded={refetchManual}
       canUploadPhotos={tokenReady && !isCancelled}
     />
       <RentalAgreementSignModal

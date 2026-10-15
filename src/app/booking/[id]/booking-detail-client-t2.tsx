@@ -94,8 +94,7 @@ export default function BookingDetailClientT2({ id }: { id: string }) {
     tokenReady,
     isCancelled,
     isReserved,
-    manualIdSubmission,
-    manualInsuranceSubmission,
+    manualSubmissions,
     refetchManual,
     preTrip,
     postTrip,
@@ -167,9 +166,8 @@ export default function BookingDetailClientT2({ id }: { id: string }) {
         preTripPhotos={preTrip}
         postTripPhotos={postTrip}
         isReserved={isReserved}
-      manualIdSubmission={manualIdSubmission}
-      manualInsuranceSubmission={manualInsuranceSubmission}
-      onManualUploaded={refetchManual}
+      documentSubmissions={manualSubmissions}
+      onDocumentUploaded={refetchManual}
       canUploadPhotos={tokenReady && !isCancelled}
       />
       {providersData?.square && (

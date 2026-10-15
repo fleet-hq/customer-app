@@ -34,7 +34,6 @@ import { paths } from '@/lib/paths';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getManualVerifications,
-  latestSubmissionFor,
 } from '@/services/manualVerificationServices';
 
 function buildBookingReturnUrl(id: string, token: string | null) {
@@ -379,8 +378,6 @@ export function useBookingDetail(id: string) {
   if (requireInsurance && !insuranceVerified) pendingChecks.push('verify your insurance');
 
   const isReserved = String(booking.status ?? '').toLowerCase() === 'reserved';
-  const manualIdSubmission = latestSubmissionFor(manualSubmissions, 'id');
-  const manualInsuranceSubmission = latestSubmissionFor(manualSubmissions, 'insurance');
 
   const showInsuranceStep =
     !hasInsuranceExtra && (requireInsurance || !!booking.hasOwnInsurance);
@@ -424,8 +421,7 @@ export function useBookingDetail(id: string) {
     outstanding,
     isCancelled,
     isReserved,
-    manualIdSubmission,
-    manualInsuranceSubmission,
+    manualSubmissions,
     refetchManual: () =>
       queryClient.invalidateQueries({ queryKey: ['manualVerifications', fetchId] }),
     isPaid,

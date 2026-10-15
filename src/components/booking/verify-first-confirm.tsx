@@ -5,6 +5,7 @@ import { Check, Clock, Close, Download, IdCard, Pencil, ShieldCheck, Swap } from
 import { BackLink } from '@/components/ui/back-link';
 import { cn, money } from '@/lib/utils';
 import { Dyn } from '@/components/i18n/Dyn';
+import { BookingDocuments } from './booking-documents';
 import { useIsT2 } from '@/lib/use-is-t2';
 import { insuranceCoverageLines } from '@/lib/insurance-lines';
 import { paths } from '@/lib/paths';
@@ -14,7 +15,6 @@ import type {
   ManualVerificationKind,
   ManualVerificationSubmission,
 } from '@/services/manualVerificationServices';
-import { ManualVerificationModal } from './manual-verification-modal';
 import SecondaryDriverVerification from '@/components/booking/secondary-driver-verification';
 import { FailedInsurancePanel } from '@/components/booking/failed-insurance-panel';
 import { useState } from 'react';
@@ -121,9 +121,10 @@ interface Props {
   postTripPhotos: TripImage[];
   canUploadPhotos: boolean;
   isReserved: boolean;
-  manualIdSubmission: ManualVerificationSubmission | null;
-  manualInsuranceSubmission: ManualVerificationSubmission | null;
-  onManualUploaded: () => void;
+  /** Documents the renter has uploaded. Kept apart from verification —
+   *  see BookingDocuments. */
+  documentSubmissions: ManualVerificationSubmission[];
+  onDocumentUploaded: () => void;
 }
 
 export function VerifyFirstConfirm(props: Props) {
@@ -133,9 +134,8 @@ export function VerifyFirstConfirm(props: Props) {
     backHref,
     mode,
     isReserved,
-    manualIdSubmission,
-    manualInsuranceSubmission,
-    onManualUploaded,
+    documentSubmissions,
+    onDocumentUploaded,
     outstanding,
     charges,
     paymentPendingHref,
@@ -402,11 +402,6 @@ export function VerifyFirstConfirm(props: Props) {
                       error={idError}
                       linkSent={idLinkSent}
                       onVerify={onIdVerify}
-                      manualKind="id"
-                      manualSubmission={manualIdSubmission}
-                      onManualUploaded={onManualUploaded}
-                      automatedLabel="Verify through Stripe"
-                      automatedDescription="Scan your licence with Stripe Identity. Usually instant."
                     />
                   )}
                   {requireInsurance && (
@@ -420,11 +415,6 @@ export function VerifyFirstConfirm(props: Props) {
                       failed={insuranceFailed}
                       failureDetails={insuranceFailureDetails}
                       onVerify={onInsuranceVerify}
-                      manualKind="insurance"
-                      manualSubmission={manualInsuranceSubmission}
-                      onManualUploaded={onManualUploaded}
-                      automatedLabel="Verify through Modives"
-                      automatedDescription="We look your policy up with your insurer automatically."
                     />
                   )}
                 </div>
@@ -451,6 +441,11 @@ export function VerifyFirstConfirm(props: Props) {
               href={agreementHref}
               mode={mode}
               onSign={onSignAgreement}
+            />
+
+            <BookingDocuments
+              submissions={documentSubmissions}
+              onUploaded={onDocumentUploaded}
             />
 
 
@@ -1391,11 +1386,6 @@ function VerifySubCard({
   failed,
   failureDetails,
   onVerify,
-  manualKind,
-  manualSubmission,
-  onManualUploaded,
-  automatedLabel,
-  automatedDescription,
 }: {
   icon: React.ReactNode;
   title: string;
@@ -1407,51 +1397,35 @@ function VerifySubCard({
   failed?: boolean;
   failureDetails?: InsuranceVerificationDetails | null;
   onVerify: () => void;
-  manualKind: ManualVerificationKind;
-  manualSubmission: ManualVerificationSubmission | null;
-  onManualUploaded: () => void;
-  automatedLabel: string;
-  automatedDescription: string;
 }) {
   const isT2 = useIsT2();
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const [chooserOpen, setChooserOpen] = useState(false);
 
-  const underReview = !verified && manualSubmission?.status === 'pending_review';
-  const manualRejected = !verified && manualSubmission?.status === 'rejected';
+  const label = failed
+    ? detailsOpen ? 'Hide details' : 'View details'
+    : verified
+      ? 'Verified'
+      : loading
+        ? 'Sending…'
+        : linkSent
+          ? 'In progress…'
+          : 'Verify';
 
-  const label = underReview
-    ? 'Under review'
-    : failed
-      ? detailsOpen ? 'Hide details' : 'View details'
-      : verified
-        ? 'Verified'
-        : loading
-          ? 'Sending…'
-          : linkSent
-            ? 'In progress…'
-            : manualRejected
-              ? 'Re-verify'
-              : 'Verify';
-
-  const pillCopy = underReview
-    ? 'Under review'
-    : failed
-      ? 'Not verified'
-      : verified
-        ? 'Verified'
-        : 'Required';
+  const pillCopy = failed ? 'Not verified' : verified ? 'Verified' : 'Required';
 
   const handleClick = () => {
-    if (underReview) return;
     if (failed) {
       setDetailsOpen((v) => !v);
       return;
     }
-    setChooserOpen(true);
+    // Straight to Stripe Identity / Modives. This used to open a chooser
+    // offering a document upload beside them, and renters took the
+    // upload — which is not a verification, so bookings sat waiting on a
+    // person. Documents now have their own section and no bearing here.
+    onVerify();
   };
 
-  const buttonDisabled = underReview || (!failed && (verified || loading || linkSent));
+  const buttonDisabled = !failed && (verified || loading || linkSent);
 
   return (
     <div
@@ -1490,17 +1464,6 @@ function VerifySubCard({
         <p className={cn('mt-1 text-[12px] leading-[1.5]', isT2 ? 'text-[var(--text-muted)]' : 'text-muted')}>
           <Dyn>{description}</Dyn>
         </p>
-        {manualRejected && manualSubmission?.rejectionReason ? (
-          <p
-            className={cn(
-              'mt-2 text-[11.5px] leading-[1.5]',
-              isT2 ? 'text-[var(--danger)]' : 'text-danger-text',
-            )}
-          >
-            <Dyn>Your documents were not approved:</Dyn>{' '}
-            <Dyn>{manualSubmission.rejectionReason}</Dyn>
-          </p>
-        ) : null}
       </div>
       <button
         type="button"
@@ -1530,33 +1493,6 @@ function VerifySubCard({
       {failed && detailsOpen && failureDetails && (
         <FailedInsurancePanel details={failureDetails} />
       )}
-      {failed && !verified && !underReview ? (
-        <button
-          type="button"
-          onClick={() => setChooserOpen(true)}
-          className={cn(
-            'mt-2 w-full rounded-[9px] py-2 text-center text-[12px] font-semibold transition-colors',
-            isT2
-              ? 'border border-[var(--line)] text-[var(--text)] hover:bg-[var(--paper)]'
-              : 'border border-card-border text-secondary hover:bg-subtle',
-          )}
-        >
-          <Dyn>Upload documents instead</Dyn>
-        </button>
-      ) : null}
-      <ManualVerificationModal
-        open={chooserOpen}
-        onClose={() => setChooserOpen(false)}
-        kind={manualKind}
-        onUploaded={() => {
-          setChooserOpen(false);
-          onManualUploaded();
-        }}
-        onAutomated={onVerify}
-        automatedLabel={automatedLabel}
-        automatedDescription={automatedDescription}
-        rejectionReason={manualRejected ? manualSubmission?.rejectionReason : undefined}
-      />
       {error && (
         <p className={cn('mt-2 text-[11.5px]', isT2 ? 'text-[var(--danger)]' : 'text-danger')}><Dyn>{error}</Dyn></p>
       )}
