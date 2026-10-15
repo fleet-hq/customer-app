@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from 'react';
 import { Dyn } from '@/components/i18n/Dyn';
 import { useIsT2 } from '@/lib/use-is-t2';
 import { cn } from '@/lib/utils';
+import styles from '@/styles/template-2.module.css';
 import {
   ACCEPTED_FILE_TYPES,
   DOCUMENT_TYPES_FOR_KIND,
@@ -143,11 +144,14 @@ export function BookingDocuments({
           value={documentType}
           onChange={(e) => setDocumentType(e.target.value as ManualDocumentType)}
           aria-label="Document type"
+          // selectInput already solves the native arrow sitting hard
+          // against the right border — reuse it rather than redraw the
+          // chevron here.
           className={cn(
-            'h-9 rounded-[8px] border px-2 text-[12.5px] sm:w-[190px]',
+            'text-[12.5px] sm:w-[190px]',
             isT2
-              ? 'border-[var(--line)] bg-[var(--card)] text-[var(--text)]'
-              : 'border-card-border bg-white text-ink',
+              ? styles.selectInput
+              : 'h-9 rounded-[8px] border border-card-border bg-white pl-2 pr-3 text-ink',
           )}
         >
           {CHOICES.map((type) => (

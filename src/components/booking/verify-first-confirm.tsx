@@ -1464,6 +1464,11 @@ function VerifySubCard({
         <p className={cn('mt-1 text-[12px] leading-[1.5]', isT2 ? 'text-[var(--text-muted)]' : 'text-muted')}>
           <Dyn>{description}</Dyn>
         </p>
+        {error && (
+          <p className={cn('mt-2 text-[11.5px]', isT2 ? 'text-[var(--danger)]' : 'text-danger')}>
+            <Dyn>{error}</Dyn>
+          </p>
+        )}
       </div>
       <button
         type="button"
@@ -1492,9 +1497,6 @@ function VerifySubCard({
       </button>
       {failed && detailsOpen && failureDetails && (
         <FailedInsurancePanel details={failureDetails} />
-      )}
-      {error && (
-        <p className={cn('mt-2 text-[11.5px]', isT2 ? 'text-[var(--danger)]' : 'text-danger')}><Dyn>{error}</Dyn></p>
       )}
     </div>
   );
