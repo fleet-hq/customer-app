@@ -4,7 +4,6 @@ import { getBookingTokenAuthHeaders, getBookingTokenHeaders } from '@/utils/book
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export type ManualVerificationKind = 'id' | 'insurance';
-export type ManualVerificationStatus = 'pending_review' | 'approved' | 'rejected';
 export type ManualDocumentType = 'licence' | 'insurance_document' | 'selfie';
 
 export interface ManualVerificationDocument {
@@ -20,10 +19,6 @@ export interface ManualVerificationDocument {
 export interface ManualVerificationSubmission {
   id: number;
   kind: ManualVerificationKind;
-  status: ManualVerificationStatus;
-  rejectionReason: string;
-  reviewedAt: string | null;
-  reviewedByName: string;
   createdAt: string;
   documents: ManualVerificationDocument[];
 }
@@ -47,10 +42,6 @@ function mapSubmission(raw: Record<string, unknown>): ManualVerificationSubmissi
   return {
     id: Number(raw.id),
     kind: raw.kind as ManualVerificationKind,
-    status: raw.status as ManualVerificationStatus,
-    rejectionReason: typeof raw.rejection_reason === 'string' ? raw.rejection_reason : '',
-    reviewedAt: (raw.reviewed_at as string) ?? null,
-    reviewedByName: typeof raw.reviewed_by_name === 'string' ? raw.reviewed_by_name : '',
     createdAt: (raw.created_at as string) ?? '',
     documents: documents.map((d) => {
       const doc = d as Record<string, unknown>;

@@ -17,16 +17,13 @@ import {
   type ManualVerificationSubmission,
 } from '@/services/manualVerificationServices';
 
-const KIND_FOR_DOCUMENT: Record<ManualDocumentType, ManualVerificationKind> = {
-  licence: 'id',
-  selfie: 'id',
-  insurance_document: 'insurance',
-};
+const KIND_FOR_DOCUMENT = Object.fromEntries(
+  Object.entries(DOCUMENT_TYPES_FOR_KIND).flatMap(([kind, types]) =>
+    types.map((type) => [type, kind as ManualVerificationKind]),
+  ),
+) as Record<ManualDocumentType, ManualVerificationKind>;
 
-const CHOICES: ManualDocumentType[] = [
-  ...DOCUMENT_TYPES_FOR_KIND.id,
-  ...DOCUMENT_TYPES_FOR_KIND.insurance,
-];
+const CHOICES = Object.keys(KIND_FOR_DOCUMENT) as ManualDocumentType[];
 
 function sizeLabel(bytes: number): string {
   if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
