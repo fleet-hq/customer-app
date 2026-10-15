@@ -27,7 +27,6 @@ export { useStripePublishableKey, useCreateCheckoutSession, useCreatePaymentInte
 export { usePaymentMethod } from './usePaymentMethod';
 export { useCreateIdentityVerification, useVerificationStatus, useCreateInsuranceVerification } from './useVerification';
 export { useBookingImages, useBookingImagesByType, useUploadTripImage, useUploadMultipleTripImages, useDeleteTripImage } from './useTripImages';
-export { useDefaultTaxProfile } from './useTaxProfiles';
 export { useBookingInvoice } from './useBookingInvoice';
 export type { BookingPricing, InvoiceItem, ExtraInvoiceItem, BookingInvoiceResult } from './useBookingInvoice';
 export { useEmbedBridge } from './useEmbedBridge';

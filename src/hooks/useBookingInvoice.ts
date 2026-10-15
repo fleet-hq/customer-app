@@ -97,7 +97,6 @@ export interface UseBookingInvoiceParams {
   dropoffLocationId: string | null;
   appliedDiscount: number;
   discountCode?: string;
-  defaultTaxProfile?: TaxProfile | null;
 }
 
 export interface BookingInvoiceResult {
@@ -121,7 +120,6 @@ export function useBookingInvoice({
   dropoffLocationId,
   appliedDiscount,
   discountCode,
-  defaultTaxProfile,
 }: UseBookingInvoiceParams): BookingInvoiceResult {
   const extras = vehicleData?.extras ?? [];
 
@@ -229,13 +227,15 @@ export function useBookingInvoice({
     const deposit = vehicleData.securityDeposit || 0;
     const bookingFee = vehicleData.bookingFee || 0;
 
-    // Use vehicle's own tax profile, or fall back to company default.
+    // The vehicle's effective profile, already resolved by the backend —
+    // no profile means the operator left this vehicle untaxed, so no
+    // tax. Falling back to the company default here is what quoted a
+    // tax line the Stripe charge never carried.
     // Tax must run against the DISCOUNTED rental base — the backend
     // applies tax after duration/promo discounts are deducted, so taxing
     // the undiscounted figure here would over-quote (off by tax%×discount).
     const taxableBase = Math.max(0, baseSubtotal - fleetDiscount - appliedDiscount);
-    const effectiveTaxProfile = vehicleData.taxProfile ?? defaultTaxProfile ?? null;
-    const tax = calculateTax(effectiveTaxProfile, {
+    const tax = calculateTax(vehicleData.taxProfile ?? null, {
       basePrice: taxableBase,
       extrasCost,
       fees: bookingFee,
@@ -260,7 +260,7 @@ export function useBookingInvoice({
       tax, total, deposit, bookingFee,
       rateUnit: basePrice.unit,
     };
-  }, [vehicleData, rentalDays, basePrice, appliedDiscount, selectedInsurance, insuranceOptions, selectedManualPackages, selectedExtras, extras, companyLocations, pickupLocationId, dropoffLocationId, defaultTaxProfile]);
+  }, [vehicleData, rentalDays, basePrice, appliedDiscount, selectedInsurance, insuranceOptions, selectedManualPackages, selectedExtras, extras, companyLocations, pickupLocationId, dropoffLocationId]);
 
   const invoiceItems = useMemo<InvoiceItem[]>(() => {
     if (!vehicleData || !basePrice) return [];

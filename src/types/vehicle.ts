@@ -80,8 +80,13 @@ export interface ApiBookingRule {
   use_default_security_deposit?: boolean;
   booking_fee?: number;
   extras?: ApiFleetExtra[];
-  tax_profile?: ApiTaxProfile | number | null;
+  tax_profile?: number | null;
   use_default_tax_profile?: boolean;
+  /** The profile pricing will actually bill, already resolved against
+   *  ``use_default_tax_profile`` and the company default by the backend.
+   *  ``tax_profile`` is a bare id and says nothing about either, so
+   *  reading it is how the site quoted tax on an untaxed vehicle. */
+  resolved_tax_profile?: ApiTaxProfile | null;
 }
 
 export interface ApiFleetClass {
@@ -194,8 +199,8 @@ export interface VehicleExtra {
 
 const PLACEHOLDER_IMAGE = '/images/vehicles/car_placeholder.svg';
 
-export function parseTaxProfile(raw: ApiTaxProfile | number | null | undefined): TaxProfile | null {
-  if (!raw || typeof raw === 'number') return null;
+export function parseTaxProfile(raw: ApiTaxProfile | null | undefined): TaxProfile | null {
+  if (!raw) return null;
   if (!raw.tax_items || raw.tax_items.length === 0) return null;
   return {
     applicableOnBasePrice: raw.applicable_on_base_price ?? true,
@@ -320,7 +325,7 @@ export function transformApiVehicle(apiVehicle: ApiVehicle): Vehicle {
     milesOverageRate: apiVehicle.booking_rule?.miles_overage_rate,
     securityDeposit: Number(apiVehicle.booking_rule?.security_deposit) || 0,
     bookingFee: Number(apiVehicle.booking_rule?.booking_fee) || 0,
-    taxProfile: parseTaxProfile(apiVehicle.booking_rule?.tax_profile),
+    taxProfile: parseTaxProfile(apiVehicle.booking_rule?.resolved_tax_profile),
     extras: (apiVehicle.booking_rule?.extras || []).map((e) => ({
       id: String(e.id),
       title: e.description,

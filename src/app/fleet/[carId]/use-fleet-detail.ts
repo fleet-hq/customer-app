@@ -17,7 +17,6 @@ import {
 } from '@/hooks';
 import { nmiCreatePaymentForPending } from '@/services/nmiPaymentServices';
 import { useBookingInvoice } from '@/hooks/useBookingInvoice';
-import { useDefaultTaxProfile } from '@/hooks/useTaxProfiles';
 import { useBookingVerificationPolicy, useStartVerificationFirstBooking } from '@/hooks/useBookingPolicy';
 import { getBookingVerificationPolicy } from '@/services/bookingPolicyServices';
 import { useDefaultLocation } from '@/contexts';
@@ -110,7 +109,6 @@ export function useFleetDetail(carId: string) {
   }, [embedIntent]);
   const { data: verificationPolicy } = useBookingVerificationPolicy();
   const startVerification = useStartVerificationFirstBooking();
-  const { data: defaultTaxProfile } = useDefaultTaxProfile();
   const protectionRef = useRef<HTMLHeadingElement>(null);
   const errorBannerRef = useRef<HTMLDivElement>(null);
 
@@ -377,7 +375,6 @@ export function useFleetDetail(carId: string) {
     dropoffLocationId: dropoffLocId,
     appliedDiscount: promoApplied ? promoDiscount : 0,
     discountCode: promoApplied ? promoCode : undefined,
-    defaultTaxProfile,
   });
 
   useEffect(() => {
@@ -494,7 +491,6 @@ export function useFleetDetail(carId: string) {
     paymentAnchorRef,
     verificationPolicy,
     startVerification,
-    defaultTaxProfile,
     protectionRef,
     errorBannerRef,
     selectedInsurance,
