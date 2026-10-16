@@ -3,7 +3,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { Dyn } from '@/components/i18n/Dyn';
-import { AgreementSignBar } from '@/components/booking/agreement-sign-bar';
 import { CardConsent } from '@/components/booking/card-consent';
 import { NmiPayModal } from '@/components/booking/nmi-pay-modal';
 import { RentalAgreementSignModal } from '@/components/booking/rental-agreement-sign-modal';
@@ -128,6 +127,8 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
     setEmbedIntent,
     paymentAnchorRef,
     hasErrors,
+    scrollProtection,
+    insuranceLabel,
   } = fd;
 
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
@@ -275,14 +276,10 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
                 <i />
                 <Dyn>Protection</Dyn>
               </h2>
+              {/* `plans` already includes the "own insurance" option
+                  (id 'own') from getInsuranceOptionsBundle — rendering
+                  a second one here showed it twice. */}
               <div className="opts">
-                <Opt
-                  on={ownSelected}
-                  title="I have my own insurance"
-                  description="Bring your own policy. No protection is added to this rental."
-                  amount={money(0)}
-                  onToggle={() => toggleInsurance('own')}
-                />
                 {plans.map((plan) => (
                   <Opt
                     key={plan.id}
@@ -391,20 +388,7 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
                   </div>
                 ))}
               </div>
-              <CardConsent
-                checked={cardConsent}
-                onChange={setCardConsent}
-                companyName={tenant.name}
-                depositAmount={Number(vehicle?.securityDeposit) || 0}
-              />
             </div>
-
-            {rentalAgreementRequired ? (
-              <AgreementSignBar
-                signed={rentalAgreementSigned}
-                onOpen={() => setRentalAgreementModalOpen(true)}
-              />
-            ) : null}
 
             {nmiPay ? (
               <NmiPayModal
@@ -482,8 +466,15 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
             </section>
 
             <section>
-              <h5>
+              <h3>
                 <Dyn>Price details</Dyn>
+                <span className="daypill">
+                  {days} <Dyn>{days === 1 ? 'day' : 'days'}</Dyn>
+                </span>
+              </h3>
+
+              <h5>
+                <Dyn>Rental</Dyn>
               </h5>
               <div className="ln">
                 <span>
@@ -496,49 +487,64 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
                 <span>{money(pricing.subtotal)}</span>
               </div>
 
+              <h5>
+                <Dyn>Protection</Dyn>
+                <button type="button" onClick={scrollProtection}>
+                  <Dyn>Change</Dyn>
+                </button>
+              </h5>
               {pricing.insuranceCost > 0 ? (
                 <div className="ln">
-                  <span>
-                    <Dyn>Protection</Dyn>
-                  </span>
+                  <span>{insuranceLabel}</span>
                   <span>{money(pricing.insuranceCost)}</span>
                 </div>
-              ) : null}
-
-              {extraInvoiceItems.map((item) => (
-                <div className="ln" key={item.name}>
-                  <span>{item.name}</span>
-                  <span>{money(item.price)}</span>
-                </div>
-              ))}
-
-              {pricing.locationCharges > 0 ? (
-                <div className="ln">
+              ) : (
+                <div className="ln mut">
                   <span>
-                    <Dyn>Location charges</Dyn>
+                    <Dyn>{ownSelected ? 'Own insurance' : 'No protection selected'}</Dyn>
                   </span>
-                  <span>{money(pricing.locationCharges)}</span>
+                  <span>{money(0)}</span>
                 </div>
-              ) : null}
+              )}
 
-              {pricing.bookingFee > 0 ? (
-                <div className="ln">
+              <h5>
+                <Dyn>Add-ons</Dyn>
+              </h5>
+              {extraInvoiceItems.length > 0 ? (
+                extraInvoiceItems.map((item) => (
+                  <div className="ln" key={item.name}>
+                    <span>{item.name}</span>
+                    <span>{money(item.price)}</span>
+                  </div>
+                ))
+              ) : (
+                <div className="ln mut">
                   <span>
-                    <Dyn>Booking fees</Dyn>
+                    <Dyn>None added yet</Dyn>
                   </span>
-                  <span>{money(pricing.bookingFee)}</span>
+                  <span>{money(0)}</span>
                 </div>
-              ) : null}
+              )}
 
-              {pricing.tax > 0 ? (
-                <div className="ln">
-                  <span>
-                    <Dyn>Tax</Dyn>
-                  </span>
-                  <span>{money(pricing.tax)}</span>
-                </div>
-              ) : null}
-
+              <h5>
+                <Dyn>Discounts</Dyn>
+              </h5>
+              <div className="promo">
+                <input
+                  value={promoApplied ? promoCode : promoInput}
+                  onChange={(e) => setPromoInput(e.target.value)}
+                  placeholder={t('Enter promo code')}
+                  aria-label={t('Promo code')}
+                  disabled={promoApplied}
+                />
+                <button
+                  type="button"
+                  onClick={() => (promoApplied ? setPromoApplied(false) : applyPromo())}
+                >
+                  <Dyn>{promoApplied ? 'Remove' : 'Apply'}</Dyn>
+                </button>
+              </div>
+              {promoError ? <p className="pmsg bad">{promoError}</p> : null}
               {discount > 0 ? (
                 <div className="ln neg">
                   <span>
@@ -548,49 +554,92 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
                 </div>
               ) : null}
 
-              <div className="promo">
-                {promoApplied ? (
-                  <div className="ln">
-                    <span>{promoCode}</span>
-                    <button type="button" onClick={() => setPromoApplied(false)}>
-                      ✕
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <input
-                      value={promoInput}
-                      onChange={(e) => setPromoInput(e.target.value)}
-                      placeholder={t('Enter promo code')}
-                      aria-label={t('Promo code')}
-                    />
-                    <button type="button" className="btn ghost promo-go" onClick={applyPromo}>
-                      <Dyn>Apply</Dyn>
-                    </button>
-                  </>
-                )}
-                {promoError ? <p className="em">{promoError}</p> : null}
-              </div>
+              <h5>
+                <Dyn>Charges &amp; taxes</Dyn>
+              </h5>
+              {pricing.locationCharges > 0 ? (
+                <div className="ln">
+                  <span>
+                    <Dyn>Location charges</Dyn>
+                  </span>
+                  <span>{money(pricing.locationCharges)}</span>
+                </div>
+              ) : null}
+              {pricing.bookingFee > 0 ? (
+                <div className="ln">
+                  <span>
+                    <Dyn>Booking fees</Dyn>
+                  </span>
+                  <span>{money(pricing.bookingFee)}</span>
+                </div>
+              ) : null}
+              {pricing.tax > 0 ? (
+                <div className="ln">
+                  <span>
+                    <Dyn>Tax</Dyn>
+                  </span>
+                  <span>{money(pricing.tax)}</span>
+                </div>
+              ) : null}
+              {pricing.deposit > 0 ? (
+                <div className="ln">
+                  <span>
+                    <Dyn>Security deposit</Dyn> <small>(<Dyn>refundable</Dyn>)</small>
+                  </span>
+                  <span>{money(pricing.deposit)}</span>
+                </div>
+              ) : null}
             </section>
 
             <section>
-              <div className="ln tot">
+              <div className="total">
                 <span>
                   <Dyn>Total</Dyn>
                 </span>
-                <b>{money(total)}</b>
+                <div>
+                  <small>USD</small>
+                  <b>{money(total)}</b>
+                </div>
               </div>
+              {pricing.deposit > 0 ? (
+                <p className="note">
+                  <Dyn>Includes a refundable</Dyn> {money(pricing.deposit)}{' '}
+                  <Dyn>
+                    security deposit, returned after your rental minus any damage claims.
+                  </Dyn>
+                </p>
+              ) : null}
+            </section>
+
+            <section className="sum-act">
+              <CardConsent
+                checked={cardConsent}
+                onChange={setCardConsent}
+                companyName={tenant.name}
+                depositAmount={Number(vehicle?.securityDeposit) || 0}
+              />
+
+              {rentalAgreementRequired ? (
+                <button
+                  type="button"
+                  className={rentalAgreementSigned ? 'sign done' : 'sign'}
+                  onClick={() => setRentalAgreementModalOpen(true)}
+                >
+                  <span className="ck" />
+                  <span>
+                    <Dyn>
+                      {rentalAgreementSigned
+                        ? 'Rental Agreement signed'
+                        : 'Sign Rental Agreement · required'}
+                    </Dyn>
+                  </span>
+                </button>
+              ) : null}
 
               {!meetsMinDuration ? (
                 <p className="note">
                   <Dyn>This vehicle has a minimum rental of</Dyn> {minDuration}{' '}
                   <Dyn>days</Dyn>.
-                </p>
-              ) : null}
-
-              {checkoutError ? (
-                <p className="em" ref={errorBannerRef}>
-                  {checkoutError}
                 </p>
               ) : null}
 
@@ -602,6 +651,24 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
               >
                 <Dyn>Reserve now</Dyn> <span className="chev">›</span>
               </button>
+
+              {checkoutError ? (
+                <p className="pmsg bad" ref={errorBannerRef} role="alert">
+                  {checkoutError}
+                </p>
+              ) : null}
+
+              <ul className="ticks">
+                <li>
+                  <Dyn>No hidden fees, the price you see is final</Dyn>
+                </li>
+                <li>
+                  <Dyn>Insurance options shown before you pay</Dyn>
+                </li>
+                <li>
+                  <Dyn>Encrypted, secure payment</Dyn>
+                </li>
+              </ul>
             </section>
           </aside>
         </div>

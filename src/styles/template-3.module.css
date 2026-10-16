@@ -3304,47 +3304,10 @@
   padding: 4px 2px;
 }
 
-.t3 :global(.sum .promo) {
-  display: flex;
-  gap: 8px;
-  margin-top: 12px;
-  flex-wrap: wrap;
-}
-
-.t3 :global(.sum .promo input) {
-  flex: 1 1 140px;
-  min-width: 0;
-  background: transparent;
-  border: 1px solid var(--t3-dline);
-  color: inherit;
-  padding: 9px 11px;
-  font-family: var(--t3-body);
-  font-size: 12px;
-}
-
-.t3 :global(.sum .promo .em) {
-  flex: 1 0 100%;
-  color: #ff8a7a;
-  font-size: 11px;
-}
-
-.t3 :global(.sum .ln.tot) {
-  font-family: var(--t3-head);
-  align-items: baseline;
-}
-
-.t3 :global(.sum .ln.tot b) {
-  font: 800 28px/1 var(--t3-head);
-}
-
-.t3 :global(.sum .note) {
-  margin-top: 10px;
-  font-size: 12px;
-  color: var(--t3-grey);
-}
-
-/* Only the reserve button spans the sidebar — scoping this to every
- * .btn inside .sum also stretched the promo Apply across its own row. */
+/* The raw sheet has .promo, .note, .total, .sign and .ticks already —
+ * only the reserve button's full width is missing, because the mockup
+ * got it from markup rather than a rule. Scoped to .reserve: a rule on
+ * every .btn in the sidebar also stretched the promo Apply. */
 .t3 :global(.sum .btn.reserve) {
   width: 100%;
   justify-content: center;
@@ -3360,10 +3323,7 @@
   cursor: not-allowed;
 }
 
-.t3 :global(.sum .promo .promo-go) {
-  flex: 0 0 auto;
-  padding: 9px 16px;
-}
+
 
 .t3 :global(.lf .field.bad) {
   border-color: #c0392b;
