@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Dyn } from '@/components/i18n/Dyn';
 import { JsonLd } from '@/components/seo/json-ld';
 import { FaqT3 } from '@/components/sections/home-t3/faq-t3';
+import { InquiryForm } from '@/components/sections/inquiry/inquiry-form';
 import { NapBlockT3 } from '@/components/sections/shared/nap-block-t3';
 import { paths } from '@/lib/paths';
 import { contentPageSchema } from '@/lib/schema';
@@ -77,6 +78,21 @@ export function ContentPageT3({ tenant, page, path, showNap = true }: ContentPag
               </div>
             ) : null}
           </div>
+
+          {/* A page declaring layout "contact" is the tenant's contact
+              form, not an article — template 1 routes it to
+              ContactLayout for exactly this. Template 3 renders the
+              same shared InquiryForm here, so a contact page does not
+              silently become a static page with no way to enquire. */}
+          {page.layout === 'contact' && tenant.sections.inquiry_form ? (
+            <div className="apply-card contact-form">
+              <InquiryForm
+                config={tenant.sections.inquiry_form}
+                tenantName={tenant.name}
+                domain={tenant.domain}
+              />
+            </div>
+          ) : null}
 
           <div className="art-body">
             {blocks.map((block, i) => (

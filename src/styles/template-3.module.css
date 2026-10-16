@@ -3395,3 +3395,9 @@
 .t3 :global(.gal > div) {
   overflow: hidden;
 }
+
+/* A contact page's form sits between the intro and the article body. */
+.t3 :global(.apply-card.contact-form) {
+  margin: 0 0 clamp(28px, 4vw, 44px);
+  max-width: 720px;
+}
