@@ -1623,6 +1623,12 @@
 }
 .t3 :global(.pg) {
   padding-block: clamp(36px, 5vw, 64px);
+  /* Hold the viewport while a page is still fetching. Without this the
+   * footer rides up under the header on every loading state — the raw
+   * template set min-height on its own manage page for exactly this,
+   * and template 1 uses min-h-screen. Applying it to .pg covers every
+   * template-3 page at once rather than per route. */
+  min-height: 70vh;
 }
 .t3 :global(.pg > .wrap) {
   border-inline: 1px solid var(--t3-line);
