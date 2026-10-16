@@ -3337,15 +3337,26 @@
   color: var(--t3-grey);
 }
 
-.t3 :global(.sum .btn) {
+/* Only the reserve button spans the sidebar — scoping this to every
+ * .btn inside .sum also stretched the promo Apply across its own row. */
+.t3 :global(.sum .btn.reserve) {
   width: 100%;
   justify-content: center;
   margin-top: 14px;
 }
 
-.t3 :global(.sum .btn:disabled) {
-  opacity: 0.45;
+/* Disabled reads as muted outline rather than a dimmed fill, which on
+ * a red accent turned into an unreadable maroon block. */
+.t3 :global(.sum .btn.reserve:disabled) {
+  background: transparent;
+  color: var(--t3-grey);
+  box-shadow: inset 0 0 0 1px var(--t3-dline);
   cursor: not-allowed;
+}
+
+.t3 :global(.sum .promo .promo-go) {
+  flex: 0 0 auto;
+  padding: 9px 16px;
 }
 
 .t3 :global(.lf .field.bad) {

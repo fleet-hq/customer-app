@@ -496,12 +496,48 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
                 <span>{money(pricing.subtotal)}</span>
               </div>
 
+              {pricing.insuranceCost > 0 ? (
+                <div className="ln">
+                  <span>
+                    <Dyn>Protection</Dyn>
+                  </span>
+                  <span>{money(pricing.insuranceCost)}</span>
+                </div>
+              ) : null}
+
               {extraInvoiceItems.map((item) => (
                 <div className="ln" key={item.name}>
                   <span>{item.name}</span>
                   <span>{money(item.price)}</span>
                 </div>
               ))}
+
+              {pricing.locationCharges > 0 ? (
+                <div className="ln">
+                  <span>
+                    <Dyn>Location charges</Dyn>
+                  </span>
+                  <span>{money(pricing.locationCharges)}</span>
+                </div>
+              ) : null}
+
+              {pricing.bookingFee > 0 ? (
+                <div className="ln">
+                  <span>
+                    <Dyn>Booking fees</Dyn>
+                  </span>
+                  <span>{money(pricing.bookingFee)}</span>
+                </div>
+              ) : null}
+
+              {pricing.tax > 0 ? (
+                <div className="ln">
+                  <span>
+                    <Dyn>Tax</Dyn>
+                  </span>
+                  <span>{money(pricing.tax)}</span>
+                </div>
+              ) : null}
 
               {discount > 0 ? (
                 <div className="ln neg">
@@ -528,7 +564,7 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
                       placeholder={t('Enter promo code')}
                       aria-label={t('Promo code')}
                     />
-                    <button type="button" className="btn ghost" onClick={applyPromo}>
+                    <button type="button" className="btn ghost promo-go" onClick={applyPromo}>
                       <Dyn>Apply</Dyn>
                     </button>
                   </>
@@ -560,7 +596,7 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
 
               <button
                 type="button"
-                className="btn"
+                className="btn reserve"
                 disabled={reserveBlocked || hasErrors}
                 onClick={reserve}
               >
