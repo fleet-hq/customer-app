@@ -584,7 +584,7 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
               {pricing.deposit > 0 ? (
                 <div className="ln">
                   <span>
-                    <Dyn>Security deposit</Dyn> <small>(<Dyn>refundable</Dyn>)</small>
+                    <Dyn>Security deposit</Dyn> <small className="inline">(<Dyn>refundable</Dyn>)</small>
                   </span>
                   <span>{money(pricing.deposit)}</span>
                 </div>

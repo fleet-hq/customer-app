@@ -3344,3 +3344,24 @@
 .t3 :global(.sum h5:first-of-type) {
   margin-top: 14px;
 }
+
+/* More inline styles from the mockup that a CSS port cannot carry.
+ *
+ * The card's name sat 6px under its class label; the final sidebar
+ * section was a 10px flex column with no bottom rule; and the
+ * deposit's "(refundable)" was forced inline, because `.ln small` is
+ * display:block and it would otherwise drop to its own line. */
+.t3 :global(.car .bd h3) {
+  margin-top: 6px;
+}
+
+.t3 :global(.sum .sum-act) {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-bottom: 0;
+}
+
+.t3 :global(.ln small.inline) {
+  display: inline;
+}
