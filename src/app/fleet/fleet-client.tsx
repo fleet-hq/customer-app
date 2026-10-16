@@ -11,6 +11,8 @@ import { NapBlock } from '@/components/sections/shared/nap-block';
 import { Dyn } from '@/components/i18n/Dyn';
 import { useFleetListing, SORTS, applicableDiscountPct } from './use-fleet-listing';
 import FleetClientT2 from './fleet-client-t2';
+import FleetClientT3 from './fleet-client-t3';
+import { pickTemplateView } from '@/lib/template-view';
 
 const FLEET_GRID_CLASS =
   'grid gap-x-4 gap-y-6 sm:gap-x-5 sm:gap-y-8 lg:gap-x-[30px] lg:gap-y-[34px] grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
@@ -44,9 +46,12 @@ export default function FleetClient() {
     activeLabel,
   } = useFleetListing();
 
-  if (tenant.websiteTemplate === 'template_2') {
-    return <FleetClientT2 />;
-  }
+  const Template = pickTemplateView(tenant.websiteTemplate, {
+    template_1: null,
+    template_2: FleetClientT2,
+    template_3: FleetClientT3,
+  });
+  if (Template) return <Template />;
 
   return (
     <div className="flex min-h-screen flex-col bg-white text-ink">

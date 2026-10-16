@@ -3005,3 +3005,38 @@
   gap: 12px;
   justify-content: center;
 }
+
+/* The fleet listing's sort control and pager are additions: the raw
+ * page drove sorting from a bespoke filter panel with hardcoded
+ * options, and never paginated because its car list was a fixed
+ * array. Real inventory needs both. */
+.t3 :global(.fsort) {
+  font-family: var(--t3-body);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: inherit;
+  background: transparent;
+  border: 1px solid var(--t3-line);
+  padding: 11px 14px;
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.t3 :global(.pager) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 36px 0 8px;
+  font-family: var(--t3-body);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+.t3 :global(.pager .btn:disabled) {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
