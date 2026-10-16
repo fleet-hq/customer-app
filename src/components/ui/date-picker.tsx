@@ -56,7 +56,7 @@ export function DatePicker({
   className,
   'aria-label': ariaLabel,
 }: DatePickerProps) {
-  const isT2 = useTenant().websiteTemplate === 'template_2';
+  const isT2 = useTenant().websiteTemplate !== 'template_1';
   const unavailableSet = useMemo(() => new Set(unavailableDates ?? []), [unavailableDates]);
   const [isOpen, setIsOpen] = useState(false);
   const [viewDate, setViewDate] = useState<Date>(() => (value ? new Date(value + 'T00:00:00') : new Date()));
@@ -199,7 +199,7 @@ export function DatePicker({
         className={cn(
           'z-50 w-[280px] shadow-[var(--shadow-pop)] transition-all duration-200 ease-out sm:w-64',
           isT2
-            ? 'rounded-[3px] border border-[var(--line)] bg-[var(--card)]'
+            ? 'rounded-[var(--skin-radius,3px)] border border-[var(--line)] bg-[var(--card)]'
             : 'rounded-lg border border-line bg-white',
           originClass,
           isOpen ? 'scale-y-100 opacity-100' : 'pointer-events-none scale-y-0 opacity-0',

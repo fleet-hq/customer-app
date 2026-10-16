@@ -9,6 +9,7 @@ import { useTenant } from '@/lib/tenant-context';
 import { RentalAgreementPreview } from '@/components/booking/rental-agreement-preview';
 import { useAgreementDetail } from './use-agreement-detail';
 import AgreementDetailClientT2 from './agreement-detail-client-t2';
+import { pickTemplateView } from '@/lib/template-view';
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
@@ -22,9 +23,15 @@ export default function RentalAgreementPage({ params }: { params: Promise<{ agre
   const { agreementId } = use(params);
   const tenant = useTenant();
 
-  if (tenant.websiteTemplate === 'template_2') {
-    return <AgreementDetailClientT2 agreementId={agreementId} />;
-  }
+  // Template 3 shares this surface with template 2: the markup is
+  // token-driven, so it renders in whichever template's palette it
+  // is mounted inside.
+  const Editorial = pickTemplateView(tenant.websiteTemplate, {
+    template_1: null,
+    template_2: AgreementDetailClientT2,
+    template_3: AgreementDetailClientT2,
+  });
+  if (Editorial) return <Editorial agreementId={agreementId} />;
 
   const {
     agreement,

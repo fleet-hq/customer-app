@@ -14,6 +14,7 @@ import { BlogBody } from '@/components/sections/blog/blog-body';
 import { BlogCard } from '@/components/sections/blog/blog-card';
 import { BrandCta } from '@/components/sections/shared/brand-cta';
 import { BlogPostT2 } from './blog-post-t2';
+import { pickTemplateView } from '@/lib/template-view';
 
 export async function generateMetadata({
   params,
@@ -54,9 +55,15 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   const date = formatBlogDate(post.publishedAt);
   const more = all.filter((p) => p.slug !== post.slug).slice(0, 3);
 
-  if (tenant.websiteTemplate === 'template_2') {
-    return <BlogPostT2 tenant={tenant} post={post} more={more} />;
-  }
+  // Template 3 shares this surface with template 2: the markup is
+  // token-driven, so it renders in whichever template's palette it
+  // is mounted inside.
+  const Editorial = pickTemplateView(tenant.websiteTemplate, {
+    template_1: null,
+    template_2: BlogPostT2,
+    template_3: BlogPostT2,
+  });
+  if (Editorial) return <Editorial tenant={tenant} post={post} more={more} />;
 
   return (
     <div className="bg-white text-ink">

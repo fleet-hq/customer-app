@@ -11,14 +11,21 @@ import { Dyn } from '@/components/i18n/Dyn';
 import { usePaymentPending } from './use-payment-pending';
 import PaymentPendingClientT2 from './payment-pending-client-t2';
 import { CardConsent } from '@/components/booking/card-consent';
+import { pickTemplateView } from '@/lib/template-view';
 
 export default function PaymentPendingPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const pp = usePaymentPending(id);
 
-  if (pp.tenant.websiteTemplate === 'template_2') {
-    return <PaymentPendingClientT2 id={id} />;
-  }
+  // Template 3 shares this surface with template 2: the markup is
+  // token-driven, so it renders in whichever template's palette it
+  // is mounted inside.
+  const Editorial = pickTemplateView(pp.tenant.websiteTemplate, {
+    template_1: null,
+    template_2: PaymentPendingClientT2,
+    template_3: PaymentPendingClientT2,
+  });
+  if (Editorial) return <Editorial id={id} />;
 
   const {
     tenant,

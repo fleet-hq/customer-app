@@ -31,6 +31,7 @@ import {
   INSURANCE_DETAILS,
 } from './fleet-detail-shared';
 import FleetDetailClientT2 from './fleet-detail-client-t2';
+import { pickTemplateView } from '@/lib/template-view';
 import { CardConsent } from '@/components/booking/card-consent';
 import { AgreementSignBar } from '@/components/booking/agreement-sign-bar';
 
@@ -42,9 +43,18 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
   const tenant = useTenant();
   const fd = useFleetDetail(carId);
 
-  if (tenant.websiteTemplate === 'template_2') {
-    return <FleetDetailClientT2 carId={carId} />;
-  }
+  // Templates 2 and 3 share this checkout. Its layout — gallery, spec
+  // grid, protection and extras, sticky trip summary — is the same
+  // information architecture template 3's own mockup uses, and every
+  // colour, radius and face in it comes from CSS variables each
+  // template defines for itself. Duplicating a payment flow to change
+  // tokens would buy nothing and risk the two drifting apart.
+  const Editorial = pickTemplateView(tenant.websiteTemplate, {
+    template_1: null,
+    template_2: FleetDetailClientT2,
+    template_3: FleetDetailClientT2,
+  });
+  if (Editorial) return <Editorial carId={carId} />;
 
   if (fd.status === 'loading') {
     return (

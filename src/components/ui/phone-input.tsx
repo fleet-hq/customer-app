@@ -144,7 +144,7 @@ export function PhoneInput({
   placeholder?: string;
 }) {
   const tenant = useTenant();
-  const isT2 = tenant.websiteTemplate === 'template_2';
+  const isT2 = tenant.websiteTemplate !== 'template_1';
   const [country, setCountry] = useState<Country>(
     () => COUNTRIES.find((c) => c.iso2 === defaultCountry) ?? COUNTRIES[0],
   );

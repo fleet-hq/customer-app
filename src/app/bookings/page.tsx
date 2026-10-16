@@ -11,6 +11,7 @@ import { Dyn } from '@/components/i18n/Dyn';
 import { useDynamicTranslation } from '@/hooks/useDynamicTranslation';
 import { useBookingsList, statusMeta, STATUS_LABELS } from './use-bookings-list';
 import BookingsListClientT2 from './bookings-client-t2';
+import { pickTemplateView } from '@/lib/template-view';
 
 const PLACEHOLDER_IMAGE = '/images/vehicles/car_placeholder.svg';
 
@@ -35,9 +36,15 @@ function StatusBadge({ status }: { status: string }) {
 function BookingsListContent() {
   const { tenant, highlightId, data, ready, bookings, openBooking } = useBookingsList();
 
-  if (tenant.websiteTemplate === 'template_2') {
-    return <BookingsListClientT2 />;
-  }
+  // Template 3 shares this surface with template 2: the markup is
+  // token-driven, so it renders in whichever template's palette it
+  // is mounted inside.
+  const Editorial = pickTemplateView(tenant.websiteTemplate, {
+    template_1: null,
+    template_2: BookingsListClientT2,
+    template_3: BookingsListClientT2,
+  });
+  if (Editorial) return <Editorial  />;
 
   function handleOpen(booking: LookupBookingItem) {
     openBooking(booking);

@@ -389,7 +389,7 @@ function DepositConsent({
   checked: boolean;
   onChange: (v: boolean) => void;
 }) {
-  const isT2 = useTenant().websiteTemplate === 'template_2';
+  const isT2 = useTenant().websiteTemplate !== 'template_1';
   return (
     <label className="mt-[13px] flex cursor-pointer items-center gap-[10px]">
       <input
@@ -472,7 +472,7 @@ function ActionRow({
   submitting: boolean;
   disabled: boolean;
 }) {
-  const isT2 = useTenant().websiteTemplate === 'template_2';
+  const isT2 = useTenant().websiteTemplate !== 'template_1';
   return (
     <div className="flex items-center justify-between gap-3 pt-1">
       <button

@@ -20,7 +20,7 @@ export function DateDealsCallout({
   className,
 }: DateDealsCalloutProps) {
   const tenant = useTenant();
-  const isT2 = tenant.websiteTemplate === 'template_2';
+  const isT2 = tenant.websiteTemplate !== 'template_1';
   const { data: discountsSummary } = useFleetDiscountsSummary();
   const bestWeeklyPct = (discountsSummary?.tiers ?? [])
     .filter((t) => t.unit_type === 'week')

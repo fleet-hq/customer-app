@@ -132,7 +132,7 @@
 
 .compareRow { display: grid; grid-template-columns: 1fr auto 1fr; gap: 1rem; align-items: center; }
 .compareSide { display: flex; align-items: center; gap: 0.7rem; min-width: 0; }
-.compareThumb { flex: none; width: 84px; height: 58px; border-radius: 2px; background-size: cover; background-position: center; background-color: #eef0f1; }
+.compareThumb { flex: none; width: 84px; height: 58px; border-radius: var(--skin-radius, 2px); background-size: cover; background-position: center; background-color: #eef0f1; }
 .compareArrow { color: var(--brass); font-weight: 700; }
 @media (max-width: 680px) {
   .compareRow { grid-template-columns: 1fr; justify-items: start; }
@@ -178,7 +178,7 @@
   gap: 0.5rem;
   min-height: 44px;
   padding: 0.7rem 1.25rem;
-  border-radius: 10px;
+  border-radius: var(--skin-radius, 10px);
   background: var(--bg);
   color: var(--fg);
   font-weight: 600;
@@ -259,7 +259,7 @@
   position: absolute; top: 100%; left: 0; z-index: 40;
   display: none; min-width: 15rem; margin: 0; padding: 0.5rem 0;
   list-style: none; background: var(--card); border: 1px solid var(--line);
-  border-radius: 3px; box-shadow: 0 18px 40px rgb(0 0 0 / 0.16);
+  border-radius: var(--skin-radius, 3px); box-shadow: 0 18px 40px rgb(0 0 0 / 0.16);
 }
 .navHasChildren:hover > .navDropdown,
 .navHasChildren:focus-within > .navDropdown { display: block; }
@@ -279,7 +279,7 @@
   display: none;
   background: none;
   border: 1px solid var(--line-strong);
-  border-radius: 10px;
+  border-radius: var(--skin-radius, 10px);
   width: 44px;
   height: 44px;
   color: var(--text);
@@ -327,7 +327,7 @@
 .heroWaterline { position: absolute; left: 0; right: 0; bottom: 0; height: 70px; color: var(--brass); opacity: 0.5; pointer-events: none; }
 .heroWaterline svg { width: 100%; height: 100%; }
 .heroFigure { position: relative; }
-.heroFigure img { width: 100%; height: auto; border-radius: 4px; border: 1px solid rgba(239, 233, 221, 0.14); aspect-ratio: 3 / 2; object-fit: cover; }
+.heroFigure img { width: 100%; height: auto; border-radius: var(--skin-radius, 4px); border: 1px solid rgba(239, 233, 221, 0.14); aspect-ratio: 3 / 2; object-fit: cover; }
 @media (max-width: 900px) {
   .heroInner { grid-template-columns: 1fr; }
   .heroFigure { order: -1; max-width: 520px; margin: 0 auto; }
@@ -339,7 +339,7 @@
   background: var(--card);
   border: 1px solid var(--line);
   box-shadow: var(--shadow);
-  border-radius: 3px;
+  border-radius: var(--skin-radius, 3px);
   padding: 1.4rem;
   display: grid;
   grid-template-columns: 2fr 1.4fr 1.4fr auto;
@@ -402,7 +402,7 @@
   overflow-y: auto;
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 3px;
+  border-radius: var(--skin-radius, 3px);
   box-shadow: var(--shadow);
   padding: 0.3rem;
 }
@@ -414,7 +414,7 @@
   width: 100%;
   background: none;
   border: 0;
-  border-radius: 2px;
+  border-radius: var(--skin-radius, 2px);
   padding: 0.6rem 0.75rem;
   font: inherit;
   font-size: 0.88rem;
@@ -494,7 +494,7 @@
 .carCard {
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 3px;
+  border-radius: var(--skin-radius, 3px);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -515,7 +515,7 @@
   font-size: 0.62rem;
   letter-spacing: 0.1em;
   padding: 0.28rem 0.5rem;
-  border-radius: 2px;
+  border-radius: var(--skin-radius, 2px);
   z-index: 2;
 }
 .carBody { padding: 1.1rem 1.2rem 1.3rem; display: flex; flex-direction: column; gap: 0.55rem; flex: 1; }
@@ -552,7 +552,7 @@
 
 /* ---------- TESTIMONIALS ---------- */
 .quotesGrid { margin-top: 3rem; display: grid; gap: 1.25rem; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); }
-.quote { background: var(--card); border: 1px solid var(--line); border-radius: 3px; padding: 1.6rem; display: flex; flex-direction: column; gap: 1rem; }
+.quote { background: var(--card); border: 1px solid var(--line); border-radius: var(--skin-radius, 3px); padding: 1.6rem; display: flex; flex-direction: column; gap: 1rem; }
 .quote .stars { color: var(--brass); letter-spacing: 0.15em; font-size: 0.85rem; }
 .quote p { font-size: 0.98rem; }
 .quoteAuthor { font-family: var(--t2-font-mono, 'IBM Plex Mono'), monospace; font-size: 0.72rem; color: var(--text-muted); letter-spacing: 0.04em; }
@@ -599,7 +599,7 @@
 /* The closing call to action on a content page. `.cta .container`
    already carries its own generous padding; pairing it with `.section`
    doubled that and produced a tall, near-empty slab. */
-.articleCta { border-radius: 3px; margin-block: clamp(1.5rem, 4vw, 2.5rem); }
+.articleCta { border-radius: var(--skin-radius, 3px); margin-block: clamp(1.5rem, 4vw, 2.5rem); }
 .articleCta .container { padding-block: clamp(2.25rem, 4vw, 3.25rem); gap: 0.9rem; }
 .articleCta h2 { font-size: clamp(1.6rem, 1.25rem + 1.6vw, 2.3rem); }
 /* With an image the CTA becomes two columns and the copy left-aligns;
@@ -610,7 +610,7 @@
 .ctaWithImage .ctaCopy p { max-width: 48ch; }
 .ctaWithImage .ctaActions { justify-content: flex-start; }
 .ctaMedia { flex: 0 1 42%; min-width: 0; }
-.ctaMedia img { width: 100%; height: auto; display: block; border-radius: 3px; object-fit: cover; aspect-ratio: 4 / 3; }
+.ctaMedia img { width: 100%; height: auto; display: block; border-radius: var(--skin-radius, 3px); object-fit: cover; aspect-ratio: 4 / 3; }
 @media (max-width: 820px) {
   .ctaWithImage .container { flex-direction: column; text-align: center; }
   .ctaWithImage .ctaCopy { align-items: center; }
@@ -643,7 +643,7 @@
   font-size: 0.85rem;
   min-height: 40px;
   padding: 0.55rem 0.9rem;
-  border-radius: 10px;
+  border-radius: var(--skin-radius, 10px);
   border: 1px solid var(--line-strong);
   background: var(--card);
   color: var(--text);
@@ -685,7 +685,7 @@
   min-width: 1.25rem;
   height: 1.25rem;
   padding-inline: 0.3rem;
-  border-radius: 20px;
+  border-radius: var(--skin-radius, 20px);
   background: var(--brass);
   color: var(--on-brass);
   font-size: 0.68rem;
@@ -710,7 +710,7 @@
 .filterChip {
   background: none;
   border: 1px solid var(--line-strong);
-  border-radius: 20px;
+  border-radius: var(--skin-radius, 20px);
   min-height: 32px;
   padding: 0.35rem 0.85rem;
   font: inherit;
@@ -730,7 +730,7 @@
   min-height: 38px;
   padding: 0.45rem 0.6rem;
   border: 1px solid var(--line-strong);
-  border-radius: 10px;
+  border-radius: var(--skin-radius, 10px);
   background: var(--card);
   color: var(--text);
 }
@@ -761,7 +761,7 @@
   align-items: center;
   justify-content: center;
   border: 1px solid var(--line-strong);
-  border-radius: 10px;
+  border-radius: var(--skin-radius, 10px);
   background: var(--card);
   color: var(--text);
   font-size: 0.82rem;
@@ -775,14 +775,14 @@
   padding-block: 4rem;
   text-align: center;
   border: 1px solid var(--line);
-  border-radius: 3px;
+  border-radius: var(--skin-radius, 3px);
   color: var(--text-muted);
   font-size: 0.92rem;
 }
-.skeletonCard { aspect-ratio: 3 / 4; border-radius: 3px; border: 1px solid var(--line); background: var(--line); animation: t2Pulse 1.4s ease-in-out infinite; }
+.skeletonCard { aspect-ratio: 3 / 4; border-radius: var(--skin-radius, 3px); border: 1px solid var(--line); background: var(--line); animation: t2Pulse 1.4s ease-in-out infinite; }
 @keyframes t2Pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 0.9; } }
 
-.napBlock { margin-top: clamp(3rem, 6vw, 4.5rem); padding: 1.6rem 1.8rem; border: 1px solid var(--line); border-radius: 3px; background: var(--card); display: flex; flex-direction: column; gap: 0.5rem; }
+.napBlock { margin-top: clamp(3rem, 6vw, 4.5rem); padding: 1.6rem 1.8rem; border: 1px solid var(--line); border-radius: var(--skin-radius, 3px); background: var(--card); display: flex; flex-direction: column; gap: 0.5rem; }
 .napBlock strong { font-family: var(--t2-font-display, 'Fraunces'), serif; font-size: 1.05rem; font-weight: 500; }
 .napBlock p { color: var(--text-muted); font-size: 0.9rem; }
 .napContacts { display: flex; flex-wrap: wrap; gap: 1.2rem; margin-top: 0.3rem; }
@@ -802,12 +802,12 @@
 .detailGrid { margin-top: 2rem; display: grid; grid-template-columns: 1.6fr 1fr; gap: clamp(2rem, 4vw, 3rem); align-items: start; }
 @media (max-width: 1024px) { .detailGrid { grid-template-columns: 1fr; } }
 
-.galleryMain { position: relative; border-radius: 3px; overflow: hidden; border: 1px solid var(--line); cursor: pointer; background: #eef0f1; aspect-ratio: 16 / 10; }
+.galleryMain { position: relative; border-radius: var(--skin-radius, 3px); overflow: hidden; border: 1px solid var(--line); cursor: pointer; background: #eef0f1; aspect-ratio: 16 / 10; }
 .galleryMain img { width: 100%; height: 100%; object-fit: cover; }
-.galleryTag { position: absolute; left: 0.9rem; top: 0.9rem; background: var(--ink); color: var(--on-ink); font-family: var(--t2-font-mono, 'IBM Plex Mono'), monospace; font-size: 0.66rem; letter-spacing: 0.08em; padding: 0.32rem 0.6rem; border-radius: 2px; }
-.galleryCount { position: absolute; right: 0.9rem; bottom: 0.9rem; display: inline-flex; align-items: center; gap: 0.4rem; background: rgba(20,24,28,0.72); color: #fff; font-size: 0.78rem; padding: 0.35rem 0.7rem; border-radius: 2px; }
+.galleryTag { position: absolute; left: 0.9rem; top: 0.9rem; background: var(--ink); color: var(--on-ink); font-family: var(--t2-font-mono, 'IBM Plex Mono'), monospace; font-size: 0.66rem; letter-spacing: 0.08em; padding: 0.32rem 0.6rem; border-radius: var(--skin-radius, 2px); }
+.galleryCount { position: absolute; right: 0.9rem; bottom: 0.9rem; display: inline-flex; align-items: center; gap: 0.4rem; background: rgba(20,24,28,0.72); color: #fff; font-size: 0.78rem; padding: 0.35rem 0.7rem; border-radius: var(--skin-radius, 2px); }
 .galleryThumbs { margin-top: 0.6rem; display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.5rem; }
-.galleryThumb { aspect-ratio: 4 / 3; border-radius: 2px; overflow: hidden; border: 1px solid var(--line); cursor: pointer; background: #eef0f1; }
+.galleryThumb { aspect-ratio: 4 / 3; border-radius: var(--skin-radius, 2px); overflow: hidden; border: 1px solid var(--line); cursor: pointer; background: #eef0f1; }
 .galleryThumb img { width: 100%; height: 100%; object-fit: cover; }
 
 .specGrid { margin-top: 1.8rem; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); }
@@ -827,14 +827,14 @@
 }
 .description { color: var(--text-muted); white-space: pre-line; word-break: break-word; line-height: 1.75; }
 
-.extraRow { display: flex; align-items: center; gap: 0.9rem; padding: 0.9rem 1rem; border: 1px solid var(--line); border-radius: 10px; }
+.extraRow { display: flex; align-items: center; gap: 0.9rem; padding: 0.9rem 1rem; border: 1px solid var(--line); border-radius: var(--skin-radius, 10px); }
 .extraRow + .extraRow { margin-top: 0.6rem; }
 .extraRowActive { border-color: var(--brass); background: color-mix(in srgb, var(--brass) 6%, var(--card)); }
 .extraInfo { flex: 1; min-width: 0; }
 .extraInfo b { font-size: 0.92rem; font-weight: 600; }
 .extraInfo p { margin-top: 0.15rem; font-size: 0.82rem; color: var(--text-muted); }
 .extraInfo em { display: block; margin-top: 0.2rem; font-style: normal; font-size: 0.82rem; font-weight: 600; color: var(--brass); }
-.extraStepper { display: flex; align-items: center; overflow: hidden; border-radius: 8px; background: var(--ink); color: var(--on-ink); }
+.extraStepper { display: flex; align-items: center; overflow: hidden; border-radius: var(--skin-radius, 8px); background: var(--ink); color: var(--on-ink); }
 .extraStepper button { width: 34px; height: 34px; background: none; border: 0; color: inherit; font-size: 1rem; cursor: pointer; }
 .extraStepper span { min-width: 22px; text-align: center; font-size: 0.85rem; font-weight: 600; }
 .extraAdd { flex: none; }
@@ -845,8 +845,8 @@
 .paymentWrap { margin-top: 1.8rem; }
 
 /* ---------- FLEET DETAIL — PRICE / TRIP ASIDE ---------- */
-.priceCard { background: var(--card); border: 1px solid var(--line); border-radius: 3px; padding: 1.4rem; position: sticky; top: 5.5rem; }
-.tripRow { display: flex; align-items: center; justify-content: space-between; gap: 0.7rem; border: 1px solid var(--line); border-radius: 10px; padding: 0.7rem 0.85rem; cursor: pointer; background: var(--paper); }
+.priceCard { background: var(--card); border: 1px solid var(--line); border-radius: var(--skin-radius, 3px); padding: 1.4rem; position: sticky; top: 5.5rem; }
+.tripRow { display: flex; align-items: center; justify-content: space-between; gap: 0.7rem; border: 1px solid var(--line); border-radius: var(--skin-radius, 10px); padding: 0.7rem 0.85rem; cursor: pointer; background: var(--paper); }
 .tripRow + .tripRow { margin-top: 0.5rem; }
 .tripRow span:first-child { display: block; font-family: var(--t2-font-mono, 'IBM Plex Mono'), monospace; font-size: 0.64rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
 .tripRow b { display: block; margin-top: 0.2rem; font-size: 0.86rem; font-weight: 600; }
@@ -854,7 +854,7 @@
 
 .priceHeadRow { margin-top: 1.3rem; display: flex; align-items: center; justify-content: space-between; }
 .priceHeadRow h3 { font-size: 0.98rem; font-weight: 600; }
-.priceDayPill { font-family: var(--t2-font-mono, 'IBM Plex Mono'), monospace; font-size: 0.72rem; border: 1px solid var(--line-strong); border-radius: 20px; padding: 0.2rem 0.6rem; color: var(--text-muted); }
+.priceDayPill { font-family: var(--t2-font-mono, 'IBM Plex Mono'), monospace; font-size: 0.72rem; border: 1px solid var(--line-strong); border-radius: var(--skin-radius, 20px); padding: 0.2rem 0.6rem; color: var(--text-muted); }
 
 .priceLabel {
   margin-top: 1.1rem;
@@ -875,17 +875,17 @@
 .priceDivider { margin-block: 1.1rem; height: 1px; background: var(--line); }
 .priceEmpty { display: flex; align-items: center; justify-content: space-between; font-size: 0.86rem; color: var(--text-muted); }
 
-.promoRow { margin-top: 0.9rem; display: flex; align-items: center; gap: 0.5rem; border: 1px solid var(--line-strong); border-radius: 10px; padding: 0.3rem 0.3rem 0.3rem 0.8rem; }
+.promoRow { margin-top: 0.9rem; display: flex; align-items: center; gap: 0.5rem; border: 1px solid var(--line-strong); border-radius: var(--skin-radius, 10px); padding: 0.3rem 0.3rem 0.3rem 0.8rem; }
 .promoRow input { flex: 1; border: 0; background: none; font: inherit; font-size: 0.82rem; color: var(--text); outline: none; }
-.promoRow button { flex: none; background: var(--ink); color: var(--on-ink); border: 0; border-radius: 8px; padding: 0.55rem 0.9rem; font-size: 0.76rem; font-weight: 600; cursor: pointer; }
-.promoChip { display: inline-flex; align-items: center; gap: 0.4rem; background: color-mix(in srgb, var(--brass) 14%, var(--card)); color: var(--brass); font-size: 0.76rem; font-weight: 600; border-radius: 20px; padding: 0.2rem 0.4rem 0.2rem 0.65rem; }
+.promoRow button { flex: none; background: var(--ink); color: var(--on-ink); border: 0; border-radius: var(--skin-radius, 8px); padding: 0.55rem 0.9rem; font-size: 0.76rem; font-weight: 600; cursor: pointer; }
+.promoChip { display: inline-flex; align-items: center; gap: 0.4rem; background: color-mix(in srgb, var(--brass) 14%, var(--card)); color: var(--brass); font-size: 0.76rem; font-weight: 600; border-radius: var(--skin-radius, 20px); padding: 0.2rem 0.4rem 0.2rem 0.65rem; }
 .promoChip button { background: none; border: 0; cursor: pointer; color: inherit; font-size: 0.8rem; line-height: 1; }
 
 .totalRow { margin-top: 1rem; display: flex; align-items: baseline; justify-content: space-between; }
 .totalRow b { font-family: var(--t2-font-display, 'Fraunces'), serif; font-size: 1.65rem; font-weight: 600; }
 .totalSaving { margin-top: 0.2rem; font-size: 0.76rem; color: var(--brass); font-weight: 600; }
 
-.noticeBox { margin-top: 1rem; display: flex; gap: 0.5rem; align-items: flex-start; border: 1px solid var(--line-strong); border-radius: 10px; padding: 0.7rem 0.85rem; font-size: 0.8rem; color: var(--text-muted); }
+.noticeBox { margin-top: 1rem; display: flex; gap: 0.5rem; align-items: flex-start; border: 1px solid var(--line-strong); border-radius: var(--skin-radius, 10px); padding: 0.7rem 0.85rem; font-size: 0.8rem; color: var(--text-muted); }
 .noticeBoxDanger { border-color: color-mix(in srgb, var(--danger) 45%, var(--line-strong)); color: var(--danger); }
 .noticeBoxSuccess { border-color: color-mix(in srgb, var(--success) 45%, var(--line-strong)); color: var(--success); }
 
@@ -900,7 +900,7 @@
   justify-content: space-between;
   gap: 0.6rem;
   border: 1px solid var(--line-strong);
-  border-radius: 10px;
+  border-radius: var(--skin-radius, 10px);
   background: none;
   padding: 0.65rem 0.85rem;
   font: inherit;
@@ -919,12 +919,12 @@
   justify-content: space-between;
   gap: 0.8rem;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--skin-radius, 10px);
   padding: 0.7rem 0.9rem;
   margin-top: 1.4rem;
   background: var(--card);
 }
-.mobileSummary img { width: 56px; height: 42px; object-fit: cover; border-radius: 2px; flex: none; }
+.mobileSummary img { width: 56px; height: 42px; object-fit: cover; border-radius: var(--skin-radius, 2px); flex: none; }
 @media (max-width: 1024px) { .mobileSummary { display: flex; } }
 
 /* ---------- FOOTER ---------- */
@@ -990,7 +990,7 @@
   margin-top: 2rem;
   padding: 1.8rem;
   border: 1px solid var(--line);
-  border-radius: 3px;
+  border-radius: var(--skin-radius, 3px);
   background: var(--card);
   display: flex;
   flex-direction: column;
@@ -1005,7 +1005,7 @@
   height: 44px;
   padding-inline: 0.9rem;
   border: 1px solid var(--line-strong);
-  border-radius: 10px;
+  border-radius: var(--skin-radius, 10px);
   background: var(--paper);
   color: var(--text);
   font: inherit;
@@ -1022,7 +1022,7 @@
   height: 44px;
   padding-inline: 0.9rem;
   border: 1px solid var(--line-strong);
-  border-radius: 10px;
+  border-radius: var(--skin-radius, 10px);
   background: var(--paper);
   transition: border-color 0.18s ease;
 }
@@ -1041,7 +1041,7 @@
   gap: 1.2rem;
   padding: 1.2rem;
   border: 1px solid var(--line);
-  border-radius: 3px;
+  border-radius: var(--skin-radius, 3px);
   background: var(--paper);
   text-align: left;
   cursor: pointer;
@@ -1051,7 +1051,7 @@
 }
 .bookingRow:hover { border-color: var(--brass); }
 .bookingRowActive { border-color: var(--brass); background: color-mix(in srgb, var(--brass) 6%, var(--card)); }
-.bookingImage { flex: none; width: 96px; height: 68px; border-radius: 2px; background-size: cover; background-position: center; background-color: #eef0f1; }
+.bookingImage { flex: none; width: 96px; height: 68px; border-radius: var(--skin-radius, 2px); background-size: cover; background-position: center; background-color: #eef0f1; }
 .bookingInfo { flex: 1; min-width: 200px; }
 .bookingMeta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
 .bookingRef { font-family: var(--t2-font-mono, 'IBM Plex Mono'), monospace; font-size: 0.7rem; color: var(--text-muted); }
@@ -1067,7 +1067,7 @@
   min-height: 40px;
   padding: 0.55rem 1rem;
   border: 1px solid var(--line-strong);
-  border-radius: 10px;
+  border-radius: var(--skin-radius, 10px);
   font-size: 0.8rem;
   font-weight: 600;
 }
@@ -1076,7 +1076,7 @@
   display: inline-flex;
   align-items: center;
   padding: 0.2rem 0.6rem;
-  border-radius: 20px;
+  border-radius: var(--skin-radius, 20px);
   font-size: 0.66rem;
   font-weight: 600;
   letter-spacing: 0.03em;
@@ -1113,17 +1113,17 @@
 .formAside { display: flex; flex-direction: column; gap: 1.4rem; }
 .formAside h1 { font-size: clamp(1.7rem, 1.3rem + 1.4vw, 2.3rem); line-height: 1.12; letter-spacing: -0.02em; }
 .formIntro { display: flex; flex-direction: column; gap: 0.7rem; color: var(--text-muted); }
-.formNote { display: flex; gap: 0.7rem; border: 1px solid var(--line-strong); border-radius: 2px; padding: 0.9rem 1rem; font-size: 0.88rem; color: var(--text); background: color-mix(in srgb, var(--brass) 6%, var(--card)); }
+.formNote { display: flex; gap: 0.7rem; border: 1px solid var(--line-strong); border-radius: var(--skin-radius, 2px); padding: 0.9rem 1rem; font-size: 0.88rem; color: var(--text); background: color-mix(in srgb, var(--brass) 6%, var(--card)); }
 .formTrust { display: flex; flex-direction: column; gap: 0.7rem; border-top: 1px solid var(--line); padding-top: 1.2rem; }
 .formTrustItem { display: flex; gap: 0.7rem; font-size: 0.88rem; color: var(--text-muted); }
 .formContacts { display: flex; flex-wrap: wrap; gap: 0.6rem 1.5rem; margin-top: 0.4rem; }
 .formContacts a { font-size: 0.9rem; color: var(--text); text-decoration: none; border-bottom: 1px solid var(--line-strong); }
 .formContacts a:hover { color: var(--brass); border-color: var(--brass); }
-.formCard { background: var(--card); border: 1px solid var(--line); border-radius: 3px; padding: clamp(1.4rem, 3vw, 2rem); }
+.formCard { background: var(--card); border: 1px solid var(--line); border-radius: var(--skin-radius, 3px); padding: clamp(1.4rem, 3vw, 2rem); }
 
 /* ---------- SERVICES DIRECTORY ---------- */
 .serviceGrid { margin-top: 2.5rem; display: grid; gap: 1.25rem; grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr)); }
-.serviceCard { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 3px; padding: 1.6rem; background: var(--card); text-decoration: none; color: inherit; transition: transform 0.2s ease, border-color 0.2s ease; }
+.serviceCard { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--skin-radius, 3px); padding: 1.6rem; background: var(--card); text-decoration: none; color: inherit; transition: transform 0.2s ease, border-color 0.2s ease; }
 .serviceCard:hover { transform: translateY(-3px); border-color: var(--line-strong); }
 .serviceNum { font-family: var(--t2-font-mono, 'IBM Plex Mono'), monospace; font-size: 0.72rem; color: var(--brass); letter-spacing: 0.06em; }
 .serviceCard h2 { margin-top: 0.6rem; font-family: var(--t2-font-display, 'Fraunces'), serif; font-size: 1.15rem; font-weight: 500; }
@@ -1135,9 +1135,9 @@
 .blogHead h1 { font-size: clamp(2rem, 1.5rem + 2vw, 3rem); line-height: 1.08; letter-spacing: -0.02em; max-width: 22ch; }
 .blogIntro { margin-top: 1rem; max-width: 56ch; color: var(--text-muted); }
 .blogCats { margin-top: 1.4rem; display: flex; flex-wrap: wrap; gap: 0.5rem; }
-.blogCat { font-family: var(--t2-font-mono, 'IBM Plex Mono'), monospace; font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase; border: 1px solid var(--line-strong); border-radius: 20px; padding: 0.3rem 0.8rem; color: var(--text-muted); }
+.blogCat { font-family: var(--t2-font-mono, 'IBM Plex Mono'), monospace; font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase; border: 1px solid var(--line-strong); border-radius: var(--skin-radius, 20px); padding: 0.3rem 0.8rem; color: var(--text-muted); }
 
-.blogFeatured { display: grid; grid-template-columns: 1.1fr 1fr; gap: 0; border: 1px solid var(--line); border-radius: 3px; overflow: hidden; background: var(--card); text-decoration: none; color: inherit; }
+.blogFeatured { display: grid; grid-template-columns: 1.1fr 1fr; gap: 0; border: 1px solid var(--line); border-radius: var(--skin-radius, 3px); overflow: hidden; background: var(--card); text-decoration: none; color: inherit; }
 .blogFeatured img { width: 100%; height: 100%; object-fit: cover; }
 .blogFeaturedMedia { position: relative; background: #eef0f1; min-height: 260px; }
 .blogFeaturedBody { padding: clamp(1.5rem, 3vw, 2.4rem); display: flex; flex-direction: column; gap: 0.8rem; justify-content: center; }
@@ -1146,7 +1146,7 @@
 @media (max-width: 680px) { .blogFeatured { grid-template-columns: 1fr; } .blogFeaturedMedia { min-height: 220px; } }
 
 .blogGrid { margin-top: 2.5rem; display: grid; gap: 1.5rem; grid-template-columns: repeat(auto-fill, minmax(17.5rem, 1fr)); }
-.blogCard { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 3px; overflow: hidden; background: var(--card); text-decoration: none; color: inherit; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.blogCard { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--skin-radius, 3px); overflow: hidden; background: var(--card); text-decoration: none; color: inherit; transition: transform 0.2s ease, box-shadow 0.2s ease; }
 .blogCard:hover { transform: translateY(-4px); box-shadow: var(--shadow); }
 .blogCardMedia { aspect-ratio: 3/2; background: #eef0f1; overflow: hidden; }
 .blogCardMedia img { width: 100%; height: 100%; object-fit: cover; }
@@ -1160,7 +1160,7 @@
 .postMeta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.8rem; font-family: var(--t2-font-mono, 'IBM Plex Mono'), monospace; font-size: 0.72rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); }
 .postMeta span { display: inline-flex; align-items: center; gap: 0.35rem; }
 .postHead h1 { margin-top: 1.1rem; font-size: clamp(1.8rem, 1.3rem + 2vw, 2.8rem); line-height: 1.12; letter-spacing: -0.02em; max-width: 26ch; }
-.postCover { margin-top: 2rem; border-radius: 3px; overflow: hidden; border: 1px solid var(--line); aspect-ratio: 16/9; background: #eef0f1; }
+.postCover { margin-top: 2rem; border-radius: var(--skin-radius, 3px); overflow: hidden; border: 1px solid var(--line); aspect-ratio: 16/9; background: #eef0f1; }
 .postCover img { width: 100%; height: 100%; object-fit: cover; }
 .postBody { max-width: 68ch; margin: 0 auto; padding-block: clamp(2rem, 4vw, 3rem); color: var(--text); line-height: 1.8; font-size: 1.02rem; }
 .postBody :global(p) { margin-bottom: 1.3rem; }
@@ -1169,7 +1169,7 @@
 .postBody :global(ul), .postBody :global(ol) { margin: 0 0 1.3rem 1.3rem; }
 .postBody :global(li) { margin-bottom: 0.5rem; }
 .postBody :global(a) { color: var(--brass); text-decoration: underline; }
-.postBody :global(img) { border-radius: 3px; margin-block: 1.5rem; max-width: 100%; height: auto; }
+.postBody :global(img) { border-radius: var(--skin-radius, 3px); margin-block: 1.5rem; max-width: 100%; height: auto; }
 
 /* ---------- BOOKING LIFECYCLE — LEDGER / BALANCE PAGES ---------- */
 .pageTop { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1rem; }
@@ -1178,7 +1178,7 @@
 .detailColumns { margin-top: 1.6rem; display: grid; grid-template-columns: 1.5fr 1fr; gap: 1.6rem; align-items: start; }
 @media (max-width: 900px) { .detailColumns { grid-template-columns: 1fr; } }
 
-.ledgerCard { border: 1px solid var(--line); border-radius: 3px; background: var(--paper); overflow: hidden; }
+.ledgerCard { border: 1px solid var(--line); border-radius: var(--skin-radius, 3px); background: var(--paper); overflow: hidden; }
 .ledgerCardHead { border-bottom: 1px solid var(--line); padding: 0.9rem 1.2rem; font-size: 0.92rem; font-weight: 600; }
 .ledgerRow { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.9rem 1.2rem; }
 .ledgerRow + .ledgerRow { border-top: 1px solid var(--line); }
@@ -1187,12 +1187,12 @@
 .ledgerRowMeta { margin-top: 0.2rem; font-size: 0.76rem; color: var(--text-muted); }
 .ledgerRowAmount { flex: none; font-size: 0.86rem; font-weight: 600; font-variant-numeric: tabular-nums; }
 
-.pill { display: inline-flex; align-items: center; border-radius: 20px; padding: 0.12rem 0.55rem; font-size: 0.64rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.pill { display: inline-flex; align-items: center; border-radius: var(--skin-radius, 20px); padding: 0.12rem 0.55rem; font-size: 0.64rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
 .pillNeutral { background: var(--card); color: var(--text-muted); }
 .pillGood { background: color-mix(in srgb, var(--brass) 16%, var(--card)); color: var(--brass); }
 .pillWarn { background: color-mix(in srgb, var(--danger) 12%, var(--card)); color: var(--danger); }
 
-.balanceCard { border-radius: 3px; padding: 1.3rem; border: 1px solid var(--line-strong); background: var(--card); }
+.balanceCard { border-radius: var(--skin-radius, 3px); padding: 1.3rem; border: 1px solid var(--line-strong); background: var(--card); }
 .balanceCardDue { border-color: color-mix(in srgb, var(--danger) 45%, var(--line-strong)); background: color-mix(in srgb, var(--danger) 6%, var(--card)); }
 .balanceCardClear { border-color: color-mix(in srgb, var(--brass) 45%, var(--line-strong)); background: color-mix(in srgb, var(--brass) 6%, var(--card)); }
 .balanceLabel { font-family: var(--t2-font-mono, 'IBM Plex Mono'), monospace; font-size: 0.66rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
@@ -1206,7 +1206,7 @@
 .dialogClose:hover { color: var(--text); }
 .dialogFields { display: flex; flex-direction: column; gap: 1rem; }
 .dialogFieldLabel { margin-bottom: 0.45rem; font-family: var(--t2-font-mono, 'IBM Plex Mono'), monospace; font-size: 0.66rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); }
-.dialogFieldBox { border: 1px solid var(--line-strong); border-radius: 10px; padding: 0.7rem 0.85rem; }
+.dialogFieldBox { border: 1px solid var(--line-strong); border-radius: var(--skin-radius, 10px); padding: 0.7rem 0.85rem; }
 .dialogError { margin-top: 0.7rem; font-size: 0.8rem; line-height: 1.5; color: var(--danger); }
 
 /* ---------- GALLERY LIGHTBOX ---------- */
@@ -1215,7 +1215,7 @@
 .lightboxHead { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; margin-bottom: 1rem; }
 .lightboxTitle { color: #fff; font-size: 0.9rem; font-weight: 600; min-width: 0; overflow-wrap: break-word; }
 .lightboxClose { flex: none; width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 999px; background: rgba(255, 255, 255, 0.12); color: #fff; cursor: pointer; }
-.lightboxFrame { position: relative; width: 100%; aspect-ratio: 16 / 10; border-radius: 4px; overflow: hidden; background: var(--ink-2); }
+.lightboxFrame { position: relative; width: 100%; aspect-ratio: 16 / 10; border-radius: var(--skin-radius, 4px); overflow: hidden; background: var(--ink-2); }
 .lightboxFrame img { width: 100%; height: 100%; object-fit: cover; }
 .lightboxNav { position: absolute; top: 50%; transform: translateY(-50%); width: 42px; height: 42px; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 999px; background: rgba(255, 255, 255, 0.92); cursor: pointer; }
 .lightboxPrev { left: 14px; }

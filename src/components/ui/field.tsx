@@ -14,7 +14,7 @@ const inputBaseT2 =
 export const TextInput = forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement> & { error?: boolean }>(
   function TextInput({ className, error, ...props }, ref) {
     const tenant = useTenant();
-    const isT2 = tenant.websiteTemplate === 'template_2';
+    const isT2 = tenant.websiteTemplate !== 'template_1';
     return (
       <input
         ref={ref}
@@ -37,7 +37,7 @@ export const TextInput = forwardRef<HTMLInputElement, React.InputHTMLAttributes<
 
 export function FieldError({ children }: { children: React.ReactNode }) {
   const tenant = useTenant();
-  const isT2 = tenant.websiteTemplate === 'template_2';
+  const isT2 = tenant.websiteTemplate !== 'template_1';
   return (
     <div className={cn('mt-[5px] flex items-center gap-[5px] text-[11px]', isT2 ? 'text-[var(--danger)]' : 'text-danger')}>
       <Info size={12} strokeWidth={2.2} className="flex-shrink-0" />
@@ -58,7 +58,7 @@ export function Field({
   className?: string;
 }) {
   const tenant = useTenant();
-  const isT2 = tenant.websiteTemplate === 'template_2';
+  const isT2 = tenant.websiteTemplate !== 'template_1';
   const reactId = useId();
   let control = children;
   let inputId: string | undefined;

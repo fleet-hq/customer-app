@@ -48,7 +48,7 @@ export function TimePicker({
   disabledSlots,
   disabled = false,
 }: TimePickerProps) {
-  const isT2 = useTenant().websiteTemplate === 'template_2';
+  const isT2 = useTenant().websiteTemplate !== 'template_1';
   const disabledSlotSet = useMemo(
     () => new Set(disabledSlots ?? []),
     [disabledSlots],
@@ -186,7 +186,7 @@ export function TimePicker({
         className={cn(
           'z-50 min-w-40 shadow-[var(--shadow-pop)] transition-all duration-200 ease-out',
           isT2
-            ? 'rounded-[3px] border border-[var(--line)] bg-[var(--card)]'
+            ? 'rounded-[var(--skin-radius,3px)] border border-[var(--line)] bg-[var(--card)]'
             : 'rounded-lg border border-line bg-white',
           originClass,
           isOpen ? 'scale-y-100 opacity-100' : 'pointer-events-none scale-y-0 opacity-0',

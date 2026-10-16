@@ -9,14 +9,21 @@ import { cn, money } from '@/lib/utils';
 import { Dyn } from '@/components/i18n/Dyn';
 import { useBookingCancel, REASONS } from './use-booking-cancel';
 import CancelBookingClientT2 from './cancel-client-t2';
+import { pickTemplateView } from '@/lib/template-view';
 
 export default function CancelBookingPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const bc = useBookingCancel(id);
 
-  if (bc.tenant.websiteTemplate === 'template_2') {
-    return <CancelBookingClientT2 id={id} />;
-  }
+  // Template 3 shares this surface with template 2: the markup is
+  // token-driven, so it renders in whichever template's palette it
+  // is mounted inside.
+  const Editorial = pickTemplateView(bc.tenant.websiteTemplate, {
+    template_1: null,
+    template_2: CancelBookingClientT2,
+    template_3: CancelBookingClientT2,
+  });
+  if (Editorial) return <Editorial id={id} />;
 
   const {
     booking,

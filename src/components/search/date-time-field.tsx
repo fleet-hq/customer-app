@@ -39,7 +39,7 @@ export function DateTimeField({
   label,
 }: DateTimeFieldProps) {
   const tenant = useTenant();
-  const isT2 = tenant.websiteTemplate === 'template_2';
+  const isT2 = tenant.websiteTemplate !== 'template_1';
   const iconSize = compact ? 15 : 16;
   // Template 2's accent is its own brass token, not the brand primary,
   // so these icons have to follow it rather than `text-primary`.

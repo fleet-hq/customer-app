@@ -46,7 +46,7 @@ export function SquarePayModal({
   onSubmit,
 }: Props) {
   const tenant = useTenant();
-  const isT2 = tenant.websiteTemplate === 'template_2';
+  const isT2 = tenant.websiteTemplate !== 'template_1';
   const cardRef = useRef<SquareCardEntryHandle | null>(null);
   const [cardError, setCardError] = useState<string | null>(null);
   const { t } = useDynamicTranslation(['Close']);
@@ -105,7 +105,7 @@ export function SquarePayModal({
       <div
         className={cn(
           'w-full max-w-2xl rounded-t-2xl shadow-2xl sm:rounded-2xl',
-          isT2 ? 'sm:rounded-[3px] bg-[var(--card)] border border-[var(--line)]' : 'bg-white',
+          isT2 ? 'sm:rounded-[var(--skin-radius,3px)] bg-[var(--card)] border border-[var(--line)]' : 'bg-white',
         )}
         onClick={(e) => e.stopPropagation()}
       >

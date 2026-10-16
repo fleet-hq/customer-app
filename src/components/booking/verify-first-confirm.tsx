@@ -351,7 +351,7 @@ export function VerifyFirstConfirm(props: Props) {
               <div
                 className={cn(
                   'rounded-2xl border p-5',
-                  isT2 ? 'rounded-[3px] border-[var(--line)] bg-[var(--card)]' : 'border-card-border bg-white',
+                  isT2 ? 'rounded-[var(--skin-radius,3px)] border-[var(--line)] bg-[var(--card)]' : 'border-card-border bg-white',
                 )}
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
@@ -466,7 +466,7 @@ export function VerifyFirstConfirm(props: Props) {
             <div
               className={cn(
                 'rounded-2xl border p-5',
-                isT2 ? 'rounded-[3px] border-[var(--line)] bg-[var(--card)]' : 'border-card-border bg-white',
+                isT2 ? 'rounded-[var(--skin-radius,3px)] border-[var(--line)] bg-[var(--card)]' : 'border-card-border bg-white',
               )}
             >
               <h3 className={cn('text-[16px] font-bold', isT2 ? 'text-[var(--text)]' : 'text-ink')}>
@@ -843,7 +843,7 @@ function StateBanner({
   outstandingInsurance: boolean;
 }) {
   const isT2 = useIsT2();
-  const t2Banner = 'rounded-[3px] border-[var(--line-strong)] bg-[var(--card)]';
+  const t2Banner = 'rounded-[var(--skin-radius,3px)] border-[var(--line-strong)] bg-[var(--card)]';
   const t2IconCircle = 'bg-[var(--paper)]';
 
   if (mode === 'pending_verification') {
@@ -1003,7 +1003,7 @@ function VehicleCard({
     <div
       className={cn(
         'rounded-2xl border p-4 sm:p-5',
-        isT2 ? 'rounded-[3px] border-[var(--line)] bg-[var(--card)]' : 'border-card-border bg-white',
+        isT2 ? 'rounded-[var(--skin-radius,3px)] border-[var(--line)] bg-[var(--card)]' : 'border-card-border bg-white',
       )}
     >
       <div className="flex items-start gap-4">
@@ -1044,7 +1044,7 @@ function OutstandingChargesCard({
     <div
       className={cn(
         'rounded-2xl border p-4 sm:p-5',
-        isT2 ? 'rounded-[3px] border-[var(--line)] bg-[var(--card)]' : 'border-card-border bg-white',
+        isT2 ? 'rounded-[var(--skin-radius,3px)] border-[var(--line)] bg-[var(--card)]' : 'border-card-border bg-white',
       )}
     >
       <div className="flex items-center justify-between">
@@ -1229,7 +1229,7 @@ function AgreementCard({
     <div
       className={cn(
         'rounded-2xl border p-5',
-        isT2 ? 'rounded-[3px] border-[var(--line)] bg-[var(--card)]' : 'border-card-border bg-white',
+        isT2 ? 'rounded-[var(--skin-radius,3px)] border-[var(--line)] bg-[var(--card)]' : 'border-card-border bg-white',
       )}
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1310,10 +1310,10 @@ function BookingActionsRow({
   const canCancel = !!canModify?.cancel;
 
   const btn = isT2
-    ? 'inline-flex items-center gap-1.5 rounded-[3px] border border-[var(--line-strong)] bg-[var(--card)] px-3 py-2 text-[12.5px] font-medium text-[var(--text)] hover:bg-[var(--paper)] transition-colors'
+    ? 'inline-flex items-center gap-1.5 rounded-[var(--skin-radius,3px)] border border-[var(--line-strong)] bg-[var(--card)] px-3 py-2 text-[12.5px] font-medium text-[var(--text)] hover:bg-[var(--paper)] transition-colors'
     : 'inline-flex items-center gap-1.5 rounded-[9px] border border-line bg-white px-3 py-2 text-[12.5px] font-medium text-ink hover:bg-subtle transition-colors';
   const btnDisabled = isT2
-    ? 'inline-flex items-center gap-1.5 rounded-[3px] border border-[var(--line-strong)] bg-[var(--card)] px-3 py-2 text-[12.5px] font-medium text-[var(--text-muted)] opacity-60 cursor-not-allowed'
+    ? 'inline-flex items-center gap-1.5 rounded-[var(--skin-radius,3px)] border border-[var(--line-strong)] bg-[var(--card)] px-3 py-2 text-[12.5px] font-medium text-[var(--text-muted)] opacity-60 cursor-not-allowed'
     : 'inline-flex items-center gap-1.5 rounded-[9px] border border-line bg-white px-3 py-2 text-[12.5px] font-medium text-faint opacity-60 cursor-not-allowed';
 
   const Action = ({
@@ -1431,7 +1431,7 @@ function VerifySubCard({
     <div
       className={cn(
         'flex flex-col rounded-xl border p-4',
-        isT2 ? 'rounded-[3px] border-[var(--line)] bg-[var(--card)]' : 'border-card-border bg-white',
+        isT2 ? 'rounded-[var(--skin-radius,3px)] border-[var(--line)] bg-[var(--card)]' : 'border-card-border bg-white',
       )}
     >
       <div className="flex items-start justify-between gap-2">

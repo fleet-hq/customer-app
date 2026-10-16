@@ -11,13 +11,20 @@ import { Dyn } from '@/components/i18n/Dyn';
 import { usePayBooking } from './use-pay-booking';
 import PayBookingClientT2 from './pay-booking-client-t2';
 import { CardConsent } from '@/components/booking/card-consent';
+import { pickTemplateView } from '@/lib/template-view';
 
 function PayBookingPageInner({ bookingId }: { bookingId: string }) {
   const pb = usePayBooking(bookingId);
 
-  if (pb.tenant.websiteTemplate === 'template_2') {
-    return <PayBookingClientT2 bookingId={bookingId} />;
-  }
+  // Template 3 shares this surface with template 2: the markup is
+  // token-driven, so it renders in whichever template's palette it
+  // is mounted inside.
+  const Editorial = pickTemplateView(pb.tenant.websiteTemplate, {
+    template_1: null,
+    template_2: PayBookingClientT2,
+    template_3: PayBookingClientT2,
+  });
+  if (Editorial) return <Editorial bookingId={bookingId} />;
 
   const {
     tenant,

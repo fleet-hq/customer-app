@@ -13,6 +13,7 @@ import { slotsBlockedOn } from '@/lib/unavailable-slots';
 import { Dyn } from '@/components/i18n/Dyn';
 import { useTripModify } from './use-trip-modify';
 import ModifyTripClientT2 from './modify-client-t2';
+import { pickTemplateView } from '@/lib/template-view';
 
 function Row({ label, value, muted, note }: { label: string; value: string; muted?: boolean; note?: string }) {
   return (
@@ -30,9 +31,15 @@ export default function ModifyTripPage({ params }: { params: Promise<{ id: strin
   const { id } = use(params);
   const tm = useTripModify(id);
 
-  if (tm.tenant.websiteTemplate === 'template_2') {
-    return <ModifyTripClientT2 id={id} />;
-  }
+  // Template 3 shares this surface with template 2: the markup is
+  // token-driven, so it renders in whichever template's palette it
+  // is mounted inside.
+  const Editorial = pickTemplateView(tm.tenant.websiteTemplate, {
+    template_1: null,
+    template_2: ModifyTripClientT2,
+    template_3: ModifyTripClientT2,
+  });
+  if (Editorial) return <Editorial id={id} />;
 
   if (tm.status === 'loading') {
     return (

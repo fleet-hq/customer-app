@@ -10,6 +10,7 @@ import { BlogFeatured } from '@/components/sections/blog/blog-featured';
 import { BrandCta } from '@/components/sections/shared/brand-cta';
 import { paths } from '@/lib/paths';
 import { BlogIndexT2 } from './blog-index-t2';
+import { pickTemplateView } from '@/lib/template-view';
 
 const BLOG_TRAIL = [
   { label: 'Home', href: '/' },
@@ -41,9 +42,15 @@ export default async function BlogIndexPage() {
   const categories = Array.from(new Set(posts.map((p) => p.category).filter(Boolean)));
   const [featured, ...rest] = posts;
 
-  if (tenant.websiteTemplate === 'template_2') {
-    return <BlogIndexT2 tenant={tenant} posts={posts} />;
-  }
+  // Template 3 shares this surface with template 2: the markup is
+  // token-driven, so it renders in whichever template's palette it
+  // is mounted inside.
+  const Editorial = pickTemplateView(tenant.websiteTemplate, {
+    template_1: null,
+    template_2: BlogIndexT2,
+    template_3: BlogIndexT2,
+  });
+  if (Editorial) return <Editorial tenant={tenant} posts={posts} />;
 
   return (
     <div className="bg-white text-ink">

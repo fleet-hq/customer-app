@@ -3208,3 +3208,44 @@
   color: inherit;
   display: block;
 }
+
+/* ── Editorial-skin tokens ──────────────────────────────────────────
+ * Shared checkout components (protection, breakdown, payment panels,
+ * pickers, signature pad) are styled with CSS variables rather than
+ * per-template markup — see lib/use-is-t2.ts. Template 2 named those
+ * variables first, so template 3 defines the same names against its
+ * own palette and the same components render in this skin with no
+ * component changes. A template 4 does exactly this block and nothing
+ * else. */
+.t3 {
+  --skin-radius: 0px;
+
+  --brass: var(--t3-accent);
+  --brass-bright: var(--t3-accent-200);
+  /* Labels sit directly on the accent; this template's acid green is
+   * light, so they take the charcoal rather than white. */
+  --on-brass: var(--t3-char);
+
+  --ink: var(--t3-char);
+  --ink-2: var(--t3-char-2);
+  --paper: var(--t3-paper);
+  --card: #ffffff;
+
+  --text: var(--t3-char);
+  --text-muted: color-mix(in srgb, var(--t3-char) 58%, transparent);
+  --line: var(--t3-line);
+  --line-strong: color-mix(in srgb, var(--t3-char) 30%, transparent);
+  --on-ink: var(--t3-paper);
+  --on-ink-muted: var(--t3-grey);
+
+  --danger: #b3402a;
+  --success: var(--t3-accent-700);
+  --band-navy: var(--t3-char-2);
+
+  /* The editorial classes reference template 2's font variables by
+   * name; point them at this template's faces so the shared
+   * components inherit Barlow/Inter rather than falling back. */
+  --t2-font-display: var(--t3-font-display), "Barlow Condensed", sans-serif;
+  --t2-font-body: var(--t3-font-body), "Inter", sans-serif;
+  --t2-font-mono: var(--t3-font-body), "Inter", sans-serif;
+}

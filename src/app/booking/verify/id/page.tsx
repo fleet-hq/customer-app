@@ -8,13 +8,20 @@ import { paths } from '@/lib/paths';
 import { Dyn } from '@/components/i18n/Dyn';
 import { useVerifyId } from './use-verify-id';
 import VerifyIdClientT2 from './verify-id-client-t2';
+import { pickTemplateView } from '@/lib/template-view';
 
 export default function VerifyIdPage() {
   const vi = useVerifyId();
 
-  if (vi.tenant.websiteTemplate === 'template_2') {
-    return <VerifyIdClientT2 />;
-  }
+  // Template 3 shares this surface with template 2: the markup is
+  // token-driven, so it renders in whichever template's palette it
+  // is mounted inside.
+  const Editorial = pickTemplateView(vi.tenant.websiteTemplate, {
+    template_1: null,
+    template_2: VerifyIdClientT2,
+    template_3: VerifyIdClientT2,
+  });
+  if (Editorial) return <Editorial  />;
 
   const {
     tokenReady,

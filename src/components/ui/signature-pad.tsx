@@ -19,7 +19,7 @@ export function SignaturePad({
   height = 120,
 }: SignaturePadProps) {
   const tenant = useTenant();
-  const isT2 = tenant.websiteTemplate === 'template_2';
+  const isT2 = tenant.websiteTemplate !== 'template_1';
   const canvasRef = useRef<SignatureCanvas>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [hasSignature, setHasSignature] = useState<boolean>(!!initialSignature);
@@ -83,7 +83,7 @@ export function SignaturePad({
         ref={containerRef}
         className={cn(
           'relative w-full overflow-hidden border border-dashed bg-white',
-          isT2 ? 'rounded-[3px] border-[var(--brass)]/50' : 'rounded-[10px] border-primary/50',
+          isT2 ? 'rounded-[var(--skin-radius,3px)] border-[var(--brass)]/50' : 'rounded-[10px] border-primary/50',
         )}
         style={{ height }}
       >

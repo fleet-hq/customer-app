@@ -12,11 +12,11 @@ import { useTenant } from '@/lib/tenant-context';
 
 const T2_MONO = 'font-[family-name:var(--t2-font-mono)]';
 const T2_CARD_BASE =
-  'rounded-[3px] border-[var(--line)] bg-[var(--card)] text-[var(--text)]';
+  'rounded-[var(--skin-radius,3px)] border-[var(--line)] bg-[var(--card)] text-[var(--text)]';
 const T2_CARD_SELECTED =
-  'rounded-[3px] border-[var(--brass)] bg-[color-mix(in_srgb,var(--brass)_6%,var(--card))] text-[var(--text)]';
+  'rounded-[var(--skin-radius,3px)] border-[var(--brass)] bg-[color-mix(in_srgb,var(--brass)_6%,var(--card))] text-[var(--text)]';
 const T2_CARD_DISABLED =
-  'rounded-[3px] border-[var(--line)] bg-[var(--paper)] text-[var(--text)]';
+  'rounded-[var(--skin-radius,3px)] border-[var(--line)] bg-[var(--paper)] text-[var(--text)]';
 const T2_CHECKBOX_ON = 'border-[var(--brass)] bg-[var(--brass)]';
 const T2_CHECKBOX_OFF = 'border-[var(--line-strong)] bg-[var(--card)]';
 const T2_BADGE = `${T2_MONO} bg-[var(--brass)] text-[var(--on-brass)]`;
@@ -62,7 +62,7 @@ export default function ProtectionSection({
   onToggleAbi,
 }: Props): ReactNode {
   const tenant = useTenant();
-  const isT2 = tenant.websiteTemplate === 'template_2';
+  const isT2 = tenant.websiteTemplate !== 'template_1';
   const hasAbi = !!abiQuote && !!onToggleAbi;
   if (bonzahPlans.length === 0 && manualPackages.length === 0 && !hasAbi) return null;
 
@@ -117,7 +117,7 @@ const BONZAH_LINKS = {
 
 function BonzahDisclosure() {
   const tenant = useTenant();
-  const isT2 = tenant.websiteTemplate === 'template_2';
+  const isT2 = tenant.websiteTemplate !== 'template_1';
   const linkClass = isT2
     ? 'font-medium text-[var(--brass)] underline'
     : 'font-medium text-primary underline';
@@ -126,7 +126,7 @@ function BonzahDisclosure() {
       className={cn(
         'mb-[26px] rounded-[10px] border px-4 py-[14px]',
         isT2
-          ? 'rounded-[3px] border-[var(--line-strong)] bg-[var(--card)]'
+          ? 'rounded-[var(--skin-radius,3px)] border-[var(--line-strong)] bg-[var(--card)]'
           : 'border-line bg-subtle',
       )}
     >
@@ -191,7 +191,7 @@ function AbiCard({
   onToggle: () => void;
 }) {
   const tenant = useTenant();
-  const isT2 = tenant.websiteTemplate === 'template_2';
+  const isT2 = tenant.websiteTemplate !== 'template_1';
   const daily = Number(quote.daily_price);
   return (
     <div
@@ -273,7 +273,7 @@ function ManualCard({
   onToggle: () => void;
 }) {
   const tenant = useTenant();
-  const isT2 = tenant.websiteTemplate === 'template_2';
+  const isT2 = tenant.websiteTemplate !== 'template_1';
   const disabled = pkg.isMandatory;
   const showAsSelected = selected || disabled;
   const label = pkg.customTypeLabel || pkg.coverageType;
@@ -365,7 +365,7 @@ function BonzahCard({
   onOpenDetail: () => void;
 }) {
   const tenant = useTenant();
-  const isT2 = tenant.websiteTemplate === 'template_2';
+  const isT2 = tenant.websiteTemplate !== 'template_1';
   return (
     <div
       onClick={() => {

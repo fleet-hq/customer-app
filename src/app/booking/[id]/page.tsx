@@ -8,14 +8,21 @@ import { paths } from '@/lib/paths';
 import { useBookingDetail } from './use-booking-detail';
 import BookingDetailClientT2 from './booking-detail-client-t2';
 import { RentalAgreementSignModal } from '@/components/booking/rental-agreement-sign-modal';
+import { pickTemplateView } from '@/lib/template-view';
 
 export default function BookingPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const bd = useBookingDetail(id);
 
-  if (bd.tenant.websiteTemplate === 'template_2') {
-    return <BookingDetailClientT2 id={id} />;
-  }
+  // Template 3 shares this surface with template 2: the markup is
+  // token-driven, so it renders in whichever template's palette it
+  // is mounted inside.
+  const Editorial = pickTemplateView(bd.tenant.websiteTemplate, {
+    template_1: null,
+    template_2: BookingDetailClientT2,
+    template_3: BookingDetailClientT2,
+  });
+  if (Editorial) return <Editorial id={id} />;
 
   if (bd.status === 'loading') {
     return (

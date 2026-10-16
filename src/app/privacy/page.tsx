@@ -5,13 +5,20 @@ import { useTenant } from '@/lib/tenant-context';
 import { paths } from '@/lib/paths';
 import PrivacyClientT2 from './privacy-client-t2';
 import { PRIVACY_SECTIONS, PRIVACY_INTRO } from './privacy-content';
+import { pickTemplateView } from '@/lib/template-view';
 
 export default function PrivacyPage() {
   const tenant = useTenant();
 
-  if (tenant.websiteTemplate === 'template_2') {
-    return <PrivacyClientT2 />;
-  }
+  // Template 3 shares this surface with template 2: the markup is
+  // token-driven, so it renders in whichever template's palette it
+  // is mounted inside.
+  const Editorial = pickTemplateView(tenant.websiteTemplate, {
+    template_1: null,
+    template_2: PrivacyClientT2,
+    template_3: PrivacyClientT2,
+  });
+  if (Editorial) return <Editorial  />;
 
   const title = 'Privacy Policy';
   const intro = withCompany(PRIVACY_INTRO, tenant.name);

@@ -110,7 +110,7 @@ export function BookingDocuments({
     <div
       className={cn(
         'rounded-xl border p-4',
-        isT2 ? 'rounded-[3px] border-[var(--line)] bg-[var(--card)]' : 'border-card-border bg-white',
+        isT2 ? 'rounded-[var(--skin-radius,3px)] border-[var(--line)] bg-[var(--card)]' : 'border-card-border bg-white',
       )}
     >
       <h3 className={cn('text-[14px] font-semibold', isT2 ? 'text-[var(--text)]' : 'text-ink')}>

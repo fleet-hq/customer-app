@@ -101,7 +101,7 @@ export function LocationDropdown({
   onSelect: (id: string) => void;
 }) {
   const tenant = useTenant();
-  const isT2 = tenant.websiteTemplate === 'template_2';
+  const isT2 = tenant.websiteTemplate !== 'template_1';
   const selected = options.find((l) => String(l.id) === value);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -147,7 +147,7 @@ export function LocationDropdown({
         <div
           className={cn(
             'absolute left-0 right-0 top-full z-40 mt-[6px] max-h-[260px] overflow-y-auto rounded-[11px] border border-line bg-white p-[6px] shadow-[var(--shadow-pop)]',
-            isT2 && 'rounded-[3px] border-[var(--line-strong)] bg-[var(--card)] shadow-[var(--shadow)]',
+            isT2 && 'rounded-[var(--skin-radius,3px)] border-[var(--line-strong)] bg-[var(--card)] shadow-[var(--shadow)]',
           )}
         >
           {options.length === 0 ? (
@@ -292,7 +292,7 @@ export function InsuranceDetailModal({
   onClose: () => void;
 }) {
   const tenant = useTenant();
-  const isT2 = tenant.websiteTemplate === 'template_2';
+  const isT2 = tenant.websiteTemplate !== 'template_1';
   const [whyBuyOpen, setWhyBuyOpen] = useState(false);
   const { t } = useDynamicTranslation(['Close']);
   if (!option) return null;
@@ -350,7 +350,7 @@ export function InsuranceDetailModal({
         <div className="flex flex-col gap-5 px-[26px] py-5">
           <p className={cn('text-[13.5px] leading-[1.6] text-muted', isT2 && 'text-[var(--text-muted)]')}><Dyn>{detail.description}</Dyn></p>
 
-          <div className={cn('overflow-hidden rounded-[10px] border border-line', isT2 && 'rounded-[3px] border-[var(--line-strong)]')}>
+          <div className={cn('overflow-hidden rounded-[10px] border border-line', isT2 && 'rounded-[var(--skin-radius,3px)] border-[var(--line-strong)]')}>
             <button
               type="button"
               onClick={() => setWhyBuyOpen((o) => !o)}

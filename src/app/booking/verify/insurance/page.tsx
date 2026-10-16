@@ -9,13 +9,20 @@ import { Dropzone, ReassuranceStrip } from '@/components/booking/verify-bits';
 import { Dyn } from '@/components/i18n/Dyn';
 import { useVerifyInsurance } from './use-verify-insurance';
 import VerifyInsuranceClientT2 from './verify-insurance-client-t2';
+import { pickTemplateView } from '@/lib/template-view';
 
 export default function VerifyInsurancePage() {
   const vi = useVerifyInsurance();
 
-  if (vi.tenant.websiteTemplate === 'template_2') {
-    return <VerifyInsuranceClientT2 />;
-  }
+  // Template 3 shares this surface with template 2: the markup is
+  // token-driven, so it renders in whichever template's palette it
+  // is mounted inside.
+  const Editorial = pickTemplateView(vi.tenant.websiteTemplate, {
+    template_1: null,
+    template_2: VerifyInsuranceClientT2,
+    template_3: VerifyInsuranceClientT2,
+  });
+  if (Editorial) return <Editorial  />;
 
   const {
     tokenReady,

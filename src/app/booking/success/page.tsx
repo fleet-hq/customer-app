@@ -5,13 +5,20 @@ import { paths } from '@/lib/paths';
 import { Dyn } from '@/components/i18n/Dyn';
 import { useBookingSuccess } from './use-booking-success';
 import BookingSuccessClientT2 from './success-client-t2';
+import { pickTemplateView } from '@/lib/template-view';
 
 function SuccessContent() {
   const { tenant, phase, errorMessage, t, router } = useBookingSuccess();
 
-  if (tenant.websiteTemplate === 'template_2') {
-    return <BookingSuccessClientT2 />;
-  }
+  // Template 3 shares this surface with template 2: the markup is
+  // token-driven, so it renders in whichever template's palette it
+  // is mounted inside.
+  const Editorial = pickTemplateView(tenant.websiteTemplate, {
+    template_1: null,
+    template_2: BookingSuccessClientT2,
+    template_3: BookingSuccessClientT2,
+  });
+  if (Editorial) return <Editorial  />;
 
   return (
     <div className="flex min-h-screen flex-col bg-white text-ink">

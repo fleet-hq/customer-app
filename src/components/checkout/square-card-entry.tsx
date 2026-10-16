@@ -64,7 +64,7 @@ export const SquareCardEntry = forwardRef<SquareCardEntryHandle, Props>(function
   { applicationId, locationId, environment, requiresDeposit = false, depositConsentCopy, onError },
   ref,
 ) {
-  const isT2 = useTenant().websiteTemplate === 'template_2';
+  const isT2 = useTenant().websiteTemplate !== 'template_1';
   const containerRef = useRef<HTMLDivElement | null>(null);
   const cardRef = useRef<any>(null);
   const [ready, setReady] = useState(false);

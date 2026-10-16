@@ -9,14 +9,21 @@ import { cn, money } from '@/lib/utils';
 import { Dyn } from '@/components/i18n/Dyn';
 import { useVehicleSwap } from './use-vehicle-swap';
 import SwapVehicleClientT2 from './swap-client-t2';
+import { pickTemplateView } from '@/lib/template-view';
 
 export default function SwapVehiclePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const vs = useVehicleSwap(id);
 
-  if (vs.tenant.websiteTemplate === 'template_2') {
-    return <SwapVehicleClientT2 id={id} />;
-  }
+  // Template 3 shares this surface with template 2: the markup is
+  // token-driven, so it renders in whichever template's palette it
+  // is mounted inside.
+  const Editorial = pickTemplateView(vs.tenant.websiteTemplate, {
+    template_1: null,
+    template_2: SwapVehicleClientT2,
+    template_3: SwapVehicleClientT2,
+  });
+  if (Editorial) return <Editorial id={id} />;
 
   const {
     booking,

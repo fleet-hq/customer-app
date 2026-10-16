@@ -51,7 +51,9 @@ export default async function ServicesPage() {
   const blocks = s!.blocks ?? [];
   const isDirectory = blocks.filter((b) => b.href).length >= 2;
 
-  if (tenant.websiteTemplate === 'template_2') {
+  // Shared with template 3 — token-driven, so it takes whichever
+  // template's palette it renders inside.
+  if (tenant.websiteTemplate !== 'template_1') {
     return (
       <ServicesPageT2
         tenant={tenant}

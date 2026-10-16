@@ -47,7 +47,7 @@ function Paper({ children, isT2 = false }: { children: React.ReactNode; isT2?: b
       className={cn(
         'rounded-md px-5 sm:px-8 py-8',
         isT2
-          ? 'rounded-[3px] border border-[var(--line)] bg-[var(--card)]'
+          ? 'rounded-[var(--skin-radius,3px)] border border-[var(--line)] bg-[var(--card)]'
           : 'bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04),0_4px_12px_rgba(16,24,40,0.04)]',
       )}
     >
@@ -100,7 +100,7 @@ export function RentalAgreementSignModal({
   data,
 }: RentalAgreementSignModalProps) {
   const tenant = useTenant();
-  const isT2 = tenant.websiteTemplate === 'template_2';
+  const isT2 = tenant.websiteTemplate !== 'template_1';
   const { data: template, isLoading } = useDefaultAgreementTemplate();
   const { data: bonzahAddendum } = useBonzahAddendum();
 
@@ -158,7 +158,7 @@ export function RentalAgreementSignModal({
         className={cn(
           'flex h-[94vh] sm:h-auto max-h-[94vh] sm:max-h-[92vh] w-full flex-col overflow-hidden rounded-2xl shadow-2xl',
           data ? 'max-w-[920px]' : 'max-w-[640px]',
-          isT2 ? 'rounded-[3px] bg-[var(--card)] border border-[var(--line)]' : 'bg-white',
+          isT2 ? 'rounded-[var(--skin-radius,3px)] bg-[var(--card)] border border-[var(--line)]' : 'bg-white',
         )}
       >
         <div

@@ -10,6 +10,7 @@ import { paths } from '@/lib/paths';
 import { RentalAgreementPreview } from '@/components/booking/rental-agreement-preview';
 import { useTermsAgreement, type Section } from './use-terms-agreement';
 import TermsClientT2 from './terms-client-t2';
+import { pickTemplateView } from '@/lib/template-view';
 
 function TermsSkeleton() {
   return (
@@ -51,9 +52,15 @@ function SectionBlock({ sec }: { sec: Section }) {
 function TermsContent() {
   const tenant = useTenant();
 
-  if (tenant.websiteTemplate === 'template_2') {
-    return <TermsClientT2 />;
-  }
+  // Template 3 shares this surface with template 2: the markup is
+  // token-driven, so it renders in whichever template's palette it
+  // is mounted inside.
+  const Editorial = pickTemplateView(tenant.websiteTemplate, {
+    template_1: null,
+    template_2: TermsClientT2,
+    template_3: TermsClientT2,
+  });
+  if (Editorial) return <Editorial  />;
 
   const {
     isBound,

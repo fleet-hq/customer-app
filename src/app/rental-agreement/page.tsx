@@ -10,6 +10,7 @@ import { RentalAgreementPreview } from '@/components/booking/rental-agreement-pr
 import { useTenant } from '@/lib/tenant-context';
 import { useRentalAgreementIndex } from './use-rental-agreement-index';
 import RentalAgreementIndexT2 from './rental-agreement-index-t2';
+import { pickTemplateView } from '@/lib/template-view';
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
@@ -22,9 +23,15 @@ function Shell({ children }: { children: React.ReactNode }) {
 function RentalAgreementIndex() {
   const tenant = useTenant();
 
-  if (tenant.websiteTemplate === 'template_2') {
-    return <RentalAgreementIndexT2 />;
-  }
+  // Template 3 shares this surface with template 2: the markup is
+  // token-driven, so it renders in whichever template's palette it
+  // is mounted inside.
+  const Editorial = pickTemplateView(tenant.websiteTemplate, {
+    template_1: null,
+    template_2: RentalAgreementIndexT2,
+    template_3: RentalAgreementIndexT2,
+  });
+  if (Editorial) return <Editorial  />;
 
   const {
     bookingId,

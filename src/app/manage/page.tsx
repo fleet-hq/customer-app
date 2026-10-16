@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { Dyn } from '@/components/i18n/Dyn';
 import { useManageLookup } from './use-manage-lookup';
 import ManageClientT2 from './manage-client-t2';
+import { pickTemplateView } from '@/lib/template-view';
 
 export default function ManageBookingsPage() {
   const {
@@ -20,9 +21,15 @@ export default function ManageBookingsPage() {
     handleSubmit,
   } = useManageLookup();
 
-  if (tenant.websiteTemplate === 'template_2') {
-    return <ManageClientT2 />;
-  }
+  // Template 3 shares this surface with template 2: the markup is
+  // token-driven, so it renders in whichever template's palette it
+  // is mounted inside.
+  const Editorial = pickTemplateView(tenant.websiteTemplate, {
+    template_1: null,
+    template_2: ManageClientT2,
+    template_3: ManageClientT2,
+  });
+  if (Editorial) return <Editorial  />;
 
   return (
     <div className="flex min-h-screen flex-col bg-white text-ink">
