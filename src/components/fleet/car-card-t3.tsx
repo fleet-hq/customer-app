@@ -52,7 +52,7 @@ export function CarCardT3({
           <Dyn>{unavailable ? 'Unavailable' : 'Available'}</Dyn>
         </span>
         {vehicle.image ? (
-          <Image src={vehicle.image} alt={vehicle.name} width={520} height={340} loading="lazy" unoptimized />
+          <Image className="img" src={vehicle.image} alt={vehicle.name} width={520} height={340} loading="lazy" unoptimized />
         ) : null}
       </div>
       <div className="bd">

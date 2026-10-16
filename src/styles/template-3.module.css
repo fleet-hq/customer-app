@@ -3365,3 +3365,18 @@
 .t3 :global(.ln small.inline) {
   display: inline;
 }
+
+/* The mockup's fleet heading carried a hard <br>, which kept it narrow
+ * enough to leave the toolbar its room. A tenant's heading is one
+ * string with no break, so it took the full row and squeezed
+ * .fl-tools to ~275px — below the search field's 320px minimum, so
+ * the filter button wrapped underneath it. Pinning the toolbar's size
+ * makes the heading wrap instead, whatever its length. */
+.t3 :global(.fl-top .fl-tools) {
+  flex: 0 0 auto;
+}
+
+.t3 :global(.fl-top > div:first-child) {
+  flex: 1 1 420px;
+  min-width: 0;
+}

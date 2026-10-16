@@ -224,16 +224,16 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
               <div className="gal">
                 <div>
                   {vehicle.vehicleType ? <span className="tag">{vehicle.vehicleType}</span> : null}
-                  <Image src={hero} alt={vehicle.name} width={900} height={600} priority unoptimized />
+                  <Image className="img" src={hero} alt={vehicle.name} width={900} height={600} priority unoptimized />
                 </div>
                 {second ? (
                   <div>
-                    <Image src={second} alt="" width={460} height={300} loading="lazy" unoptimized />
+                    <Image className="img" src={second} alt="" width={460} height={300} loading="lazy" unoptimized />
                   </div>
                 ) : null}
                 {third ? (
                   <div>
-                    <Image src={third} alt="" width={460} height={300} loading="lazy" unoptimized />
+                    <Image className="img" src={third} alt="" width={460} height={300} loading="lazy" unoptimized />
                     {photoCount > 3 ? (
                       <button type="button" className="all" onClick={() => fd.setGalleryOpen(true)}>
                         <Dyn>View all photos</Dyn>
