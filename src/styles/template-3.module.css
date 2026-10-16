@@ -3243,6 +3243,16 @@
   --on-ink: var(--t3-paper);
   --on-ink-muted: var(--t3-grey);
 
+  /* Layout variables the editorial classes read. Missing these was
+   * why template 3's shared pages had no padding at all: `.section`
+   * is `padding-block: var(--section)`, and an undefined variable
+   * collapses the whole declaration rather than falling back. */
+  --maxw: 1240px;
+  --pad: var(--t3-pad);
+  --section: clamp(40px, 6vw, 84px);
+  /* This template is flat — no lifted cards anywhere in the mockup. */
+  --shadow: none;
+
   --danger: #b3402a;
   --success: var(--t3-accent-700);
   --band-navy: var(--t3-char-2);
@@ -3253,4 +3263,16 @@
   --t2-font-display: var(--t3-font-display), "Barlow Condensed", sans-serif;
   --t2-font-body: var(--t3-font-body), "Inter", sans-serif;
   --t2-font-mono: var(--t3-font-body), "Inter", sans-serif;
+}
+
+/* The raw stylesheet gave `object-fit: cover` to `.car-cut video`
+ * only — its hero <img> carried the fit as an inline style, which a
+ * next/image fill cannot inherit, so the photo stretched. */
+.t3 :global(.car-cut img) {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 50%;
+  display: block;
+  filter: brightness(0.8) contrast(1.05);
 }
