@@ -15,6 +15,7 @@ import type {
   FeatureColumnsSection,
   StatsSection,
   Template2Settings,
+  Template3Settings,
   StepsSection,
   ServiceAreasSection,
   ServicesSection,
@@ -40,6 +41,7 @@ export interface TenantSections {
   feature_columns: FeatureColumnsSection | null;
   about: CopyBlockSection | null;
   template_2: Template2Settings | null;
+  template_3: Template3Settings | null;
   stats: StatsSection | null;
   steps: StepsSection | null;
   fleet_section: CopyBlockSection | null;
@@ -243,6 +245,7 @@ export function tenantFromApi(detail: ApiCompanyDetail, locations: ApiLocation[]
       feature_columns: sections.feature_columns ?? null,
       about: sections.about ?? null,
       template_2: sections.template_2 ?? null,
+      template_3: sections.template_3 ?? null,
       stats: sections.stats ?? null,
       steps: sections.steps ?? null,
       fleet_section: sections.fleet_section ?? null,

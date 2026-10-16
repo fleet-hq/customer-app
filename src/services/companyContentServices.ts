@@ -19,7 +19,7 @@ export interface SocialLink {
 /** Which customer-central component tree renders this company's site.
  *  Both templates consume the exact same content below — this only
  *  selects the presentational layer. */
-export type WebsiteTemplate = 'template_1' | 'template_2';
+export type WebsiteTemplate = 'template_1' | 'template_2' | 'template_3';
 
 export interface BrandTheme {
   primary: string;
@@ -131,6 +131,18 @@ export interface Template2Settings {
   brass_bright?: string;
   ink?: string;
   band?: string;
+}
+
+/** Template 3's palette. The raw design is acid green on charcoal; a
+ *  tenant overrides any of these and the whole skin follows, because
+ *  every rule in template-3.module.css reads these variables rather
+ *  than naming a colour. */
+export interface Template3Settings {
+  accent?: string;
+  accent_soft?: string;
+  accent_deep?: string;
+  charcoal?: string;
+  offwhite?: string;
 }
 
 export interface CopyBlockSection {
@@ -383,6 +395,7 @@ export interface ContentSections {
    *  feature columns). */
   about?: CopyBlockSection | null;
   template_2?: Template2Settings | null;
+  template_3?: Template3Settings | null;
   stats?: StatsSection | null;
   steps?: StepsSection | null;
   fleet_section?: CopyBlockSection | null;

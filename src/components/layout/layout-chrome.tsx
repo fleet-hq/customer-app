@@ -7,8 +7,12 @@ import { Footer } from './footer';
 import { HeaderT2 } from './header-t2';
 import { FooterT2 } from './footer-t2';
 import { T2Shell } from './t2-shell';
+import { HeaderT3 } from './header-t3';
+import { FooterT3 } from './footer-t3';
+import { T3Shell } from './t3-shell';
 import { MobileContactBar } from './mobile-contact-bar';
 import { useTenant } from '@/lib/tenant-context';
+import { pickTemplateView } from '@/lib/template-view';
 
 const HIDE_CHROME_PREFIXES = ['/sign-in', '/register'];
 
@@ -28,7 +32,13 @@ function isLandingPath(
 
 export function LayoutChrome({ children }: { children: ReactNode }) {
   const tenant = useTenant();
-  const isT2 = tenant.websiteTemplate === 'template_2';
+  // One lookup instead of a branch per template: a new skin registers
+  // its chrome here and nowhere else.
+  const chrome = pickTemplateView(tenant.websiteTemplate, {
+    template_1: null,
+    template_2: { Shell: T2Shell, Header: HeaderT2, Footer: FooterT2 },
+    template_3: { Shell: T3Shell, Header: HeaderT3, Footer: FooterT3 },
+  });
   const pathname = usePathname() ?? '/';
   const searchParams = useSearchParams();
   const [insideIframe, setInsideIframe] = useState(false);
@@ -52,14 +62,15 @@ export function LayoutChrome({ children }: { children: ReactNode }) {
   const bareBackground =
     searchParams.get('bare') === '1' || searchParams.get('embed') === 'bare';
 
-  if (isT2) {
+  if (chrome) {
+    const { Shell, Header: TemplateHeader, Footer: TemplateFooter } = chrome;
     return (
-      <T2Shell>
-        {!hideChrome && <HeaderT2 minimal={landing} />}
+      <Shell>
+        {!hideChrome && <TemplateHeader minimal={landing} />}
         <main>{children}</main>
-        {!hideChrome && <FooterT2 minimal={landing} />}
+        {!hideChrome && <TemplateFooter minimal={landing} />}
         {!hideChrome && <MobileContactBar />}
-      </T2Shell>
+      </Shell>
     );
   }
 
