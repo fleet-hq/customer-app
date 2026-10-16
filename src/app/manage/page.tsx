@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { Dyn } from '@/components/i18n/Dyn';
 import { useManageLookup } from './use-manage-lookup';
 import ManageClientT2 from './manage-client-t2';
+import ManageClientT3 from './manage-client-t3';
 import { pickTemplateView } from '@/lib/template-view';
 
 export default function ManageBookingsPage() {
@@ -27,7 +28,7 @@ export default function ManageBookingsPage() {
   const Editorial = pickTemplateView(tenant.websiteTemplate, {
     template_1: null,
     template_2: ManageClientT2,
-    template_3: ManageClientT2,
+    template_3: ManageClientT3,
   });
   if (Editorial) return <Editorial  />;
 
