@@ -12,10 +12,15 @@
 
 .t3 {
   --t3-accent: var(--color-primary, #62c922);
-  --t3-accent-50: #eaf6e1;
-  --t3-accent-200: #b0e491;
-  --t3-accent-700: #397c19;
-  --t3-accent-900: #1e3c1b;
+  /* Derived from the accent rather than frozen at the mockup's green.
+   * A tenant whose brand colour is red was getting red buttons beside
+   * green labels, because these four were literals and only the base
+   * followed --color-primary. T3Shell can still override any of them
+   * explicitly; this is the floor. */
+  --t3-accent-50: color-mix(in srgb, var(--t3-accent) 14%, #ffffff);
+  --t3-accent-200: color-mix(in srgb, var(--t3-accent) 52%, #ffffff);
+  --t3-accent-700: color-mix(in srgb, var(--t3-accent) 72%, #000000);
+  --t3-accent-900: color-mix(in srgb, var(--t3-accent) 38%, #000000);
   --t3-char: #111613;
   --t3-char-2: #171d19;
   --t3-paper: #f3f4ef;
