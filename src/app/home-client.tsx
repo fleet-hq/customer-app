@@ -19,6 +19,8 @@ import { useTenant } from '@/lib/tenant-context';
 import { withCompany } from '@/lib/tenant';
 import { useFleetDiscountsSummary } from '@/hooks/useFleetDiscounts';
 import HomeClientT2 from './home-client-t2';
+import HomeClientT3 from './home-client-t3';
+import { pickTemplateView } from '@/lib/template-view';
 
 /** Every section below is rendered ONLY when the operator has filled
  *  it in. There are no FE-side copy or image fallbacks — a tenant
@@ -37,9 +39,14 @@ export default function HomeClient() {
   const tenant = useTenant();
   const { sections, images } = tenant;
 
-  if (tenant.websiteTemplate === 'template_2') {
-    return <HomeClientT2 />;
-  }
+  // Registry lookup rather than a branch per template; template_1 is
+  // this component's own body, below.
+  const Template = pickTemplateView(tenant.websiteTemplate, {
+    template_1: null,
+    template_2: HomeClientT2,
+    template_3: HomeClientT3,
+  });
+  if (Template) return <Template />;
 
   const co = (text: string) => withCompany(text, tenant.name);
 

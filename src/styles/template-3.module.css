@@ -2986,3 +2986,22 @@
     border-bottom: 0;
   }
 }
+
+/* Centred section head — the raw template did this with an inline
+ * style on the How It Works block; it is a layout choice other
+ * sections will want, so it becomes a class. */
+.t3 :global(.sec-head.sec-head-center) {
+  justify-content: center;
+  text-align: center;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* The CTA gained a second action (Apply now) that the raw template
+ * did not have, so its buttons need to sit as a pair. */
+.t3 :global(.cta-actions) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+}
