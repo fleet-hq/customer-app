@@ -12,6 +12,13 @@ interface CarCardT3Props {
   vehicle: Vehicle;
   bookingQuery?: string;
   unavailable?: boolean;
+  /** The raw template gives the two surfaces different footers: the
+   *  home grid sells with a filled "Reserve" button, the fleet listing
+   *  browses with a plain "View" link beside the trip total. */
+  variant?: 'reserve' | 'view';
+  /** Trip total, shown by the listing in place of the per-day rate. */
+  totalPrice?: number;
+  days?: number;
 }
 
 /** The raw template's card: photo panel with an availability tag, then
@@ -20,7 +27,14 @@ interface CarCardT3Props {
  *  Its price was the hardcoded "$400 / week" Zenith charges. This
  *  reads the vehicle's own daily rate, because a template that
  *  advertises one company's pricing to every tenant is not a template. */
-export function CarCardT3({ vehicle, bookingQuery, unavailable }: CarCardT3Props) {
+export function CarCardT3({
+  vehicle,
+  bookingQuery,
+  unavailable,
+  variant = 'reserve',
+  totalPrice,
+  days,
+}: CarCardT3Props) {
   const checkoutPath = paths.checkout(vehicle.slug || vehicle.id);
   const href = bookingQuery ? `${checkoutPath}?${bookingQuery}` : checkoutPath;
   const perDay = Number(vehicle.pricePerDay) || 0;
@@ -56,7 +70,18 @@ export function CarCardT3({ vehicle, bookingQuery, unavailable }: CarCardT3Props
           </div>
         ) : null}
         <div className="ft">
-          {perDay > 0 ? (
+          {variant === 'view' && totalPrice != null && totalPrice > 0 ? (
+            <div className="tot">
+              <b>{money(totalPrice)}</b>
+              <small>
+                <Dyn>total</Dyn>
+                {days ? ` · ${days} ` : ''}
+                {days ? <Dyn>{days === 1 ? 'day' : 'days'}</Dyn> : null}
+                {perDay > 0 ? ` · ${money(perDay)} / ` : ''}
+                {perDay > 0 ? <Dyn>day</Dyn> : null}
+              </small>
+            </div>
+          ) : perDay > 0 ? (
             <div className="price">
               {money(perDay)}
               <small>
@@ -66,9 +91,15 @@ export function CarCardT3({ vehicle, bookingQuery, unavailable }: CarCardT3Props
           ) : (
             <div className="price" />
           )}
-          <Link className="btn" href={href} onClick={() => trackVehicleSelect(vehicle)}>
-            <Dyn>Reserve</Dyn> <span className="chev">›</span>
-          </Link>
+          {variant === 'view' ? (
+            <Link className="view" href={href} onClick={() => trackVehicleSelect(vehicle)}>
+              <Dyn>View</Dyn> <span className="chev">›</span>
+            </Link>
+          ) : (
+            <Link className="btn" href={href} onClick={() => trackVehicleSelect(vehicle)}>
+              <Dyn>Reserve</Dyn> <span className="chev">›</span>
+            </Link>
+          )}
         </div>
       </div>
     </article>

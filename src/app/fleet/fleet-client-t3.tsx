@@ -1,22 +1,29 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect, useRef, useState } from 'react';
 import { CarCardT3 } from '@/components/fleet/car-card-t3';
 import { Dyn } from '@/components/i18n/Dyn';
+import { INITIAL_FILTERS } from '@/components/fleet/fleet-filters';
 import { SearchBarT3 } from '@/components/search/search-bar-t3';
-import { useFleetListing, SORTS } from './use-fleet-listing';
 import { paths } from '@/lib/paths';
+import { useFleetListing, SORTS } from './use-fleet-listing';
 
 /** Template-3 fleet listing.
  *
- *  Every piece of state — search, sort, filters, pagination, the
- *  availability check driven by the booking bar — comes from
- *  useFleetListing, the same hook templates 1 and 2 use. This file is
- *  only the raw mockup's markup around it.
+ *  Follows the raw page: a toolbar with search and an icon button that
+ *  opens a dark filter panel anchored to its right — not a row of
+ *  category chips above the grid, which is what this had before and
+ *  read as a different site. The panel carries the groups the raw
+ *  design had (Type, Seats, Sort) with Reset / Show cars, and the
+ *  button shows a dot while any filter is on.
  *
- *  The raw page's filter panel listed fixed SUV/Sedan/Van/Electric and
- *  seat buckets; the real options come from the tenant's own fleet via
- *  `filterOptions`, so they always match what can be rented. */
+ *  Cards use the listing footer: trip total and a plain "View" link,
+ *  rather than the home grid's filled "Reserve" button.
+ *
+ *  All state comes from useFleetListing — the hook templates 1 and 2
+ *  use — so search, sort, filtering, paging and the availability
+ *  check behave identically across templates. */
 export default function FleetClientT3() {
   const {
     tenant,
@@ -29,28 +36,60 @@ export default function FleetClientT3() {
     isError,
     vehicles,
     bookingQuery,
+    selectedHours,
     unavailableIds,
     filters,
     setFilters,
     filterOptions,
+    clientFilterCount,
     totalPages,
     goToPage,
     countLabel,
     heading,
   } = useFleetListing();
 
-  const fleetPage = tenant.sections.fleet_page;
-  const types = filterOptions.vehicleTypes;
+  const [panelOpen, setPanelOpen] = useState(false);
+  const toolsRef = useRef<HTMLDivElement | null>(null);
 
-  const toggleType = (type: string) => {
-    const current = filters.vehicleType;
+  // The panel is anchored to the toolbar, so a click anywhere else
+  // closes it — otherwise it hangs over the grid being scrolled.
+  useEffect(() => {
+    if (!panelOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (!toolsRef.current?.contains(e.target as Node)) setPanelOpen(false);
+    };
+    const onEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setPanelOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onEsc);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onEsc);
+    };
+  }, [panelOpen]);
+
+  const fleetPage = tenant.sections.fleet_page;
+  const hours = selectedHours ?? 0;
+  const days = hours > 0 ? Math.max(1, Math.ceil(hours / 24)) : 0;
+
+  function toggleType(value: string) {
     setFilters({
       ...filters,
-      vehicleType: current.includes(type)
-        ? current.filter((value) => value !== type)
-        : [...current, type],
+      vehicleType: filters.vehicleType.includes(value)
+        ? filters.vehicleType.filter((v) => v !== value)
+        : [...filters.vehicleType, value],
     });
-  };
+  }
+
+  function toggleSeat(value: number) {
+    setFilters({
+      ...filters,
+      seats: filters.seats.includes(value)
+        ? filters.seats.filter((v) => v !== value)
+        : [...filters.seats, value],
+    });
+  }
 
   return (
     <>
@@ -73,8 +112,12 @@ export default function FleetClientT3() {
               {countLabel ? <p className="count">{countLabel}</p> : null}
             </div>
 
-            <div className="fl-tools">
+            <div className="fl-tools" ref={toolsRef}>
               <label className="srch">
+                <svg viewBox="0 0 16 16" aria-hidden="true">
+                  <circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" strokeWidth="1.5" />
+                  <path d="M11 11l3.5 3.5" stroke="currentColor" strokeWidth="1.5" />
+                </svg>
                 <input
                   type="search"
                   value={searchInput}
@@ -83,49 +126,100 @@ export default function FleetClientT3() {
                   aria-label="Search the fleet"
                 />
               </label>
-              <select
-                className="fsort"
-                value={sort}
-                onChange={(e) => setSort(e.target.value)}
-                aria-label="Sort the fleet"
+
+              <button
+                type="button"
+                className={clientFilterCount > 0 ? 'ibtn has' : 'ibtn'}
+                aria-expanded={panelOpen}
+                aria-label="Filters"
+                onClick={() => setPanelOpen((v) => !v)}
               >
-                {SORTS.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
+                <svg viewBox="0 0 18 18" aria-hidden="true">
+                  <path d="M2 4h14M4.5 9h9M7 14h4" stroke="currentColor" strokeWidth="1.6" fill="none" />
+                </svg>
+                <i className="dot" />
+              </button>
+
+              <div className={panelOpen ? 'fpanel on' : 'fpanel'}>
+                {filterOptions.vehicleTypes.length > 0 ? (
+                  <div className="grp">
+                    <h4><Dyn>Type</Dyn></h4>
+                    <div className="row">
+                      {filterOptions.vehicleTypes.map((type) => (
+                        <button
+                          key={type}
+                          type="button"
+                          className="fchip"
+                          aria-pressed={filters.vehicleType.includes(type)}
+                          onClick={() => toggleType(type)}
+                        >
+                          <Dyn>{type}</Dyn>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
+                {filterOptions.seats.length > 0 ? (
+                  <div className="grp">
+                    <h4><Dyn>Seats</Dyn></h4>
+                    <div className="row">
+                      {filterOptions.seats.map((seat) => (
+                        <button
+                          key={seat}
+                          type="button"
+                          className="fchip"
+                          aria-pressed={filters.seats.includes(seat)}
+                          onClick={() => toggleSeat(seat)}
+                        >
+                          {seat}+
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className="grp">
+                  <h4><Dyn>Sort</Dyn></h4>
+                  <div className="row">
+                    {SORTS.map((option) => (
+                      <button
+                        key={option}
+                        type="button"
+                        className="fchip"
+                        aria-pressed={sort === option}
+                        onClick={() => setSort(option)}
+                      >
+                        <Dyn>{option}</Dyn>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="acts">
+                  <button type="button" className="lnk" onClick={() => setFilters(INITIAL_FILTERS)}>
+                    <Dyn>Reset</Dyn>
+                  </button>
+                  <button type="button" className="btn" onClick={() => setPanelOpen(false)}>
+                    <Dyn>Show cars</Dyn>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
-          {types.length > 1 ? (
-            <div className="chips" role="group" aria-label="Filter by type">
-              {types.map((type) => (
-                <button
-                  key={type}
-                  type="button"
-                  className="chip"
-                  aria-pressed={filters.vehicleType.includes(type)}
-                  onClick={() => toggleType(type)}
-                >
-                  <Dyn>{type}</Dyn>
-                </button>
-              ))}
-            </div>
-          ) : null}
-
           {isLoading ? (
-            <p className="count">
-              <Dyn>Loading the fleet…</Dyn>
-            </p>
+            <p className="count"><Dyn>Loading the fleet…</Dyn></p>
           ) : isError ? (
-            <p className="count">
-              <Dyn>The fleet could not be loaded. Please try again.</Dyn>
-            </p>
+            <p className="count"><Dyn>The fleet could not be loaded. Please try again.</Dyn></p>
           ) : vehicles.length === 0 ? (
-            <p className="count">
-              <Dyn>No cars match those filters.</Dyn>
-            </p>
+            <div className="empty">
+              <h3><Dyn>No cars match</Dyn></h3>
+              <p><Dyn>Try a different search or clear your filters.</Dyn></p>
+              <button type="button" className="btn ghost" onClick={() => setFilters(INITIAL_FILTERS)}>
+                <Dyn>Clear filters</Dyn>
+              </button>
+            </div>
           ) : (
             <div className="cars">
               {vehicles.map((vehicle) => (
@@ -134,6 +228,9 @@ export default function FleetClientT3() {
                   vehicle={vehicle}
                   bookingQuery={bookingQuery}
                   unavailable={unavailableIds.has(vehicle.id)}
+                  variant="view"
+                  totalPrice={days > 0 ? Number(vehicle.pricePerDay) * days : undefined}
+                  days={days}
                 />
               ))}
             </div>
@@ -141,23 +238,11 @@ export default function FleetClientT3() {
 
           {totalPages > 1 ? (
             <div className="pager">
-              <button
-                type="button"
-                className="btn ghost"
-                disabled={page <= 1}
-                onClick={() => goToPage(page - 1)}
-              >
+              <button type="button" className="btn ghost" disabled={page <= 1} onClick={() => goToPage(page - 1)}>
                 <Dyn>Previous</Dyn>
               </button>
-              <span>
-                {page} / {totalPages}
-              </span>
-              <button
-                type="button"
-                className="btn ghost"
-                disabled={page >= totalPages}
-                onClick={() => goToPage(page + 1)}
-              >
+              <span>{page} / {totalPages}</span>
+              <button type="button" className="btn ghost" disabled={page >= totalPages} onClick={() => goToPage(page + 1)}>
                 <Dyn>Next</Dyn>
               </button>
             </div>

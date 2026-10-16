@@ -3276,3 +3276,83 @@
   display: block;
   filter: brightness(0.8) contrast(1.05);
 }
+
+/* Detail-page pieces the raw stylesheet did not cover, because its
+ * data was a fixed array: an add-on quantity stepper, and the promo
+ * row in the summary. Built from the same vocabulary as the rest. */
+.t3 :global(.opt .stepper) {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid currentColor;
+  padding: 2px 8px;
+}
+
+.t3 :global(.opt .stepper button) {
+  background: none;
+  border: 0;
+  color: inherit;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 2px;
+}
+
+.t3 :global(.sum .promo) {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.t3 :global(.sum .promo input) {
+  flex: 1 1 140px;
+  min-width: 0;
+  background: transparent;
+  border: 1px solid var(--t3-dline);
+  color: inherit;
+  padding: 9px 11px;
+  font-family: var(--t3-body);
+  font-size: 12px;
+}
+
+.t3 :global(.sum .promo .em) {
+  flex: 1 0 100%;
+  color: #ff8a7a;
+  font-size: 11px;
+}
+
+.t3 :global(.sum .ln.tot) {
+  font-family: var(--t3-head);
+  align-items: baseline;
+}
+
+.t3 :global(.sum .ln.tot b) {
+  font: 800 28px/1 var(--t3-head);
+}
+
+.t3 :global(.sum .note) {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--t3-grey);
+}
+
+.t3 :global(.sum .btn) {
+  width: 100%;
+  justify-content: center;
+  margin-top: 14px;
+}
+
+.t3 :global(.sum .btn:disabled) {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.t3 :global(.lf .field.bad) {
+  border-color: #c0392b;
+}
+
+.t3 :global(.lf .field .em) {
+  color: #c0392b;
+  font-size: 11px;
+}
