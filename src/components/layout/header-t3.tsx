@@ -26,7 +26,7 @@ export function HeaderT3({ minimal = false }: { minimal?: boolean }) {
   const links = minimal ? [] : tenant.brand.navLinks;
 
   return (
-    <nav>
+    <nav className="site-nav">
       <div className="wrap">
         <Link className="logo" href={paths.home} onClick={() => setOpen(false)}>
           {tenant.brand.logo ? (

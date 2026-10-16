@@ -177,7 +177,7 @@
   background: var(--t3-paper);
   color: var(--t3-char);
 }
-.t3 :global(nav) {
+.t3 :global(nav.site-nav) {
   position: sticky;
   top: 0;
   z-index: 20;
@@ -186,7 +186,7 @@
   color: var(--t3-paper);
   border-bottom: 1px solid var(--t3-dline);
 }
-.t3 :global(nav .wrap) {
+.t3 :global(nav.site-nav .wrap) {
   display: flex;
   align-items: center;
   gap: 32px;
@@ -225,7 +225,7 @@
   color: var(--t3-accent);
   opacity: 1;
 }
-.t3 :global(nav .btn) {
+.t3 :global(nav.site-nav .btn) {
   padding: 10px 16px;
   font-size: 11px;
 }
@@ -233,7 +233,7 @@
   .t3 :global(.navlinks) {
     display: none;
   }
-  .t3 :global(nav .btn) {
+  .t3 :global(nav.site-nav .btn) {
     margin-left: auto;
   }
 }
@@ -2956,7 +2956,7 @@
   .t3 :global(.nav-burger) {
     display: flex;
   }
-  .t3 :global(nav .btn.ghost.nav-mb) {
+  .t3 :global(nav.site-nav .btn.ghost.nav-mb) {
     display: none;
   }
   .t3 :global(.navphone) {
@@ -3183,4 +3183,28 @@
 .t3 :global(.cta-sub) {
   max-width: 54ch;
   margin: 10px auto 0;
+}
+
+/* Bullets. The raw stylesheet's reset stripped list markers because
+ * every list it had was a nav or footer column; a content page's
+ * bullets need to read as bullets. */
+.t3 :global(.art-bullets) {
+  list-style: disc;
+}
+
+.t3 :global(.art-bullets li) {
+  padding-left: 2px;
+}
+
+/* A breadcrumb is a <nav>, and the raw stylesheet assumed the only
+ * nav on a page was the sticky site header — so it rendered with the
+ * header's charcoal bar across it. The header now opts in via
+ * .site-nav; this keeps the breadcrumb plain. */
+.t3 :global(nav.crumbs) {
+  position: static;
+  background: none;
+  backdrop-filter: none;
+  border: 0;
+  color: inherit;
+  display: block;
 }
