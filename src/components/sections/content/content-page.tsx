@@ -13,6 +13,8 @@ import { ContentFaq } from './content-faq';
 import { AboutLayout } from './about-layout';
 import { ContactLayout } from './contact-layout';
 import { ContentPageT2 } from './content-page-t2';
+import { ContentPageT3 } from './content-page-t3';
+import { pickTemplateView } from '@/lib/template-view';
 import { ArrowRight, Check, Car, ShieldCheck, MapPin, Info } from '@/components/ui/icons';
 import { Dyn } from '@/components/i18n/Dyn';
 import { iconByName } from '@/lib/content-icons';
@@ -32,8 +34,13 @@ interface ContentPageProps {
 }
 
 export function ContentPage({ tenant, page, path, heroImage, afterHero, heroOverride, searchOverlap, richBlocks, showNap = true }: ContentPageProps) {
-  if (tenant.websiteTemplate === 'template_2') {
-    return <ContentPageT2 tenant={tenant} page={page} path={path} showNap={showNap} />;
+  const Template = pickTemplateView(tenant.websiteTemplate, {
+    template_1: null,
+    template_2: ContentPageT2,
+    template_3: ContentPageT3,
+  });
+  if (Template) {
+    return <Template tenant={tenant} page={page} path={path} showNap={showNap} />;
   }
   if (page.layout === 'about') return <AboutLayout tenant={tenant} page={page} path={path} />;
   if (page.layout === 'contact') return <ContactLayout tenant={tenant} page={page} path={path} />;

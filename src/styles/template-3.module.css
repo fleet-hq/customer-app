@@ -3040,3 +3040,147 @@
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+/* Apply / inquiry page. Not in the raw template — it had no form page
+ * at all — so this is built from the same parts the rest of template 3
+ * uses: a ruled wrap, an eyebrow, and a boxed panel on the paper
+ * background. */
+.t3 :global(.apply-grid) {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  gap: clamp(28px, 5vw, 64px);
+  padding: clamp(36px, 5vw, 72px) 0;
+}
+
+.t3 :global(.apply-aside h1) {
+  font-size: clamp(38px, 5vw, 62px);
+  margin-top: 14px;
+}
+
+.t3 :global(.apply-intro) {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+  max-width: 44ch;
+  color: color-mix(in srgb, var(--t3-char) 72%, transparent);
+}
+
+.t3 :global(.apply-contacts) {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 24px;
+  font-family: var(--t3-body);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.t3 :global(.apply-card) {
+  background: #fff;
+  border: 1px solid var(--t3-line);
+  padding: clamp(20px, 3vw, 34px);
+}
+
+@media (max-width: 860px) {
+  .t3 :global(.apply-grid) {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Content pages (the extra pages a paying tenant buys). The raw
+ * template had none, so these are built from its own vocabulary —
+ * ruled wrap, eyebrow, condensed headings — rather than borrowed from
+ * another template's article styles. */
+.t3 :global(.pg .art-head) {
+  padding: clamp(32px, 4vw, 60px) 0 clamp(20px, 3vw, 32px);
+  max-width: 62ch;
+}
+
+.t3 :global(.art-head h1) {
+  font-size: clamp(40px, 5.5vw, 72px);
+  margin-top: 14px;
+}
+
+.t3 :global(.crumbs) {
+  font-family: var(--t3-body);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--t3-accent-700);
+}
+
+.t3 :global(.art-intro) {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+  font-size: 16px;
+  color: color-mix(in srgb, var(--t3-char) 76%, transparent);
+}
+
+.t3 :global(.art-body) {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(28px, 4vw, 48px);
+  padding-bottom: clamp(36px, 5vw, 72px);
+  max-width: 72ch;
+}
+
+.t3 :global(.art-sec h2) {
+  font-size: clamp(26px, 3.2vw, 40px);
+  margin-bottom: 14px;
+}
+
+.t3 :global(.art-paras) {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.t3 :global(.art-bullets) {
+  margin: 14px 0 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.t3 :global(.art-bullets li::marker) {
+  color: var(--t3-accent-700);
+}
+
+.t3 :global(.art-steps) {
+  margin-top: 18px;
+}
+
+.t3 :global(.art-link) {
+  margin-top: 18px;
+  align-self: flex-start;
+}
+
+.t3 :global(.nap) {
+  border-top: 1px solid var(--t3-line);
+  padding-top: 20px;
+  font-size: 13px;
+}
+
+.t3 :global(.nap strong) {
+  font-family: var(--t3-head);
+  font-size: 20px;
+  text-transform: uppercase;
+  display: block;
+}
+
+.t3 :global(.nap-contacts) {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+  font-weight: 600;
+}
+
+.t3 :global(.cta-sub) {
+  max-width: 54ch;
+  margin: 10px auto 0;
+}

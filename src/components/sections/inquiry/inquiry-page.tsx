@@ -5,6 +5,8 @@ import { withCompany } from '@/lib/tenant';
 import { Clock, ShieldCheck, Phone, Mail } from '@/components/ui/icons';
 import { InquiryForm } from '@/components/sections/inquiry/inquiry-form';
 import { InquiryPageBodyT2 } from './inquiry-page-t2';
+import { InquiryPageBodyT3 } from './inquiry-page-t3';
+import { pickTemplateView } from '@/lib/template-view';
 import { Dyn } from '@/components/i18n/Dyn';
 
 const TRUST_POINTS = [
@@ -17,9 +19,12 @@ export async function InquiryPageBody() {
   const config = tenant.sections.inquiry_form;
   if (!config) notFound();
 
-  if (tenant.websiteTemplate === 'template_2') {
-    return <InquiryPageBodyT2 tenant={tenant} config={config} />;
-  }
+  const Template = pickTemplateView(tenant.websiteTemplate, {
+    template_1: null,
+    template_2: InquiryPageBodyT2,
+    template_3: InquiryPageBodyT3,
+  });
+  if (Template) return <Template tenant={tenant} config={config} />;
 
   const co = (t: string) => withCompany(t, tenant.name);
   const phone = tenant.footer.contact.phone;
