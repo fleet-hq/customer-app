@@ -3333,3 +3333,14 @@
   color: #c0392b;
   font-size: 11px;
 }
+
+/* The mockup spaced each price group with an inline margin-top on the
+ * h5 ("Rental", "Protection", …), so the port inherited none and the
+ * headings sat flush against the line above them. */
+.t3 :global(.sum h5) {
+  margin-top: 18px;
+}
+
+.t3 :global(.sum h5:first-of-type) {
+  margin-top: 14px;
+}
