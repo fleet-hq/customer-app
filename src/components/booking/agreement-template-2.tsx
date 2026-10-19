@@ -351,6 +351,15 @@ export function AgreementTemplate2({ data, onSignatureChange }: RentalAgreementP
             timezone={d.timezone}
             onSignatureChange={onSignatureChange}
           />
+
+          <p className="mt-12 text-[10px] sm:text-[11px] italic leading-[1.6] text-[#7D7D7D]">
+            <Dyn>
+              This is a general-purpose template and does not constitute legal advice.
+              Rental, insurance, and consumer-protection requirements vary by state —
+              have this document reviewed by a licensed attorney in your state before
+              using it with paying customers.
+            </Dyn>
+          </p>
         </Paper>
       </div>
     </div>
