@@ -14,6 +14,7 @@ import {
 
 const BODY = 'text-[10px] sm:text-[12px] leading-[1.65] text-[#131314]';
 const LABEL = 'text-[10px] sm:text-[11px] text-[#5D5D5D]';
+const HEADING = '#1E3A8A';
 
 function Clause({ children }: { children: React.ReactNode }) {
   return <p className={`${BODY} mt-2`}>{children}</p>;
@@ -22,7 +23,10 @@ function Clause({ children }: { children: React.ReactNode }) {
 function SectionHeading({ n, children }: { n: number; children: string }) {
   return (
     <div className="mt-7">
-      <h3 className="font-manrope font-bold text-[11px] sm:text-[13px] tracking-tight-2 text-[#131314]">
+      <h3
+        className="font-manrope font-bold text-[11px] sm:text-[13px] tracking-tight-2"
+        style={{ color: HEADING }}
+      >
         {n}. <Dyn>{children}</Dyn>
       </h3>
     </div>
@@ -32,7 +36,10 @@ function SectionHeading({ n, children }: { n: number; children: string }) {
 function SummaryHeading({ children }: { children: string }) {
   return (
     <div className="mt-6">
-      <h4 className="font-manrope font-bold text-[10px] sm:text-[12px] uppercase tracking-[0.08em] text-[#131314] border-b border-[#E0E0E0] pb-1.5">
+      <h4
+        className="font-manrope font-bold text-[12px] sm:text-[16px] uppercase tracking-[0.08em] border-b border-[#E0E0E0] pb-1.5"
+        style={{ color: HEADING }}
+      >
         <Dyn>{children}</Dyn>
       </h4>
     </div>
@@ -121,6 +128,24 @@ export function AgreementTemplate2({ data, onSignatureChange }: RentalAgreementP
     <div className="rounded-xl bg-[#F5F7F9] p-3 sm:p-6 print:bg-white print:p-0">
       <div className="max-w-[820px] mx-auto space-y-5 text-[#131314]">
         <Paper className="pt-10 pb-12">
+          {/* The document's own letterhead: name — owner, then contacts. */}
+          <div className="pb-6 mb-6 border-b border-[#F2F3F6] text-right text-[10px] leading-none text-[#515151]">
+            <p className="font-bold text-[12px] sm:text-[14px] text-[#131314] mb-2 break-words">
+              {owner?.name && owner.name !== d.company.name
+                ? `${d.company.name} — ${owner.name}`
+                : d.company.name}
+            </p>
+            {dash(d.company.phone) !== DASH || dash(d.company.email) !== DASH ? (
+              <p className="break-words">
+                {dash(d.company.phone) !== DASH ? d.company.phone : ''}
+                {dash(d.company.phone) !== DASH && dash(d.company.email) !== DASH ? (
+                  <span className="mx-1.5">•</span>
+                ) : null}
+                {dash(d.company.email) !== DASH ? d.company.email : ''}
+              </p>
+            ) : null}
+          </div>
+
           <h1 className="font-manrope font-bold text-[16px] sm:text-[20px] tracking-tight-2 text-[#131314] text-center uppercase">
             <Dyn>Vehicle Rental Agreement</Dyn>
           </h1>
@@ -197,6 +222,7 @@ export function AgreementTemplate2({ data, onSignatureChange }: RentalAgreementP
               ['License Plate / State', dash(v.licensePlate)],
               ['VIN', dash(v.vin)],
               ['Color', dash(v.color)],
+              ['Odometer Reading at Pickup', dash(v.odometer)],
             ]}
           />
 
@@ -209,12 +235,7 @@ export function AgreementTemplate2({ data, onSignatureChange }: RentalAgreementP
           />
 
           <SummaryHeading>Charges &amp; Extras</SummaryHeading>
-          <FieldGrid
-            rows={[
-              ['Daily Rate', dash(v.dailyRate)],
-              ['Number of Days', dash(v.numberOfDays)],
-            ]}
-          />
+          <FieldGrid rows={[['Number of Days', dash(v.numberOfDays)]]} />
           {d.extras && d.extras.length > 0 ? (
             <ul className={`${BODY} mt-3 space-y-1`}>
               {d.extras.map((e, i) => (

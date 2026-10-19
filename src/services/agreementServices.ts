@@ -371,6 +371,7 @@ export interface AgreementData {
     licensePlate?: string | null;
     color?: string | null;
     dailyRate?: string | null;
+    odometer?: string | null;
     numberOfDays?: string | null;
     minDriverAge?: number | null;
     maxDriverAge?: number | null;
@@ -507,6 +508,12 @@ function transformAgreement(api: ApiAgreement): AgreementData {
       bookedAt: formatDateLong(booking?.created_at || null),
       vin: fleet?.vin || 'N/A',
       vehicleName: fleet ? `${fleet.year} ${fleet.name}` : 'N/A',
+      licensePlate: (fleet as any)?.plate_number ?? null,
+      color: (fleet as any)?.color ?? null,
+      odometer:
+        (fleet as any)?.current_mileage != null
+          ? `${Number((fleet as any).current_mileage).toLocaleString()} mi`
+          : null,
       minimumMiles: fleetMiles,
       maximumMiles: fleetMiles,
       overageFee: overageLabel(fleet?.booking_rule?.miles_overage_rate),

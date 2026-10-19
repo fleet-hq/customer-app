@@ -19,6 +19,7 @@ export interface BookingAgreementInput {
     licensePlate?: string | null;
     color?: string | null;
     dailyRate?: number | string | null;
+    odometer?: number | string | null;
     milesPerDay?: number | string;
     milesOverageRate?: number | string;
     extras?: { id: string; title: string; price: number | string; priceUnit: string }[];
@@ -173,6 +174,10 @@ export function useBookingAgreementData(input: BookingAgreementInput): Agreement
         overageFee: overageLabel(vehicle?.milesOverageRate),
         licensePlate: vehicle?.licensePlate ?? null,
         color: vehicle?.color ?? null,
+        odometer:
+          vehicle?.odometer != null
+            ? `${Number(vehicle.odometer).toLocaleString()} mi`
+            : null,
         dailyRate: vehicle?.dailyRate != null ? money(vehicle.dailyRate) : null,
         numberOfDays: dayCount != null ? String(dayCount) : null,
         minDriverAge: null,
