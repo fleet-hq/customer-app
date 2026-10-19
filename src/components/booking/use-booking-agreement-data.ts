@@ -16,6 +16,9 @@ export interface BookingAgreementInput {
   vehicle?: {
     name?: string;
     vin?: string;
+    licensePlate?: string | null;
+    color?: string | null;
+    dailyRate?: number | string | null;
     milesPerDay?: number | string;
     milesOverageRate?: number | string;
     extras?: { id: string; title: string; price: number | string; priceUnit: string }[];
@@ -43,7 +46,18 @@ export interface BookingAgreementInput {
    *  does, in the rental location's timezone. */
   pickupIso?: string;
   dropoffIso?: string;
-  company?: { name?: string; address?: string; email?: string; phone?: string; logo?: string | null } | null;
+  company?: {
+    name?: string;
+    address?: string;
+    email?: string;
+    phone?: string;
+    logo?: string | null;
+    domain?: string | null;
+    agreementTemplate?: 'template_1' | 'template_2';
+    ownerSignature?: string | null;
+    ownerSignatureName?: string | null;
+    ownerSignedAt?: string | null;
+  } | null;
   tenantName: string;
   template?: { title?: string; description?: string; clauses?: { id: number; title: string; content: string }[] } | null;
   addendum?: BonzahAddendum | null;
@@ -90,6 +104,15 @@ export function useBookingAgreementData(input: BookingAgreementInput): Agreement
     const tax = num(pricing.tax);
     const deposit = num(pricing.deposit);
     const fullName = `${customer.firstName} ${customer.lastName}`.trim();
+    const dayCount =
+      pickupIso && dropoffIso
+        ? Math.max(
+            1,
+            Math.ceil(
+              (new Date(dropoffIso).getTime() - new Date(pickupIso).getTime()) / 86400000,
+            ),
+          )
+        : null;
 
     return {
       id: 0,
@@ -103,7 +126,16 @@ export function useBookingAgreementData(input: BookingAgreementInput): Agreement
         email: company?.email || NA,
         phone: company?.phone || NA,
         logo: company?.logo || null,
+        domain: company?.domain ?? null,
       },
+      agreementTemplate: company?.agreementTemplate,
+      owner: company?.ownerSignature
+        ? {
+            signatureImage: company.ownerSignature,
+            name: company.ownerSignatureName || company.name || tenantName,
+            signedAt: company.ownerSignedAt ?? null,
+          }
+        : null,
       customer: {
         name: fullName || NA,
         homeAddress: NA,
@@ -139,6 +171,10 @@ export function useBookingAgreementData(input: BookingAgreementInput): Agreement
         minimumMiles: miles,
         maximumMiles: miles,
         overageFee: overageLabel(vehicle?.milesOverageRate),
+        licensePlate: vehicle?.licensePlate ?? null,
+        color: vehicle?.color ?? null,
+        dailyRate: vehicle?.dailyRate != null ? money(vehicle.dailyRate) : null,
+        numberOfDays: dayCount != null ? String(dayCount) : null,
         minDriverAge: null,
         maxDriverAge: null,
       },

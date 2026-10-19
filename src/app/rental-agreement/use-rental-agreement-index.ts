@@ -83,6 +83,13 @@ export function useRentalAgreementIndex() {
         email: companySettings?.email || 'N/A',
         phone: companySettings?.phone || 'N/A',
         logo: companySettings?.logo || null,
+        domain: companySettings?.domain ?? null,
+      },
+      agreementTemplate: companySettings?.agreementTemplate,
+      owner: {
+        signatureImage: companySettings?.ownerSignature ?? null,
+        name: companySettings?.ownerSignatureName || companySettings?.name || '',
+        signedAt: companySettings?.ownerSignedAt ?? null,
       },
       customer: {
         name: bookingData.customer.name,

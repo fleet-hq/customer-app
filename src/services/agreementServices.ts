@@ -309,16 +309,24 @@ export interface AgreementData {
     methodDetail: string;
   } | null;
   signatureImage: string | null;
+  agreementTemplate?: 'template_1' | 'template_2';
+  owner?: {
+    signatureImage: string | null;
+    name: string;
+    signedAt: string | null;
+  } | null;
   /** Booking's tenant TZ — pass to date formatters in the preview
    *  so the signed-on date shows the rental-location's calendar
    *  day instead of the customer's browser-local one. */
   timezone?: string | null;
+  bookingReference?: string | null;
   company: {
     name: string;
     address: string;
     email: string;
     phone: string;
     logo: string | null;
+    domain?: string | null;
   };
   customer: {
     name: string;
@@ -360,6 +368,10 @@ export interface AgreementData {
     minimumMiles: string;
     maximumMiles: string;
     overageFee: string;
+    licensePlate?: string | null;
+    color?: string | null;
+    dailyRate?: string | null;
+    numberOfDays?: string | null;
     minDriverAge?: number | null;
     maxDriverAge?: number | null;
   };
@@ -436,12 +448,20 @@ function transformAgreement(api: ApiAgreement): AgreementData {
       (booking as any)?.pickup_location?.timezone ||
       company?.timezone ||
       null,
+    bookingReference: (booking as any)?.booking_reference ?? null,
+    agreementTemplate: (company as any)?.agreement_template ?? 'template_1',
+    owner: {
+      signatureImage: (company as any)?.owner_signature ?? null,
+      name: (company as any)?.owner_signature_name || company?.name || '',
+      signedAt: (company as any)?.owner_signed_at ?? null,
+    },
     company: {
       name: company?.name || 'N/A',
       address: company?.country || 'N/A',
       email: company?.email || 'N/A',
       phone: company?.phone_no || 'N/A',
       logo: company?.company_picture || null,
+      domain: (company as any)?.domain ?? null,
     },
     customer: {
       name: customer ? `${customer.first_name} ${customer.last_name}` : 'N/A',
@@ -607,6 +627,11 @@ const DEFAULT_COMPANY: CompanySettings = {
   email: 'support@fleethq.com',
   phone: '+1 (555) 000-0000',
   logo: null,
+  domain: null,
+  agreementTemplate: 'template_1',
+  ownerSignature: null,
+  ownerSignatureName: '',
+  ownerSignedAt: null,
   defaultLocation: null,
 };
 
@@ -635,6 +660,11 @@ export interface CompanySettings {
   email: string;
   phone: string;
   logo: string | null;
+  domain: string | null;
+  agreementTemplate: 'template_1' | 'template_2';
+  ownerSignature: string | null;
+  ownerSignatureName: string;
+  ownerSignedAt: string | null;
   /** Company's default operational location — single source of
    *  truth for the customer-facing time pickers (timezone +
    *  opening hours). Replaces the legacy ``defaultBranch``
@@ -677,6 +707,11 @@ export async function getCompanySettings(domain?: string | null): Promise<Compan
       email?: string;
       phone_no?: string;
       company_picture?: string | null;
+      domain?: string | null;
+      agreement_template?: 'template_1' | 'template_2';
+      owner_signature?: string | null;
+      owner_signature_name?: string;
+      owner_signed_at?: string | null;
       default_location?: ApiDefaultLocation | null;
     }>(
       `${API_URL}/api/companies/public/details/`,
@@ -691,6 +726,11 @@ export async function getCompanySettings(domain?: string | null): Promise<Compan
 
     return {
       name: company.name || DEFAULT_COMPANY.name,
+      domain: company.domain ?? null,
+      agreementTemplate: company.agreement_template ?? 'template_1',
+      ownerSignature: company.owner_signature ?? null,
+      ownerSignatureName: company.owner_signature_name || '',
+      ownerSignedAt: company.owner_signed_at ?? null,
       address: company.address || company.country || DEFAULT_COMPANY.address,
       email: company.email || DEFAULT_COMPANY.email,
       phone: company.phone_no || DEFAULT_COMPANY.phone,

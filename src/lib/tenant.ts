@@ -107,6 +107,8 @@ export interface Tenant {
   sections: TenantSections;
   tracking: TenantTracking;
   websiteTemplate: WebsiteTemplate;
+  agreementTemplate: 'template_1' | 'template_2';
+  ownerSignature: { image: string | null; name: string; signedAt: string | null };
 }
 
 export function defaultLocation(tenant: Tenant): TenantLocation | undefined {
@@ -273,6 +275,12 @@ export function tenantFromApi(detail: ApiCompanyDetail, locations: ApiLocation[]
       thankYouScript: nonEmpty(tracking.thank_you_script),
     },
     websiteTemplate: content.website_template ?? 'template_1',
+    agreementTemplate: (detail as any).agreement_template ?? 'template_1',
+    ownerSignature: {
+      image: (detail as any).owner_signature ?? null,
+      name: (detail as any).owner_signature_name || detail.name || '',
+      signedAt: (detail as any).owner_signed_at ?? null,
+    },
   };
 }
 
