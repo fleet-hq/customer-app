@@ -332,7 +332,7 @@ export function AgreementTemplate2({ data, onSignatureChange }: RentalAgreementP
             role="Owner Signature"
             image={owner?.signatureImage ?? null}
             name={owner?.name || d.company.name}
-            signedAt={owner?.signatureImage ? owner?.signedAt ?? today : null}
+            signedAt={owner?.signatureImage ? today : null}
             timezone={d.timezone}
           />
 
