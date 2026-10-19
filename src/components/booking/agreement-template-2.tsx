@@ -256,13 +256,6 @@ export function AgreementTemplate2({ data, onSignatureChange }: RentalAgreementP
             ]}
           />
 
-          <SummaryHeading>Vehicle Condition at Pickup</SummaryHeading>
-          <FieldGrid
-            rows={[
-              ['Fuel Level', DASH],
-              ['Noted Pre-Existing Damage', DASH],
-            ]}
-          />
         </Paper>
 
         <Paper className="pt-10 pb-12">
