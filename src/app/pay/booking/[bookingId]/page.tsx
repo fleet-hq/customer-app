@@ -11,6 +11,7 @@ import { Dyn } from '@/components/i18n/Dyn';
 import { usePayBooking } from './use-pay-booking';
 import PayBookingClientT2 from './pay-booking-client-t2';
 import { CardConsent } from '@/components/booking/card-consent';
+import { PaymentLinkStatus } from '@/components/booking/payment-link-status';
 import { pickTemplateView } from '@/lib/template-view';
 
 function PayBookingPageInner({ bookingId }: { bookingId: string }) {
@@ -42,6 +43,10 @@ function PayBookingPageInner({ bookingId }: { bookingId: string }) {
     payLoading,
     handlePay,
     outstanding,
+    amountDue,
+    linkView,
+    isLink,
+    covers,
     payments,
     refunds,
     unpaid,
@@ -149,25 +154,36 @@ function PayBookingPageInner({ bookingId }: { bookingId: string }) {
             )}
           </div>
 
-          <aside className="flex flex-col gap-[22px] min-[900px]:sticky min-[900px]:top-6">
+          <aside className={cn('flex flex-col gap-[22px] min-[900px]:sticky min-[900px]:top-6', isLink && 'order-first min-[900px]:order-none')}>
+            {linkView && linkView !== 'pay' ? (
+              <PaymentLinkStatus
+                view={linkView}
+                amount={amountDue}
+                covers={covers}
+                cardLast4={booking.cardOnFile?.last4}
+                onRetry={handlePay}
+                retrying={payLoading}
+              />
+            ) : (
             <section
               className={cn(
                 'rounded-[14px] border p-5',
-                outstanding > 0 ? 'border-amber-border bg-amber-bg' : 'border-green-border-2 bg-green-bg',
+                amountDue > 0 ? 'border-amber-border bg-amber-bg' : 'border-green-border-2 bg-green-bg',
               )}
             >
               <p
                 className={cn(
                   'text-[10px] font-semibold uppercase tracking-wide',
-                  outstanding > 0 ? 'text-amber-text-2' : 'text-success',
+                  amountDue > 0 ? 'text-amber-text-2' : 'text-success',
                 )}
               >
-                {outstanding > 0 ? t('Amount due') : t('No balance owed')}
+                {amountDue > 0 ? t('Amount due') : t('No balance owed')}
               </p>
-              <p className={cn('mt-1 text-[32px] font-bold tracking-tight-2', outstanding > 0 ? 'text-amber-text' : 'text-secondary')}>
-                {money(outstanding)}
+              <p className={cn('mt-1 text-[32px] font-bold tracking-tight-2', amountDue > 0 ? 'text-amber-text' : 'text-secondary')}>
+                {money(amountDue)}
               </p>
-              {outstanding > 0 && unpaid.length > 0 && (
+              {covers ? <p className="mt-1 text-[12px] text-amber-text-2"><Dyn>{covers}</Dyn></p> : null}
+              {!isLink && outstanding > 0 && unpaid.length > 0 && (
                 <p className="mt-1 text-[12px] text-amber-text-2">
                   <Dyn>Across</Dyn> {unpaid.length} <Dyn>unpaid</Dyn> {unpaid.length === 1 ? t('item') : t('items')}.
                 </p>
@@ -175,23 +191,24 @@ function PayBookingPageInner({ bookingId }: { bookingId: string }) {
               {/* E8.5: shown only when staff asked for a card, and
                   required once they have — the same gate the booking
                   page applies, so no surface is the lenient one. */}
-              {staffAskedForCard && outstanding > 0 ? (
+              {staffAskedForCard && amountDue > 0 ? (
                 <CardConsent
                   checked={saveCard}
                   onChange={chooseSaveCard}
                   companyName={tenant.name}
                   depositAmount={booking?.invoice.deposit}
-                  required
+                  required={!isLink}
                 />
               ) : null}
               <button
                 onClick={handlePay}
-                disabled={payLoading || outstanding <= 0 || consentBlocked}
+                disabled={payLoading || amountDue <= 0 || consentBlocked}
                 className="mt-4 w-full rounded-lg bg-primary px-5 py-[11px] text-[14px] font-semibold text-white transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:bg-primary-disabled"
               >
-                {payLoading ? t('Redirecting…') : outstanding > 0 ? `${t('Pay')} ${money(outstanding)}` : t('Paid in full')}
+                {payLoading ? t('Redirecting…') : amountDue > 0 ? `${t('Pay')} ${money(amountDue)}` : t('Paid in full')}
               </button>
             </section>
+            )}
 
             <section className="rounded-[14px] border border-card-border bg-white p-5">
               <h2 className="text-[15px] font-semibold text-secondary"><Dyn>Summary</Dyn></h2>

@@ -19,11 +19,12 @@ import {
 export const useBookingBalance = (
   enabled: boolean = true,
   bookingId?: string | number,
+  options: { link?: string | null; pollMs?: number } = {},
 ) =>
   useQuery<BookingBalanceSnapshot>({
-    queryKey: ['public-booking-balance', bookingId ?? null],
-    queryFn: () => getBookingBalance(),
+    queryKey: ['public-booking-balance', bookingId ?? null, options.link ?? null],
+    queryFn: () => getBookingBalance(options.link),
     enabled,
-    refetchInterval: 30 * 1000,
+    refetchInterval: options.pollMs ?? 30 * 1000,
     refetchOnWindowFocus: true,
   });

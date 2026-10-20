@@ -3,30 +3,7 @@
 import type { BillingChargeRow } from '@/services/billingServices';
 import { Dyn } from '@/components/i18n/Dyn';
 import { cn, money } from '@/lib/utils';
-
-const CHARGE_TYPE_LABELS: Record<string, string> = {
-  booking_fee: 'Booking',
-  late_fee: 'Late fee',
-  damage_fee: 'Damage fee',
-  modification_charge: 'Trip modification',
-  insurance_premium: 'Insurance',
-  security_deposit: 'Security deposit',
-  manual: 'Additional charge',
-  adjustment: 'Adjustment',
-  other: 'Other',
-};
-
-function fmtDate(iso: string): string {
-  if (!iso) return '—';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '—';
-  return d.toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
+import { CHARGE_TYPE_LABELS, fmtDate } from './billing-ledger';
 
 export function StatusPill({ charge }: { charge: BillingChargeRow }) {
   const base =

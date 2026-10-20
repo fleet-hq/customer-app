@@ -43,6 +43,18 @@ export interface BillingRefundRow {
   succeeded_at: string | null;
 }
 
+export type PaymentLinkStatus = 'active' | 'paid' | 'already_paid' | 'expired' | 'superseded' | 'cancelled';
+
+export interface PaymentLinkState {
+  status: PaymentLinkStatus;
+  amount: string;
+  payable: string;
+  save_card: boolean;
+  covers: string;
+  expires_at: string;
+  company_name: string;
+}
+
 export interface BookingBalanceSnapshot {
   booking_id: number;
   company_id: number;
@@ -55,13 +67,14 @@ export interface BookingBalanceSnapshot {
   charges: BillingChargeRow[];
   payments: BillingPaymentRow[];
   refunds: BillingRefundRow[];
+  payment_link?: PaymentLinkState;
 }
 
 // ── API ───────────────────────────────────────────────────────
-export async function getBookingBalance(): Promise<BookingBalanceSnapshot> {
+export async function getBookingBalance(link?: string | null): Promise<BookingBalanceSnapshot> {
   const res = await axios.get<BookingBalanceSnapshot>(
     `${API_URL}/api/billing/public/bookings/balance/`,
-    { headers: getBookingTokenHeaders() },
+    { headers: getBookingTokenHeaders(), params: link ? { link } : undefined },
   );
   return res.data;
 }
@@ -102,6 +115,7 @@ export async function createBillingCheckoutSession(args: {
   /** Set when the renter ticked the authorization. The server refuses to
    *  keep a card without it. */
   cardConsent?: boolean;
+  link?: string | null;
 }): Promise<CheckoutSessionResult> {
   const res = await axios.post<CheckoutSessionResult>(
     `${API_URL}/api/billing/public/bookings/checkout/`,
@@ -110,6 +124,7 @@ export async function createBillingCheckoutSession(args: {
       cancel_url: args.cancelUrl,
       ...(args.saveCard === undefined ? {} : { save_card: args.saveCard }),
       ...(args.cardConsent ? { card_consent: true } : {}),
+      ...(args.link ? { link: args.link } : {}),
     },
     { headers: getBookingTokenHeaders() },
   );

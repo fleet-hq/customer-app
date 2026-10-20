@@ -10,6 +10,7 @@ import { Dyn } from '@/components/i18n/Dyn';
 import { usePayBooking } from './use-pay-booking';
 import styles from '@/styles/template-2.module.css';
 import { CardConsent } from '@/components/booking/card-consent';
+import { PaymentLinkStatus } from '@/components/booking/payment-link-status';
 
 export default function PayBookingClientT2({ bookingId }: { bookingId: string }) {
   const {
@@ -26,7 +27,12 @@ export default function PayBookingClientT2({ bookingId }: { bookingId: string })
     staffAskedForCard,
     saveCard,
     chooseSaveCard,
+    consentBlocked,
     outstanding,
+    amountDue,
+    linkView,
+    isLink,
+    covers,
     payments,
     refunds,
     unpaid,
@@ -129,34 +135,47 @@ export default function PayBookingClientT2({ bookingId }: { bookingId: string })
             )}
           </div>
 
-          <aside style={{ display: 'flex', flexDirection: 'column', gap: '1.4rem' }}>
-            <section className={`${styles.balanceCard} ${outstanding > 0 ? styles.balanceCardDue : styles.balanceCardClear}`}>
-              <p className={styles.balanceLabel} style={{ color: outstanding > 0 ? 'var(--danger)' : 'var(--brass)' }}>
-                {outstanding > 0 ? t('Amount due') : t('No balance owed')}
+          <aside className={isLink ? styles.asideFirst : undefined} style={{ display: 'flex', flexDirection: 'column', gap: '1.4rem' }}>
+            {linkView && linkView !== 'pay' ? (
+              <PaymentLinkStatus
+                view={linkView}
+                amount={amountDue}
+                covers={covers}
+                cardLast4={booking.cardOnFile?.last4}
+                onRetry={handlePay}
+                retrying={payLoading}
+              />
+            ) : (
+            <section className={`${styles.balanceCard} ${amountDue > 0 ? styles.balanceCardDue : styles.balanceCardClear}`}>
+              <p className={styles.balanceLabel} style={{ color: amountDue > 0 ? 'var(--danger)' : 'var(--brass)' }}>
+                {amountDue > 0 ? t('Amount due') : t('No balance owed')}
               </p>
-              <p className={styles.balanceAmount}>{money(outstanding)}</p>
-              {outstanding > 0 && unpaid.length > 0 && (
+              <p className={styles.balanceAmount}>{money(amountDue)}</p>
+              {covers ? <p className={styles.balanceNote}><Dyn>{covers}</Dyn></p> : null}
+              {!isLink && outstanding > 0 && unpaid.length > 0 && (
                 <p className={styles.balanceNote}>
                   <Dyn>Across</Dyn> {unpaid.length} <Dyn>unpaid</Dyn> {unpaid.length === 1 ? t('item') : t('items')}.
                 </p>
               )}
-              {staffAskedForCard && outstanding > 0 ? (
+              {staffAskedForCard && amountDue > 0 ? (
                 <CardConsent
                   checked={saveCard}
                   onChange={chooseSaveCard}
                   companyName={tenant.name}
                   depositAmount={booking?.invoice.deposit}
+                  required={!isLink}
                 />
               ) : null}
               <button
                 type="button"
                 onClick={handlePay}
-                disabled={payLoading || outstanding <= 0}
+                disabled={payLoading || amountDue <= 0 || consentBlocked}
                 className={`${styles.btn} ${styles.btnBrass} ${styles.reserveBtn}`}
               >
-                {payLoading ? t('Redirecting…') : outstanding > 0 ? `${t('Pay')} ${money(outstanding)}` : t('Paid in full')}
+                {payLoading ? t('Redirecting…') : amountDue > 0 ? `${t('Pay')} ${money(amountDue)}` : t('Paid in full')}
               </button>
             </section>
+            )}
 
             <section className={styles.priceCard} style={{ position: 'static' }}>
               <h2 style={{ fontSize: '0.92rem', fontWeight: 600 }}><Dyn>Summary</Dyn></h2>

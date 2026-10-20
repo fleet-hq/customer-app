@@ -1176,7 +1176,7 @@
 .pageTop h1 { font-size: 1.5rem; letter-spacing: -0.015em; }
 
 .detailColumns { margin-top: 1.6rem; display: grid; grid-template-columns: 1.5fr 1fr; gap: 1.6rem; align-items: start; }
-@media (max-width: 900px) { .detailColumns { grid-template-columns: 1fr; } }
+@media (max-width: 900px) { .detailColumns { grid-template-columns: 1fr; } .asideFirst { order: -1; } }
 
 .ledgerCard { border: 1px solid var(--line); border-radius: var(--skin-radius, 3px); background: var(--paper); overflow: hidden; }
 .ledgerCardHead { border-bottom: 1px solid var(--line); padding: 0.9rem 1.2rem; font-size: 0.92rem; font-weight: 600; }

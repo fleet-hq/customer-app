@@ -4,7 +4,12 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useBookingDetails } from '@/hooks/useBooking';
 import { useBookingBalance } from '@/hooks/useBookingBalance';
-import { createBillingCheckoutSession, type BillingPaymentRow, type BillingRefundRow } from '@/services/billingServices';
+import {
+  createBillingCheckoutSession,
+  type BillingPaymentRow,
+  type BillingRefundRow,
+  type PaymentLinkState,
+} from '@/services/billingServices';
 import { setBookingToken } from '@/utils/booking-token';
 import { useTenant } from '@/lib/tenant-context';
 import { useCardConsent } from '@/components/booking/use-card-consent';
@@ -16,9 +21,24 @@ import { useDynamicTranslation } from '@/hooks/useDynamicTranslation';
  *  what this returns. This is a pure mechanical extraction of what used
  *  to be inline in page.tsx — nothing about the logic itself has
  *  changed. */
+export type LinkView = 'pay' | 'processing' | 'paid' | 'already_paid' | 'expired' | 'failed';
+
+function linkViewFor(link: PaymentLinkState | null, returned: boolean, failed: boolean): LinkView | null {
+  if (!link) return null;
+  if (link.status === 'paid') return returned ? 'paid' : 'already_paid';
+  if (link.status === 'already_paid') return 'already_paid';
+  if (link.status !== 'active') return 'expired';
+  if (returned) return 'processing';
+  return failed ? 'failed' : 'pay';
+}
+
 export function usePayBooking(bookingId: string) {
   const tenant = useTenant();
-  const token = useSearchParams().get('token');
+  const params = useSearchParams();
+  const token = params.get('token');
+  const linkToken = params.get('link');
+  const returned = params.get('paid') === '1';
+  const [payFailed, setPayFailed] = useState(false);
   const [tokenReady, setTokenReady] = useState(!token);
 
   useEffect(() => {
@@ -30,7 +50,12 @@ export function usePayBooking(bookingId: string) {
 
   const fetchId = tokenReady ? bookingId : undefined;
   const { data: booking, isLoading, isError } = useBookingDetails(fetchId);
-  const { data: balance, isLoading: balanceLoading } = useBookingBalance(!!fetchId, bookingId);
+  const { data: balance, isLoading: balanceLoading, refetch: refetchBalance } = useBookingBalance(!!fetchId, bookingId, {
+    link: linkToken,
+    pollMs: returned ? 3000 : undefined,
+  });
+  const link = balance?.payment_link ?? null;
+  const linkView = linkViewFor(link, returned, payFailed);
   const { t } = useDynamicTranslation([
     'Amount due',
     'No balance owed',
@@ -45,27 +70,37 @@ export function usePayBooking(bookingId: string) {
   ]);
 
   const { staffAskedForCard, saveCard, chooseSaveCard, checkoutConsent } =
-    useCardConsent(booking?.cardOnFileRequested);
+    useCardConsent(link ? link.save_card : booking?.cardOnFileRequested);
 
   const [payLoading, setPayLoading] = useState(false);
   const handlePay = async () => {
     if (payLoading) return;
     setPayLoading(true);
+    setPayFailed(false);
     try {
       const origin = typeof window !== 'undefined' ? window.location.origin : '';
-      const suffix = token ? `?token=${token}` : '';
+      const query = new URLSearchParams({ ...(token ? { token } : {}), ...(linkToken ? { link: linkToken } : {}) }).toString();
+      const suffix = query ? `?${query}` : '';
       const result = await createBillingCheckoutSession({
-        successUrl: `${origin}/booking/${bookingId}${suffix}`,
+        successUrl: linkToken
+          ? `${origin}/pay/booking/${bookingId}${suffix}&paid=1`
+          : `${origin}/booking/${bookingId}${token ? `?token=${token}` : ''}`,
         cancelUrl: `${origin}/pay/booking/${bookingId}${suffix}`,
+        link: linkToken,
         ...checkoutConsent,
       });
       window.location.href = result.checkout_url;
     } catch {
       setPayLoading(false);
+      if (linkToken) {
+        setPayFailed(true);
+        refetchBalance();
+      }
     }
   };
 
   const outstanding = Number(balance?.outstanding_balance ?? 0);
+  const amountDue = link ? Number(link.status === 'active' ? link.payable : link.amount) : outstanding;
   const totalCharged = Number(balance?.total_charged ?? booking?.invoice.total ?? 0);
   const totalPaid = Number(balance?.total_paid ?? 0);
 
@@ -109,8 +144,12 @@ export function usePayBooking(bookingId: string) {
     chooseSaveCard,
     // Same gate as the booking page: the card authorization is not
     // optional once staff have asked for it.
-    consentBlocked: staffAskedForCard && !saveCard,
+    consentBlocked: !link && staffAskedForCard && !saveCard,
     outstanding,
+    amountDue,
+    linkView,
+    isLink: !!link,
+    covers: link?.covers ?? '',
     payments,
     refunds,
     unpaid,
