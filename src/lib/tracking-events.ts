@@ -14,10 +14,11 @@
  *     GTM setups get wrong, so it's baked in here rather than left to
  *     the call site.
  *
- *  Every event carries a stable `event_id`. Meta collapses duplicates
- *  that share one, which keeps a tenant's own GTM-installed Pixel tag
- *  from double-counting against ours, and is the id a future
- *  server-side Conversions API call would dedupe against. */
+ *  Every event carries an `event_id` that is unique per occurrence.
+ *  Meta collapses duplicates sharing an id, so a deterministic one made
+ *  every visitor's view of the same vehicle look like a single event and
+ *  undercounted the signal campaigns optimise on. `purchase` is the one
+ *  exception and stays keyed to the transaction — see below. */
 
 const DEFAULT_CURRENCY = 'USD';
 
@@ -54,6 +55,22 @@ function push(dl: Record<string, unknown>): void {
   w.dataLayer.push(dl);
 }
 
+/** One id per occurrence. The prefix keeps it readable in Meta's Test
+ *  Events; the timestamp and random suffix are what stop two people
+ *  viewing the same vehicle from being merged into one event. */
+function newEventId(prefix: string): string {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+/** GTM's data layer model merges pushes by key, so an `items` array left
+ *  over from an earlier event bleeds into the next one index by index —
+ *  which is why opening one vehicle reported all five. Clearing the
+ *  object first is GA4's documented requirement, not a workaround. */
+function pushEcommerce(dl: Record<string, unknown>): void {
+  push({ ecommerce: null });
+  push(dl);
+}
+
 function meta(event: string, params: Record<string, unknown>, eventId: string): void {
   const w = win();
   if (!w || typeof w.fbq !== 'function') return;
@@ -78,9 +95,9 @@ function ga4Item(v: TrackedVehicle, index?: number) {
  *  is the more valuable audience to retarget. */
 export function trackFleetList(vehicles: TrackedVehicle[], listId = 'fleet'): void {
   if (vehicles.length === 0) return;
-  push({
+  pushEcommerce({
     event: 'view_item_list',
-    event_id: `view_item_list-${listId}`,
+    event_id: newEventId(`view_item_list-${listId}`),
     item_list_id: listId,
     ecommerce: {
       item_list_id: listId,
@@ -93,9 +110,9 @@ export function trackFleetList(vehicles: TrackedVehicle[], listId = 'fleet'): vo
  *  Meta event can't drive standard optimisation and would just dilute
  *  the volume Meta needs to learn. */
 export function trackVehicleSelect(vehicle: TrackedVehicle, listId = 'fleet'): void {
-  push({
+  pushEcommerce({
     event: 'select_item',
-    event_id: `select_item-${vehicle.id}`,
+    event_id: newEventId(`select_item-${vehicle.id}`),
     item_list_id: listId,
     ecommerce: { item_list_id: listId, items: [ga4Item(vehicle)] },
   });
@@ -105,10 +122,10 @@ export function trackVehicleSelect(vehicle: TrackedVehicle, listId = 'fleet'): v
  *  `ViewContent`: one identifiable vehicle, which is what catalogue
  *  retargeting keys off. */
 export function trackVehicleView(vehicle: TrackedVehicle): void {
-  const eventId = `view_item-${vehicle.id}`;
+  const eventId = newEventId(`view_item-${vehicle.id}`);
   const value = positiveValue(vehicle.pricePerDay);
 
-  push({
+  pushEcommerce({
     event: 'view_item',
     event_id: eventId,
     currency: DEFAULT_CURRENCY,
@@ -147,9 +164,9 @@ export function trackBeginCheckout(params: {
   const currency = params.currency || DEFAULT_CURRENCY;
   const value = positiveValue(params.value);
   const days = positiveValue(params.days);
-  const eventId = `begin_checkout-${vehicle.id}`;
+  const eventId = newEventId(`begin_checkout-${vehicle.id}`);
 
-  push({
+  pushEcommerce({
     event: 'begin_checkout',
     event_id: eventId,
     currency,
@@ -176,8 +193,11 @@ export function trackBeginCheckout(params: {
   );
 }
 
-/** Step 5 — booking confirmed. Unchanged: this one already shipped and
- *  tenants' GTM containers are wired to it. */
+/** Step 5 — booking confirmed. Its id stays keyed to the transaction on
+ *  purpose: a booking is one real-world event, so a refresh of the
+ *  success page must collapse into the same Purchase rather than bill a
+ *  second conversion. Uniqueness per occurrence is what the browsing
+ *  events need; idempotence is what this one needs. */
 export function trackPurchase(params: {
   transactionId: string | number;
   value?: number | null;
@@ -189,7 +209,7 @@ export function trackPurchase(params: {
   const value = positiveValue(params.value);
   const eventId = `purchase-${params.transactionId}`;
 
-  push({
+  pushEcommerce({
     event: 'purchase',
     transaction_id: String(params.transactionId),
     event_id: eventId,
