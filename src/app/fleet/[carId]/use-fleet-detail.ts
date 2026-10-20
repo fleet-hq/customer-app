@@ -38,6 +38,7 @@ import { pickDefaultLocation } from '@/lib/locations';
 import { extractApiErrorMessage } from './fleet-detail-shared';
 import { useRentalSiteConfig } from '@/hooks/useRentalSiteConfig';
 import { rateCard } from '@/lib/rate-card';
+import { trackedPromo } from '@/lib/tracking-tag';
 import { weeklyDepositTiming } from '@/lib/price-rows';
 import { useOngoingQuote } from '@/hooks/useRentalSiteConfig';
 import type { OngoingOffer, OngoingQuotePayload, RentalModel } from '@/services/rentalServices';
@@ -504,6 +505,47 @@ export function useFleetDetail(carId: string) {
     pricing.locationCharges,
     extrasById,
   ]);
+
+  const applyCode = async (raw: string) => {
+    const c = raw.trim().toUpperCase();
+    if (!c) {
+      setPromoError('Enter a promo code');
+      return;
+    }
+    try {
+      const result = await validatePromoCode({
+        code: c,
+        base_price: pricing.subtotal - pricing.insuranceCost - pricing.extrasCost,
+        extras_price: pricing.insuranceCost + pricing.extrasCost,
+        extras_by_id: extrasById,
+        fees: pricing.bookingFee,
+        location_charges: pricing.locationCharges,
+      });
+      if (result.valid && result.discount_amount) {
+        setPromoApplied(true);
+        setPromoCode(c);
+        setPromoDiscount(parseFloat(result.discount_amount));
+        setPromoAppliesTo(result.applies_to ?? []);
+        setPromoInput('');
+        setPromoError('');
+      } else {
+        setPromoError(result.error || `“${c}” is not a valid code`);
+      }
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
+        `“${c}” is not a valid code`;
+      setPromoError(message);
+    }
+  };
+
+  const [trackedPromoTried, setTrackedPromoTried] = useState(false);
+  useEffect(() => {
+    if (trackedPromoTried || promoApplied || pricing.stale || pricing.total <= 0) return;
+    setTrackedPromoTried(true);
+    const tracked = trackedPromo();
+    if (tracked) applyCode(tracked);
+  }, [trackedPromoTried, promoApplied, pricing.stale, pricing.total]);
 
   const { data: companySettings } = useCompanySettings();
   const { data: bonzahAddendumData } = useBonzahAddendum();
@@ -995,38 +1037,7 @@ export function useFleetDetail(carId: string) {
     }
   }
 
-  const applyPromo = async () => {
-    const c = promoInput.trim().toUpperCase();
-    if (!c) {
-      setPromoError('Enter a promo code');
-      return;
-    }
-    try {
-      const result = await validatePromoCode({
-        code: c,
-        base_price: pricing.subtotal - pricing.insuranceCost - pricing.extrasCost,
-        extras_price: pricing.insuranceCost + pricing.extrasCost,
-        extras_by_id: extrasById,
-        fees: pricing.bookingFee,
-        location_charges: pricing.locationCharges,
-      });
-      if (result.valid && result.discount_amount) {
-        setPromoApplied(true);
-        setPromoCode(c);
-        setPromoDiscount(parseFloat(result.discount_amount));
-        setPromoAppliesTo(result.applies_to ?? []);
-        setPromoInput('');
-        setPromoError('');
-      } else {
-        setPromoError(result.error || `“${c}” is not a valid code`);
-      }
-    } catch (err: unknown) {
-      const message =
-        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
-        `“${c}” is not a valid code`;
-      setPromoError(message);
-    }
-  };
+  const applyPromo = () => applyCode(promoInput);
 
   const scrollProtection = () => {
     const el = protectionRef.current;

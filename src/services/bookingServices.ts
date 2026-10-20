@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { getDomainParams } from '@/utils/company';
+import { trackingPayload } from '@/lib/tracking-tag';
 import { setBookingToken, getBookingTokenHeaders } from '@/utils/booking-token';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -1047,6 +1048,7 @@ function tripBody(payload: QuotePayload) {
       ? { manual_insurance_package_ids: payload.manual_insurance_package_ids }
       : {}),
     ...(payload.promo_code ? { promo_code: payload.promo_code } : {}),
+    ...trackingPayload(),
     ...(payload.rental_model && payload.rental_model !== 'daily'
       ? {
           rental_model: payload.rental_model,
