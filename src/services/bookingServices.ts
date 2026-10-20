@@ -543,6 +543,7 @@ export interface BookingDetails {
   } | null;
   cardConsentAt: string | null;
   holdExpiresAt: string | null;
+  rentalModel: 'daily' | 'gig' | 'subscription';
   agreementId?: number;
   agreementStatus?: string;
   canModify: {
@@ -856,6 +857,7 @@ function transformBooking(api: ApiBooking): BookingDetails {
     cardOnFile: (api as any).card_on_file ?? null,
     cardConsentAt: (api as any).card_consent_at ?? null,
     holdExpiresAt: api.hold_expires_at ?? null,
+    rentalModel: (api as any).rental_model ?? 'daily',
     canModify: api.can_modify || { cancel: false, swap: false, reduce: false, extend: false },
     extensionMods: (Array.isArray((api as any).modification_requests) ? (api as any).modification_requests : [])
       .filter((m: any) => m?.status === 'approved' && Number(m?.price_difference || 0) > 0)

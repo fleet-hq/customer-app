@@ -1,5 +1,6 @@
 'use client';
 
+import { RenterRentalPanel } from '@/components/booking/renter-rental-panel';
 import { VerifyFirstConfirm } from '@/components/booking/verify-first-confirm';
 import { SquarePayModal } from '@/components/booking/square-pay-modal';
 import { paths } from '@/lib/paths';
@@ -169,6 +170,14 @@ export default function BookingDetailClientT2({ id }: { id: string }) {
       documentSubmissions={manualSubmissions}
       onDocumentUploaded={refetchManual}
       canUploadPhotos={tokenReady && !isCancelled}
+      rentalPanel={
+        <RenterRentalPanel
+          bookingId={id}
+          token={token}
+          ongoing={booking.rentalModel !== 'daily'}
+          onUpdateCard={saveCardOnly}
+        />
+      }
       />
       {providersData?.square && (
         <SquarePayModal

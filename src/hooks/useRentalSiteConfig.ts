@@ -1,11 +1,13 @@
 'use client';
 
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
   DAILY_ONLY,
   getOngoingQuote,
+  getRenterRental,
   getRentalSiteConfig,
+  giveRenterNotice,
   type OngoingQuotePayload,
   type RentalSiteConfig,
 } from '@/services/rentalServices';
@@ -40,4 +42,21 @@ export function useOngoingQuote(payload: OngoingQuotePayload | null) {
   });
   const stale = JSON.stringify(debounced) !== JSON.stringify(payload) || query.isFetching;
   return { quote: payload ? query.data : undefined, stale };
+}
+
+export function useRenterRental(bookingId: string | undefined, enabled: boolean) {
+  return useQuery({
+    queryKey: ['renter-rental', bookingId],
+    queryFn: getRenterRental,
+    enabled: enabled && !!bookingId,
+    retry: false,
+  });
+}
+
+export function useGiveRenterNotice(bookingId: string | undefined) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: giveRenterNotice,
+    onSuccess: (data) => client.setQueryData(['renter-rental', bookingId], data),
+  });
 }

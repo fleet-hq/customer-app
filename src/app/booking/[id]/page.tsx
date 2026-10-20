@@ -9,6 +9,7 @@ import { useBookingDetail } from './use-booking-detail';
 import BookingDetailClientT2 from './booking-detail-client-t2';
 import { RentalAgreementSignModal } from '@/components/booking/rental-agreement-sign-modal';
 import { pickTemplateView } from '@/lib/template-view';
+import { RenterRentalPanel } from '@/components/booking/renter-rental-panel';
 
 export default function BookingPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -190,6 +191,14 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
       documentSubmissions={manualSubmissions}
       onDocumentUploaded={refetchManual}
       canUploadPhotos={tokenReady && !isCancelled}
+      rentalPanel={
+        <RenterRentalPanel
+          bookingId={id}
+          token={token}
+          ongoing={booking.rentalModel !== 'daily'}
+          onUpdateCard={saveCardOnly}
+        />
+      }
     />
       <RentalAgreementSignModal
         open={agreementModalOpen}

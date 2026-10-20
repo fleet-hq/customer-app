@@ -120,6 +120,7 @@ interface Props {
   preTripPhotos: TripImage[];
   postTripPhotos: TripImage[];
   canUploadPhotos: boolean;
+  rentalPanel?: React.ReactNode;
   isReserved: boolean;
   /** Documents the renter has uploaded. Kept apart from verification —
    *  see BookingDocuments. */
@@ -344,8 +345,14 @@ export function VerifyFirstConfirm(props: Props) {
               vehicleImage={vehicleImage}
               vehicleName={`${booking.vehicle.name} ${booking.vehicle.year}`}
               location={pickupCityState}
-              dateRange={`${startShort} → ${endShort} · ${days} day${days === 1 ? '' : 's'}`}
+              dateRange={
+                booking.rentalModel === 'daily'
+                  ? `${startShort} → ${endShort} · ${days} day${days === 1 ? '' : 's'}`
+                  : `${startShort} → no fixed return · weekly`
+              }
             />
+
+            {props.rentalPanel}
 
             {requiredCount > 0 && (
               <div

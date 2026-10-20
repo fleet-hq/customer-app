@@ -1,6 +1,7 @@
 import axios from 'axios';
 
 import { getDomainParams } from '@/utils/company';
+import { getBookingTokenHeaders } from '@/utils/booking-token';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -77,5 +78,52 @@ export async function getOngoingQuote(payload: OngoingQuotePayload): Promise<Ong
   const res = await axios.post<OngoingQuote>(`${API_URL}/api/rentals/public/ongoing-quote/`, payload, {
     params: getDomainParams(),
   });
+  return res.data;
+}
+
+export interface RenterPeriod {
+  id: number;
+  index: number;
+  label: string;
+  period_start: string;
+  period_end: string;
+  status: 'scheduled' | 'due' | 'failed' | 'partly_paid' | 'paid' | 'waived' | 'refunded' | 'cancelled' | string;
+  overdue: boolean;
+  amount: string;
+  received: string;
+  outstanding: string;
+  method_label: string;
+}
+
+export interface RenterRental {
+  rental_model: Exclude<RentalModel, 'daily'>;
+  renew_weekday_name: string | null;
+  billing_state: string;
+  collection_method: string;
+  next_renewal: { state: string; at?: string; amount?: string | null };
+  recurring_amount: string | null;
+  periods: RenterPeriod[];
+  card_on_file: { label: string } | null;
+  min_term_weeks: number;
+  return_notice_days: number;
+  notice_return_date: string | null;
+  earliest_return_date: string;
+  ended_at: string | null;
+  plan: { name: string; weekly_price: string; miles_per_week: number } | null;
+}
+
+export async function getRenterRental(): Promise<RenterRental> {
+  const res = await axios.get<RenterRental>(`${API_URL}/api/rentals/public/booking/`, {
+    headers: getBookingTokenHeaders(),
+  });
+  return res.data;
+}
+
+export async function giveRenterNotice(returnDate: string): Promise<RenterRental> {
+  const res = await axios.post<RenterRental>(
+    `${API_URL}/api/rentals/public/booking/notice/`,
+    { return_date: returnDate },
+    { headers: getBookingTokenHeaders() },
+  );
   return res.data;
 }
