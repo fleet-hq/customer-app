@@ -23,6 +23,8 @@ export interface UnavailabilityIndex {
 }
 
 const MIN_PER_DAY = 24 * 60;
+const DAY_MS = MIN_PER_DAY * 60000;
+const HORIZON_DAYS = 730;
 
 function dateKey(d: Date, tz: string | null): string {
   if (tz) return formatInTimeZone(d, tz, 'yyyy-MM-dd');
@@ -52,11 +54,17 @@ export function buildUnavailabilityIndex(
   tenantTz: string | null,
 ): UnavailabilityIndex {
   const rangesByDate = new Map<string, MinuteInterval[]>();
+  const now = Date.now();
+  const floor = now - DAY_MS;
+  const ceiling = now + HORIZON_DAYS * DAY_MS;
 
   for (const r of ranges ?? []) {
-    const start = new Date(r.start);
-    const end = new Date(r.end);
-    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) continue;
+    const rawStart = new Date(r.start).getTime();
+    const rawEnd = new Date(r.end).getTime();
+    if (Number.isNaN(rawStart) || Number.isNaN(rawEnd)) continue;
+    const start = new Date(Math.max(rawStart, floor));
+    const end = new Date(Math.min(rawEnd, ceiling));
+    if (end.getTime() <= start.getTime()) continue;
 
     let cursorKey = dateKey(start, tenantTz);
     const stopKey = dateKey(new Date(end.getTime() - 1), tenantTz);
