@@ -20,7 +20,7 @@ import { useBookingInvoice } from '@/hooks/useBookingInvoice';
 import { useBookingVerificationPolicy, useStartVerificationFirstBooking } from '@/hooks/useBookingPolicy';
 import { getBookingVerificationPolicy } from '@/services/bookingPolicyServices';
 import { useDefaultLocation } from '@/contexts';
-import { checkFleetAvailability, validatePromoCode } from '@/services/bookingServices';
+import { checkFleetAvailability, tripLocations, validatePromoCode } from '@/services/bookingServices';
 import type { InsuranceOption } from '@/services/bookingServices';
 import { toUtcIso } from '@/utils/datetime';
 import { todayISO } from '@/lib/time-slots';
@@ -798,8 +798,7 @@ export function useFleetDetail(carId: string) {
         phone: fields.phone.trim().slice(0, 15),
         license_no: licenseNo,
         fleet_id: Number(vehicle.id),
-        pickup_location_id: pickupLocationId,
-        dropoff_location_id: dropoffLocationId,
+        ...tripLocations(pickupLocationId, dropoffLocationId),
         pickup_datetime: pickupDatetime,
         dropoff_datetime: dropoffDatetime,
         insurance_selected: insuranceSelected,
@@ -810,7 +809,6 @@ export function useFleetDetail(carId: string) {
         ...(manualIds.length > 0 ? { manual_insurance_package_ids: manualIds } : {}),
         extras: activeExtraItems.length > 0 ? activeExtraItems : [],
         fuel_pre_purchase: false,
-        return_car_to_different_branch: false,
         additional_drivers: 0,
         notes: '',
         abi_coverage: !!abiAvailable && abiOptedIn,

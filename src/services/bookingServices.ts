@@ -1011,6 +1011,15 @@ export interface StartEmbedPaymentResponse {
   expires_at: string;
 }
 
+export function tripLocations(pickupLocationId: number, dropoffLocationId?: number | null) {
+  const dropoff = dropoffLocationId || pickupLocationId;
+  return {
+    pickup_location_id: pickupLocationId,
+    dropoff_location_id: dropoff,
+    return_car_to_different_branch: Number(dropoff) !== Number(pickupLocationId),
+  };
+}
+
 export async function startEmbedBookingPayment(
   payload: CreateBookingPayload,
   options: { provider?: 'stripe' | 'square' } = {},
@@ -1023,14 +1032,12 @@ export async function startEmbedBookingPayment(
     phone: payload.customer.phone_no.slice(0, 15),
     ...(payload.customer.license_no ? { license_no: payload.customer.license_no } : {}),
     fleet_id: payload.fleet_id,
-    pickup_location_id: payload.pickup_location_id,
-    dropoff_location_id: payload.dropoff_location_id || payload.pickup_location_id,
+    ...tripLocations(payload.pickup_location_id, payload.dropoff_location_id),
     pickup_datetime: payload.pickup_datetime,
     dropoff_datetime: payload.dropoff_datetime,
     extras: payload.extras || [],
     additional_drivers: 0,
     fuel_pre_purchase: false,
-    return_car_to_different_branch: false,
     notes: '',
     insurance_selected: payload.insurance_selected,
     abi_coverage: payload.abi_coverage ?? false,
@@ -1087,14 +1094,12 @@ export async function startBookingCheckout(
     phone: payload.customer.phone_no.slice(0, 15),
     ...(payload.customer.license_no ? { license_no: payload.customer.license_no } : {}),
     fleet_id: payload.fleet_id,
-    pickup_location_id: payload.pickup_location_id,
-    dropoff_location_id: payload.dropoff_location_id || payload.pickup_location_id,
+    ...tripLocations(payload.pickup_location_id, payload.dropoff_location_id),
     pickup_datetime: payload.pickup_datetime,
     dropoff_datetime: payload.dropoff_datetime,
     extras: payload.extras || [],
     additional_drivers: 0,
     fuel_pre_purchase: false,
-    return_car_to_different_branch: false,
     notes: '',
     insurance_selected: payload.insurance_selected,
     abi_coverage: payload.abi_coverage ?? false,
@@ -1190,15 +1195,13 @@ export async function createBooking(payload: CreateBookingPayload): Promise<{ id
       email: payload.customer.email,
       phone: payload.customer.phone_no.slice(0, 15),
       fleet_id: payload.fleet_id,
-      pickup_location_id: payload.pickup_location_id,
-      dropoff_location_id: payload.dropoff_location_id || payload.pickup_location_id,
+      ...tripLocations(payload.pickup_location_id, payload.dropoff_location_id),
       pickup_datetime: payload.pickup_datetime,
       dropoff_datetime: payload.dropoff_datetime,
       extras: payload.extras || [],
       additional_drivers: 0,
       fuel_pre_purchase: false,
-      return_car_to_different_branch: false,
-      notes: '',
+        notes: '',
       insurance_selected: payload.insurance_selected,
       abi_coverage: payload.abi_coverage ?? false,
       cdw_cover: payload.cdw_cover,
