@@ -6,10 +6,8 @@ import type { Location } from '@/services/locationServices';
 import { calculateBasePrice, type RateUnit } from '@/lib/api-pricing';
 
 // IMPORTANT — the pricing math here must stay in lock-step with the
-// backend bookings/services.py PricingService. Pure parity coverage
-// lives in src/lib/api-pricing.ts (computeBookingPricing) which
-// mirrors bookings/test_pricing_parity.py. If you change the formula,
-// keep both sides in sync.
+// backend bookings/services.py PricingService. If you change the
+// formula, keep both sides in sync.
 
 export interface InvoiceItem {
   image: string;
