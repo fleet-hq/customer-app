@@ -46,28 +46,6 @@ export interface ApiFleetExtra {
   icon?: string;
 }
 
-export interface ApiTaxItem {
-  id?: number;
-  tax_name: string;
-  tax_type: 'percentage' | 'fixed_amount';
-  percentage?: number;
-  fixed_amount?: number;
-  trip_type: 'per_trip' | 'per_day';
-  display_order?: number;
-}
-
-export interface ApiTaxProfile {
-  id?: number;
-  name?: string;
-  applicable_on_base_price?: boolean;
-  applicable_on_extras?: boolean;
-  applicable_on_fees?: boolean;
-  applicable_on_security_deposit?: boolean;
-  applicable_on_location_charges?: boolean;
-  is_default?: boolean;
-  tax_items?: ApiTaxItem[];
-}
-
 export interface ApiBookingRule {
   id?: number;
   available_at?: number[];
@@ -82,13 +60,6 @@ export interface ApiBookingRule {
   extras?: ApiFleetExtra[];
   tax_profile?: number | null;
   use_default_tax_profile?: boolean;
-  /** The profile pricing will actually bill, already resolved against
-   *  ``use_default_tax_profile`` and the company default by the backend.
-   *  ``tax_profile`` is a bare id and says nothing about either, so
-   *  reading it is how the site quoted tax on an untaxed vehicle. */
-  resolved_tax_profile?: ApiTaxProfile | null;
-  booking_fee_by_location?: Record<string, number>;
-  resolved_tax_profile_by_location?: Record<string, ApiTaxProfile | null>;
 }
 
 export interface ApiFleetClass {
@@ -132,23 +103,6 @@ export interface ApiPaginatedResponse<T> {
 }
 
 // Frontend types (for UI)
-export interface TaxItem {
-  name: string;
-  type: 'percentage' | 'fixed_amount';
-  percentage?: number;
-  fixedAmount?: number;
-  tripType: 'per_trip' | 'per_day';
-}
-
-export interface TaxProfile {
-  applicableOnBasePrice: boolean;
-  applicableOnExtras: boolean;
-  applicableOnFees: boolean;
-  applicableOnSecurityDeposit: boolean;
-  applicableOnLocationCharges: boolean;
-  items: TaxItem[];
-}
-
 export interface Vehicle {
   id: string;
   slug: string;
@@ -184,10 +138,6 @@ export interface Vehicle {
   milesPerDay?: number;
   milesOverageRate?: number;
   securityDeposit?: number;
-  bookingFee?: number;
-  taxProfile?: TaxProfile | null;
-  bookingFeeByLocation?: Record<string, number>;
-  taxProfileByLocation?: Record<string, TaxProfile | null>;
   extras: VehicleExtra[];
 }
 
@@ -202,76 +152,6 @@ export interface VehicleExtra {
 }
 
 const PLACEHOLDER_IMAGE = '/images/vehicles/car_placeholder.svg';
-
-export function parseTaxProfile(raw: ApiTaxProfile | null | undefined): TaxProfile | null {
-  if (!raw) return null;
-  if (!raw.tax_items || raw.tax_items.length === 0) return null;
-  return {
-    applicableOnBasePrice: raw.applicable_on_base_price ?? true,
-    applicableOnExtras: raw.applicable_on_extras ?? false,
-    applicableOnFees: raw.applicable_on_fees ?? false,
-    applicableOnSecurityDeposit: raw.applicable_on_security_deposit ?? false,
-    applicableOnLocationCharges: raw.applicable_on_location_charges ?? false,
-    items: raw.tax_items.map((item) => ({
-      name: item.tax_name,
-      type: item.tax_type,
-      percentage: item.percentage != null ? Number(item.percentage) : undefined,
-      fixedAmount: item.fixed_amount != null ? Number(item.fixed_amount) : undefined,
-      tripType: item.trip_type,
-    })),
-  };
-}
-
-/**
- * Calculate tax based on a tax profile and pricing components.
- */
-export function chargesAtLocation(
-  vehicle: Pick<Vehicle, 'bookingFee' | 'taxProfile' | 'bookingFeeByLocation' | 'taxProfileByLocation'>,
-  locationId: string | number | null | undefined,
-): { bookingFee: number; taxProfile: TaxProfile | null } {
-  const key = locationId == null ? null : String(locationId);
-  const fees = vehicle.bookingFeeByLocation ?? {};
-  const taxes = vehicle.taxProfileByLocation ?? {};
-  return {
-    bookingFee: key !== null && key in fees ? fees[key] : vehicle.bookingFee ?? 0,
-    taxProfile: key !== null && key in taxes ? taxes[key] : vehicle.taxProfile ?? null,
-  };
-}
-
-export function calculateTax(
-  taxProfile: TaxProfile | null | undefined,
-  amounts: {
-    basePrice: number;
-    extrasCost: number;
-    fees: number;
-    securityDeposit: number;
-    locationCharges: number;
-    rentalDays: number;
-  },
-): number {
-  if (!taxProfile || taxProfile.items.length === 0) return 0;
-
-  // Determine taxable amount based on profile settings
-  let taxableAmount = 0;
-  if (taxProfile.applicableOnBasePrice) taxableAmount += amounts.basePrice;
-  if (taxProfile.applicableOnExtras) taxableAmount += amounts.extrasCost;
-  if (taxProfile.applicableOnFees) taxableAmount += amounts.fees;
-  if (taxProfile.applicableOnSecurityDeposit) taxableAmount += amounts.securityDeposit;
-  if (taxProfile.applicableOnLocationCharges) taxableAmount += amounts.locationCharges;
-
-  let totalTax = 0;
-  for (const item of taxProfile.items) {
-    if (item.type === 'percentage') {
-      totalTax += taxableAmount * (item.percentage ?? 0) / 100;
-    } else {
-      // Fixed amount — multiply by days if per_day
-      const fixedAmt = item.fixedAmount ?? 0;
-      totalTax += item.tripType === 'per_day' ? fixedAmt * amounts.rentalDays : fixedAmt;
-    }
-  }
-
-  return Math.round(totalTax * 100) / 100;
-}
 
 // Transformer function to convert API data to frontend format
 export function transformApiVehicle(apiVehicle: ApiVehicle): Vehicle {
@@ -341,14 +221,6 @@ export function transformApiVehicle(apiVehicle: ApiVehicle): Vehicle {
     milesPerDay: apiVehicle.booking_rule?.miles_per_day,
     milesOverageRate: apiVehicle.booking_rule?.miles_overage_rate,
     securityDeposit: Number(apiVehicle.booking_rule?.security_deposit) || 0,
-    bookingFee: Number(apiVehicle.booking_rule?.booking_fee) || 0,
-    taxProfile: parseTaxProfile(apiVehicle.booking_rule?.resolved_tax_profile),
-    bookingFeeByLocation: Object.fromEntries(
-      Object.entries(apiVehicle.booking_rule?.booking_fee_by_location ?? {}).map(([id, fee]) => [id, Number(fee) || 0]),
-    ),
-    taxProfileByLocation: Object.fromEntries(
-      Object.entries(apiVehicle.booking_rule?.resolved_tax_profile_by_location ?? {}).map(([id, profile]) => [id, parseTaxProfile(profile)]),
-    ),
     extras: (apiVehicle.booking_rule?.extras || []).map((e) => ({
       id: String(e.id),
       title: e.description,

@@ -1,24 +1,19 @@
 import { useMemo } from 'react';
-import { calculateTax } from '@/types/vehicle';
-import type { TaxProfile, VehicleExtra } from '@/types/vehicle';
-import type { InsuranceOption, ManualInsurancePackage } from '@/services/bookingServices';
-import type { Location } from '@/services/locationServices';
-import { calculateBasePrice, type RateUnit } from '@/lib/api-pricing';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 
-// IMPORTANT — the pricing math here must stay in lock-step with the
-// backend bookings/services.py PricingService. If you change the
-// formula, keep both sides in sync.
+import type { VehicleExtra } from '@/types/vehicle';
+import { getBookingQuote, type BookingQuote, type QuotePayload } from '@/services/bookingServices';
+import { useDebounce } from './use-debounce';
+
+export type RateUnit = 'day' | 'hour';
 
 export interface InvoiceItem {
   image: string;
   name: string;
   licensePlate: string;
   quantity: number;
-  /** Per-unit price (per day or per hour) */
   unitPrice: number;
-  /** Whether the quantity represents days or hours */
   unit: RateUnit;
-  /** @deprecated kept for backwards compat — use `unitPrice` */
   pricePerDay?: number;
   periodLabel?: string;
 }
@@ -28,23 +23,28 @@ export interface ExtraInvoiceItem {
   price: number;
 }
 
+export interface PriceLine {
+  label: string;
+  amount: number;
+}
+
+export interface TaxLine {
+  name: string;
+  amount: number;
+  kind: 'percentage' | 'per_day' | 'per_rental';
+  unit: number;
+  percentage: number;
+  includesFixed: boolean;
+}
+
 export interface BookingPricing {
   subtotal: number;
-  /** The payload these numbers came from covers a different window than
-   *  the dates now selected — React Query keeps the previous fleet
-   *  visible while refetching, so an old average would otherwise be
-   *  multiplied by a new day count. */
   stale: boolean;
   insuranceCost: number;
   extrasCost: number;
   locationCharges: number;
   discount: number;
-  /** Duration-based fleet discount (daily / hourly / weekly tier).
-   *  Surfaced separately so the invoice can render its own line. */
   fleetDiscount: number;
-  /** Highest matching fleet-discount tier — used to label the
-   *  invoice row (e.g. "Weekly discount (20%)"). ``null`` when no
-   *  fleet discount applies. */
   fleetDiscountTier: {
     unitType: 'day' | 'hour' | 'week';
     units: number;
@@ -53,48 +53,32 @@ export interface BookingPricing {
   tax: number;
   total: number;
   deposit: number;
+  depositMode: 'hold' | 'charge_refund';
   bookingFee: number;
-  /** Which rate was applied — drives the invoice display */
   rateUnit: RateUnit;
+  rentalTotal: number;
+  rateLines: PriceLine[];
+  weeklyApplied: boolean;
+  weeklySavings: number;
+  taxLines: TaxLine[];
+  days: number;
 }
 
+type Discount = { unitType: string; units: number; percentage: number };
+
 export interface UseBookingInvoiceParams {
+  quotePayload: QuotePayload | null;
   vehicleData: {
-    pricePerDay: number;
-    pricePerHour?: number;
-    autoCapEnabled?: boolean;
-    /** Per-day rates for the fetched window — what the renter sees
-     *  listed, and what the base price is summed from. */
-    dailyRates?: { rate: number }[] | null;
-    discounts?: { unitType: string; units: number; percentage: number }[];
-    securityDeposit?: number;
-    bookingFee?: number;
-    taxProfile?: TaxProfile | null;
     image: string;
     name: string;
     licensePlate: string;
-    description: string;
+    pricePerDay: number;
+    discounts?: Discount[];
     extras: VehicleExtra[];
   } | null;
-  rentalDays: number;
-  /** Total booked hours (rounded up to nearest hour, min 1) */
-  rentalHours: number;
-  /** Pickup date as YYYY-MM-DD — used to compute Bonzah-style insurance day count */
-  pickupDate?: string;
-  /** Dropoff date as YYYY-MM-DD */
-  dropoffDate?: string;
   selectedInsurance: Set<string>;
-  insuranceOptions: InsuranceOption[];
-  /** Tenant-managed insurance packages the renter selected (may be
-   *  empty). Priced per-day; each contributes ``dailyRate * days`` to
-   *  the checkout preview. */
-  selectedManualPackages?: ManualInsurancePackage[];
   selectedExtras: Record<string, { enabled: boolean; quantity: number }>;
-  companyLocations: Location[];
-  pickupLocationId: string | null;
-  dropoffLocationId: string | null;
   appliedDiscount: number;
-  discountCode?: string;
 }
 
 export interface BookingInvoiceResult {
@@ -103,209 +87,132 @@ export interface BookingInvoiceResult {
   extraInvoiceItems: ExtraInvoiceItem[];
   extrasById: Record<string, number>;
   insuranceLabel: string;
+  quote: BookingQuote | undefined;
+}
+
+const num = (value: unknown) => {
+  const n = Number(value ?? 0);
+  return Number.isFinite(n) ? n : 0;
+};
+
+const EMPTY: BookingPricing = {
+  subtotal: 0, stale: true, insuranceCost: 0, extrasCost: 0, locationCharges: 0,
+  discount: 0, fleetDiscount: 0, fleetDiscountTier: null, tax: 0, total: 0,
+  deposit: 0, depositMode: 'hold', bookingFee: 0, rateUnit: 'day', rentalTotal: 0,
+  rateLines: [], weeklyApplied: false, weeklySavings: 0, taxLines: [], days: 0,
+};
+
+function taxLinesFrom(quote: BookingQuote): TaxLine[] {
+  return (quote.breakdown.tax_details?.tax_breakdown ?? [])
+    .map((line) => ({
+      name: line.tax_name,
+      amount: num(line.tax_amount),
+      kind: (line.tax_type === 'percentage'
+        ? 'percentage'
+        : line.trip_type === 'per_day'
+          ? 'per_day'
+          : 'per_rental') as TaxLine['kind'],
+      unit: num(line.fixed_amount),
+      percentage: num(line.percentage),
+      includesFixed: !!line.includes_fixed,
+    }))
+    .filter((line) => line.amount !== 0);
+}
+
+function bestTier(
+  discounts: Discount[] | undefined,
+  fleetDiscount: number,
+  days: number,
+): BookingPricing['fleetDiscountTier'] {
+  if (fleetDiscount <= 0 || !discounts?.length) return null;
+  const weeks = Math.floor(days / 7);
+  const fits = discounts.filter((d) =>
+    d.unitType === 'week' ? weeks > 0 && d.units <= weeks : d.unitType === 'day' && d.units <= days,
+  );
+  const top = fits.sort((a, b) => b.percentage - a.percentage)[0];
+  return top ? { unitType: top.unitType as 'day' | 'week', units: top.units, percentage: top.percentage } : null;
 }
 
 export function useBookingInvoice({
+  quotePayload,
   vehicleData,
-  rentalDays,
-  rentalHours,
   selectedInsurance,
-  insuranceOptions,
-  selectedManualPackages,
   selectedExtras,
-  companyLocations,
-  pickupLocationId,
-  dropoffLocationId,
   appliedDiscount,
-  discountCode,
 }: UseBookingInvoiceParams): BookingInvoiceResult {
-  const extras = vehicleData?.extras ?? [];
-
-  // Compute base price using the same strategy as the backend
-  const basePrice = useMemo(() => {
-    if (!vehicleData) return null;
-    return calculateBasePrice({
-      pricePerDay: vehicleData.pricePerDay || 0,
-      pricePerHour: vehicleData.pricePerHour || 0,
-      rentalDays,
-      rentalHours,
-      autoCapEnabled: vehicleData.autoCapEnabled !== false,
-      dailyRates: vehicleData.dailyRates,
-    });
-  }, [vehicleData, rentalDays, rentalHours]);
+  const payload = useDebounce(quotePayload, 250);
+  const pending = JSON.stringify(payload) !== JSON.stringify(quotePayload);
+  const { data: quote, isFetching } = useQuery({
+    queryKey: ['booking-quote', payload],
+    queryFn: () => getBookingQuote(payload!),
+    enabled: !!payload,
+    placeholderData: keepPreviousData,
+    staleTime: 30_000,
+    retry: false,
+  });
 
   const pricing = useMemo<BookingPricing>(() => {
-    if (!vehicleData || !basePrice) {
-      return {
-        stale: false,
-        subtotal: 0, insuranceCost: 0, extrasCost: 0, locationCharges: 0,
-        discount: 0, fleetDiscount: 0, fleetDiscountTier: null,
-        tax: 0, total: 0, deposit: 0, bookingFee: 0,
-        rateUnit: 'day',
-      };
-    }
-
-    const baseSubtotal = basePrice.total;
-
-    let insuranceCost = 0;
-    if (selectedInsurance.size > 0 && !selectedInsurance.has('own')) {
-      selectedInsurance.forEach((id) => {
-        const option = insuranceOptions.find((opt) => opt.id === id);
-        if (option) insuranceCost += option.totalPrice ?? option.price * rentalDays;
-      });
-    }
-    let manualInsuranceCost = 0;
-    if (selectedManualPackages && selectedManualPackages.length > 0) {
-      for (const pkg of selectedManualPackages) {
-        manualInsuranceCost += (pkg.dailyRate || 0) * rentalDays;
-      }
-    }
-    insuranceCost += manualInsuranceCost;
-
-    // Extras cost
-    let extrasCost = 0;
-    Object.entries(selectedExtras).forEach(([id, state]) => {
-      if (state.enabled) {
-        const extra = extras.find((e) => e.id === id);
-        if (extra) {
-          const quantity = state.quantity || 1;
-          const cost = extra.priceUnit === '/day'
-            ? extra.price * quantity * rentalDays
-            : extra.price * quantity;
-          extrasCost += cost;
-        }
-      }
-    });
-
-    // Location charges from selected pickup + dropoff locations
-    const pickupLoc = companyLocations.find((loc) => loc.id === pickupLocationId);
-    const dropoffLoc = companyLocations.find((loc) => loc.id === dropoffLocationId);
-    const pickupPrice = pickupLoc?.pickupFee ?? pickupLoc?.price ?? 0;
-    const dropoffPrice = pickupLocationId === dropoffLocationId
-      ? 0
-      : (dropoffLoc?.dropoffFee ?? dropoffLoc?.price ?? 0);
-    const locationCharges = pickupPrice + dropoffPrice;
-
-    // Fleet discount based on duration (mirrors backend
-    // ``DiscountCalculator``): hourly bookings only consider hour
-    // tiers; daily bookings consider day AND week tiers and apply
-    // whichever tier yields the largest percentage.
-    let fleetDiscount = 0;
-    let fleetDiscountTier: BookingPricing['fleetDiscountTier'] = null;
-    if (vehicleData.discounts && vehicleData.discounts.length > 0) {
-      const isHourly = basePrice.unit === 'hour';
-      const quantity = basePrice.quantity;
-      const weeks = Math.floor(quantity / 7);
-      let best: { unitType: 'day' | 'hour' | 'week'; units: number; percentage: number } | null = null;
-      for (const d of vehicleData.discounts) {
-        let qualifies = false;
-        if (isHourly) {
-          qualifies = d.unitType === 'hour' && d.units <= quantity;
-        } else if (d.unitType === 'day') {
-          qualifies = d.units <= quantity;
-        } else if (d.unitType === 'week') {
-          qualifies = weeks > 0 && d.units <= weeks;
-        }
-        if (qualifies && (!best || d.percentage > best.percentage)) {
-          best = {
-            unitType: d.unitType as 'day' | 'hour' | 'week',
-            units: d.units,
-            percentage: d.percentage,
-          };
-        }
-      }
-      if (best) {
-        fleetDiscount = baseSubtotal * (best.percentage / 100);
-        fleetDiscountTier = best;
-      }
-    }
-
-    const subtotal = baseSubtotal + insuranceCost + extrasCost;
-    const discount = appliedDiscount + fleetDiscount;
-    const deposit = vehicleData.securityDeposit || 0;
-    const bookingFee = vehicleData.bookingFee || 0;
-
-    // The vehicle's effective profile, already resolved by the backend —
-    // no profile means the operator left this vehicle untaxed, so no
-    // tax. Falling back to the company default here is what quoted a
-    // tax line the Stripe charge never carried.
-    // Tax must run against the DISCOUNTED rental base — the backend
-    // applies tax after duration/promo discounts are deducted, so taxing
-    // the undiscounted figure here would over-quote (off by tax%×discount).
-    const taxableBase = Math.max(0, baseSubtotal - fleetDiscount - appliedDiscount);
-    const tax = calculateTax(vehicleData.taxProfile ?? null, {
-      basePrice: taxableBase,
-      extrasCost,
-      fees: bookingFee,
-      securityDeposit: deposit,
-      locationCharges,
-      rentalDays,
-    });
-
-    const total = subtotal - discount + tax + locationCharges + bookingFee;
-
-    // Day rows that do not cover the selected days mean this payload was
-    // fetched for a different window, so every figure derived from it is
-    // about a trip the renter is no longer asking for.
-    const rowCount = (vehicleData.dailyRates ?? []).length;
-    const stale =
-      basePrice.unit === 'day' && rowCount > 0 && rowCount !== rentalDays;
-
+    if (!quote) return EMPTY;
+    const b = quote.breakdown;
+    const days = num(b.booking_days);
+    const lines = (b.rate_lines ?? []).map((line) => ({ label: line.label, amount: num(line.amount) }));
+    const fleetDiscount = num(b.fleet_discount);
+    const insuranceCost = num(quote.insurance_premium) + num(b.manual_insurance_total);
+    const extrasCost = num(b.extras_price);
+    const rentalTotal = num(b.base_price);
+    const hourly = (b.rate_lines ?? [])[0]?.unit === 'hr';
     return {
-      stale,
-      subtotal, insuranceCost, extrasCost, locationCharges,
-      discount, fleetDiscount, fleetDiscountTier,
-      tax, total, deposit, bookingFee,
-      rateUnit: basePrice.unit,
+      stale: pending || isFetching,
+      subtotal: rentalTotal + insuranceCost + extrasCost,
+      insuranceCost,
+      extrasCost,
+      locationCharges: num(b.location_charges),
+      discount: fleetDiscount + appliedDiscount,
+      fleetDiscount,
+      fleetDiscountTier: bestTier(vehicleData?.discounts, fleetDiscount, days),
+      tax: num(b.tax),
+      total: num(quote.total) - num(quote.abi_premium),
+      deposit: num(quote.deposit.amount),
+      depositMode: quote.deposit.mode,
+      bookingFee: num(b.fees),
+      rateUnit: hourly ? 'hour' : 'day',
+      rentalTotal,
+      rateLines: lines.filter((line) => line.amount >= 0),
+      weeklyApplied: !!b.weekly_applied,
+      weeklySavings: num(b.weekly_savings),
+      taxLines: taxLinesFrom(quote),
+      days,
     };
-  }, [vehicleData, rentalDays, basePrice, appliedDiscount, selectedInsurance, insuranceOptions, selectedManualPackages, selectedExtras, extras, companyLocations, pickupLocationId, dropoffLocationId]);
+  }, [quote, pending, isFetching, appliedDiscount, vehicleData?.discounts]);
+
+  const extras = vehicleData?.extras ?? [];
+  const extraInvoiceItems = useMemo<ExtraInvoiceItem[]>(() => {
+    const byId = quote?.breakdown.extras_by_id ?? {};
+    return extras
+      .filter((extra) => selectedExtras[extra.id]?.enabled)
+      .map((extra) => ({ name: extra.title, price: num(byId[extra.id]) }));
+  }, [quote, extras, selectedExtras]);
+
+  const extrasById = useMemo<Record<string, number>>(() => {
+    const byId = quote?.breakdown.extras_by_id ?? {};
+    return Object.fromEntries(Object.entries(byId).map(([id, amount]) => [id, num(amount)]));
+  }, [quote]);
 
   const invoiceItems = useMemo<InvoiceItem[]>(() => {
-    if (!vehicleData || !basePrice) return [];
+    if (!vehicleData || !quote) return [];
+    const first = quote.breakdown.rate_lines?.[0];
     return [
       {
         image: vehicleData.image,
         name: `${vehicleData.name}${vehicleData.licensePlate ? ` - ${vehicleData.licensePlate}` : ''}`,
         licensePlate: vehicleData.licensePlate,
-        quantity: basePrice.quantity,
-        unitPrice: basePrice.unitPrice,
-        unit: basePrice.unit,
+        quantity: first ? num(first.quantity) : pricing.days,
+        unitPrice: first ? num(first.unit_price) : vehicleData.pricePerDay,
+        unit: pricing.rateUnit,
         pricePerDay: vehicleData.pricePerDay,
       },
     ];
-  }, [vehicleData, basePrice]);
-
-  const extraInvoiceItems = useMemo<ExtraInvoiceItem[]>(() => {
-    const items: ExtraInvoiceItem[] = [];
-    Object.entries(selectedExtras).forEach(([id, state]) => {
-      if (state.enabled) {
-        const extra = extras.find((e) => e.id === id);
-        if (extra) {
-          const quantity = state.quantity || 1;
-          const cost = extra.priceUnit === '/day'
-            ? extra.price * quantity * rentalDays
-            : extra.price * quantity;
-          items.push({ name: extra.title, price: cost });
-        }
-      }
-    });
-    return items;
-  }, [selectedExtras, extras, rentalDays]);
-
-  const extrasById = useMemo<Record<string, number>>(() => {
-    const map: Record<string, number> = {};
-    Object.entries(selectedExtras).forEach(([id, state]) => {
-      if (!state.enabled) return;
-      const extra = extras.find((e) => e.id === id);
-      if (!extra) return;
-      const quantity = state.quantity || 1;
-      map[id] =
-        extra.priceUnit === '/day'
-          ? extra.price * quantity * rentalDays
-          : extra.price * quantity;
-    });
-    return map;
-  }, [selectedExtras, extras, rentalDays]);
+  }, [vehicleData, quote, pricing.days, pricing.rateUnit]);
 
   const insuranceLabel = useMemo(() => {
     if (selectedInsurance.size > 0 && !selectedInsurance.has('own')) {
@@ -314,5 +221,5 @@ export function useBookingInvoice({
     return '';
   }, [selectedInsurance]);
 
-  return { pricing, invoiceItems, extraInvoiceItems, extrasById, insuranceLabel };
+  return { pricing, invoiceItems, extraInvoiceItems, extrasById, insuranceLabel, quote };
 }

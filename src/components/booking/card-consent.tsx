@@ -1,6 +1,8 @@
 'use client';
 
 import { Dyn } from '@/components/i18n/Dyn';
+import { depositNotice } from '@/lib/price-rows';
+import type { BookingPricing } from '@/hooks/useBookingInvoice';
 
 interface CardConsentProps {
   checked: boolean;
@@ -9,15 +11,12 @@ interface CardConsentProps {
   /** Deposit the renter will be asked for, so the notice can say what
    *  actually happens rather than a generic line. */
   depositAmount?: number;
-  /** Charged up front and refunded, rather than held on the card. */
-  depositChargedUpfront?: boolean;
+  depositMode?: BookingPricing['depositMode'];
   /** PRD E8.6 makes consent mandatory at website checkout; E8.5 lets a
    *  renter paying a link decline and pay anyway. */
   required?: boolean;
   /** Shown once they've tried to continue without ticking. */
 }
-
-const money = (n: number) => `$${n.toFixed(2)}`;
 
 /** The authorization a renter gives before their card is kept for
  *  incidentals, plus what happens to their deposit.
@@ -32,11 +31,9 @@ export function CardConsent({
   onChange,
   companyName,
   depositAmount,
-  depositChargedUpfront = false,
+  depositMode = 'hold',
   required = false,
 }: CardConsentProps) {
-  const hasDeposit = typeof depositAmount === 'number' && depositAmount > 0;
-
   return (
     <div className="mt-3 rounded-[10px] border border-line bg-white px-3.5 py-3">
       <label className="flex cursor-pointer items-start gap-2.5">
@@ -58,19 +55,7 @@ export function CardConsent({
       </label>
 
       <p className="mt-1.5 pl-[24px] text-[11px] leading-[1.45] text-faint">
-        {hasDeposit ? (
-          depositChargedUpfront ? (
-            <Dyn>
-              {`${money(depositAmount!)} deposit charged at checkout, refunded after return and inspection.`}
-            </Dyn>
-          ) : (
-            <Dyn>
-              {`${money(depositAmount!)} held at pick-up, released after inspection.`}
-            </Dyn>
-          )
-        ) : (
-          <Dyn>No security deposit.</Dyn>
-        )}
+        <Dyn>{`${depositNotice(depositAmount ?? 0, depositMode)}.`}</Dyn>
       </p>
     </div>
   );

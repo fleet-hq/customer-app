@@ -20,8 +20,8 @@ import { useBookingInvoice } from '@/hooks/useBookingInvoice';
 import { useBookingVerificationPolicy, useStartVerificationFirstBooking } from '@/hooks/useBookingPolicy';
 import { getBookingVerificationPolicy } from '@/services/bookingPolicyServices';
 import { useDefaultLocation } from '@/contexts';
-import { checkFleetAvailability, tripLocations, validatePromoCode } from '@/services/bookingServices';
-import type { InsuranceOption } from '@/services/bookingServices';
+import { checkFleetAvailability, checkoutBody, validatePromoCode } from '@/services/bookingServices';
+import type { InsuranceOption, QuotePayload } from '@/services/bookingServices';
 import { toUtcIso } from '@/utils/datetime';
 import { todayISO } from '@/lib/time-slots';
 import { rentalDays } from '@/lib/utils';
@@ -35,7 +35,6 @@ import { useAbiQuote } from '@/hooks/useAbi';
 import type { AbiQuoteAvailable } from '@/services/abiServices';
 import { useDynamicTranslation } from '@/hooks/useDynamicTranslation';
 import { pickDefaultLocation } from '@/lib/locations';
-import { chargesAtLocation } from '@/types/vehicle';
 import { extractApiErrorMessage } from './fleet-detail-shared';
 import { trackVehicleView, trackBeginCheckout } from '@/lib/tracking-events';
 
@@ -284,16 +283,6 @@ export function useFleetDetail(carId: string) {
   }, [companyLocations, defaultLoc, pickupLocId]);
 
   const days = rentalDays(pickupDate, returnDate, pickupTime, returnTime);
-  const rentalHours = useMemo(() => {
-    const pickupMs = fleetTz
-      ? Date.parse(toUtcIso(pickupDate, pickupTime || '00:00', fleetTz))
-      : new Date(`${pickupDate}T${pickupTime || '00:00'}:00`).getTime();
-    const dropoffMs = fleetTz
-      ? Date.parse(toUtcIso(returnDate, returnTime || '00:00', fleetTz))
-      : new Date(`${returnDate}T${returnTime || '00:00'}:00`).getTime();
-    if (Number.isNaN(pickupMs) || Number.isNaN(dropoffMs)) return Math.max(1, days * 24);
-    return Math.max(1, Math.ceil((dropoffMs - pickupMs) / 3600000));
-  }, [pickupDate, pickupTime, returnDate, returnTime, days, fleetTz]);
 
   const minDuration = vehicle?.minDuration ?? 1;
   const isHourlyFleet = (vehicle?.pricePerHour ?? 0) > 0;
@@ -334,21 +323,53 @@ export function useFleetDetail(carId: string) {
       vehicle
         ? {
             pricePerDay: vehicle.pricePerDay,
-            pricePerHour: vehicle.pricePerHour,
-            autoCapEnabled: vehicle.autoCapEnabled,
-            dailyRates: vehicle.dailyRates,
             discounts: vehicle.discounts,
-            securityDeposit: vehicle.securityDeposit,
-            ...chargesAtLocation(vehicle, pickupLocId),
             image: vehicle.images?.[0] ?? PLACEHOLDER_IMAGE,
             name: vehicle.name,
             licensePlate: vehicle.licensePlate,
-            description: vehicle.description ?? '',
             extras: vehicle.extras ?? [],
           }
         : null,
-    [vehicle, pickupLocId],
+    [vehicle],
   );
+
+  const quotePayload = useMemo<QuotePayload | null>(() => {
+    if (!vehicle || !fleetDateArgs) return null;
+    const manualIds = Array.from(selectedManualIds);
+    const activeExtraItems = (vehicle.extras ?? [])
+      .filter((x) => (extras[x.id] || 0) > 0)
+      .map((x) => ({ id: Number(x.id), quantity: extras[x.id] }))
+      .filter((x) => !Number.isNaN(x.id));
+    return {
+      fleet_id: Number(vehicle.id),
+      pickup_datetime: fleetDateArgs.pickupDatetime,
+      dropoff_datetime: fleetDateArgs.dropoffDatetime,
+      pickup_location_id: Number(pickupLocId ?? defaultLoc?.id ?? 0),
+      dropoff_location_id: Number(dropoffLocId ?? pickupLocId ?? defaultLoc?.id ?? 0),
+      insurance_selected: !selectedInsurance.has('own') && selectedInsurance.size > 0,
+      cdw_cover: selectedInsurance.has('cdw'),
+      rcli_cover: selectedInsurance.has('rcli'),
+      sli_cover: selectedInsurance.has('sli'),
+      pai_cover: selectedInsurance.has('pai'),
+      ...(manualIds.length > 0 ? { manual_insurance_package_ids: manualIds } : {}),
+      extras: activeExtraItems.length > 0 ? activeExtraItems : undefined,
+      abi_coverage: !!abiAvailable && abiOptedIn,
+      ...(promoApplied && promoCode ? { promo_code: promoCode } : {}),
+    };
+  }, [
+    vehicle,
+    fleetDateArgs,
+    pickupLocId,
+    dropoffLocId,
+    defaultLoc?.id,
+    extras,
+    selectedInsurance,
+    selectedManualIds,
+    abiAvailable,
+    abiOptedIn,
+    promoApplied,
+    promoCode,
+  ]);
 
   const selectedManualPackages = useMemo(() => {
     const list = manualInsurancePackages ?? [];
@@ -361,20 +382,11 @@ export function useFleetDetail(carId: string) {
   );
 
   const { pricing, extraInvoiceItems, extrasById, insuranceLabel } = useBookingInvoice({
+    quotePayload,
     vehicleData,
-    rentalDays: days,
-    rentalHours,
-    pickupDate,
-    dropoffDate: returnDate,
     selectedInsurance,
-    insuranceOptions: insuranceOptions ?? [],
-    selectedManualPackages,
     selectedExtras,
-    companyLocations: companyLocations ?? [],
-    pickupLocationId: pickupLocId,
-    dropoffLocationId: dropoffLocId,
     appliedDiscount: promoApplied ? promoDiscount : 0,
-    discountCode: promoApplied ? promoCode : undefined,
   });
 
   useEffect(() => {
@@ -561,14 +573,12 @@ export function useFleetDetail(carId: string) {
     abiAvailable,
     abiPremium,
     days,
-    rentalHours,
     minDuration,
     isHourlyFleet,
     meetsMinDuration,
     // The fleet payload is kept on screen while a date change refetches,
     // so its figures can belong to the previous window. Both templates
     // use this to stop presenting them as final.
-    pricingStale: pricing.stale,
     // One rule for both templates. The agreement and the card
     // authorization are the renter's two consents, and neither is
     // optional, so neither lets the button through.
@@ -713,16 +723,14 @@ export function useFleetDetail(carId: string) {
       return;
     }
 
-    const tzPickup = companyLocations?.find((l) => String(l.id) === pickupLocId)?.timezone ?? null;
-    const tz = tzPickup ?? defaultLoc?.timezone ?? null;
-    if (!tz) {
+    if (!quotePayload || !fleetTz) {
       setCheckoutError("Couldn't determine the rental location's timezone, please refresh.");
       return;
     }
 
-    const toIso = (d: string, t: string) => toUtcIso(d, t, tz);
-    const pickupDatetime = toIso(pickupDate, pickupTime);
-    const dropoffDatetime = toIso(returnDate, returnTime);
+    const tz = fleetTz;
+    const pickupDatetime = quotePayload.pickup_datetime;
+    const dropoffDatetime = quotePayload.dropoff_datetime;
 
     const conflict = firstBlockInSpan(
       unavailableRanges,
@@ -757,16 +765,6 @@ export function useFleetDetail(carId: string) {
       days,
     });
 
-    const pickupLocationId = Number(pickupLocId ?? defaultLoc?.id ?? 0);
-    const dropoffLocationId = Number(dropoffLocId ?? pickupLocId ?? defaultLoc?.id ?? 0);
-    const firstName = fields.firstName.trim();
-    const lastName = fields.lastName.trim();
-    const licenseNo = fields.license.trim();
-    const activeExtraItems = vehicle.extras
-      .filter((x) => (extras[x.id] || 0) > 0)
-      .map((x) => ({ id: Number(x.id), quantity: extras[x.id] }))
-      .filter((x) => !Number.isNaN(x.id));
-    const insuranceSelected = !selectedInsurance.has('own') && selectedInsurance.size > 0;
     const origin = window.location.origin;
 
     let freshPolicyMode = verificationPolicy?.mode;
@@ -776,8 +774,6 @@ export function useFleetDetail(carId: string) {
     } catch {
       void 0;
     }
-
-    const manualIds = Array.from(selectedManualIds);
 
     if (rentalAgreementRequired && !rentalAgreementSignature) {
       setCheckoutError('Please review and sign the rental agreement before continuing.');
@@ -789,33 +785,21 @@ export function useFleetDetail(carId: string) {
       ? { signature_image: rentalAgreementSignature }
       : {};
 
-    if (freshPolicyMode === 'before') {
-      const sharedPayload = {
-        card_consent: cardConsent,
-        first_name: firstName,
-        last_name: lastName,
+    const commonPayload = {
+      ...quotePayload,
+      card_consent: cardConsent,
+      customer: {
+        first_name: fields.firstName.trim(),
+        last_name: fields.lastName.trim(),
         email: fields.email.trim(),
-        phone: fields.phone.trim().slice(0, 15),
-        license_no: licenseNo,
-        fleet_id: Number(vehicle.id),
-        ...tripLocations(pickupLocationId, dropoffLocationId),
-        pickup_datetime: pickupDatetime,
-        dropoff_datetime: dropoffDatetime,
-        insurance_selected: insuranceSelected,
-        cdw_cover: selectedInsurance.has('cdw'),
-        rcli_cover: selectedInsurance.has('rcli'),
-        sli_cover: selectedInsurance.has('sli'),
-        pai_cover: selectedInsurance.has('pai'),
-        ...(manualIds.length > 0 ? { manual_insurance_package_ids: manualIds } : {}),
-        extras: activeExtraItems.length > 0 ? activeExtraItems : [],
-        fuel_pre_purchase: false,
-        additional_drivers: 0,
-        notes: '',
-        abi_coverage: !!abiAvailable && abiOptedIn,
-        ...(promoApplied && promoCode ? { promo_code: promoCode } : {}),
-        ...signaturePayload,
-      };
-      startVerification.mutate(sharedPayload as Record<string, unknown>, {
+        phone_no: fields.phone.trim().slice(0, 15),
+        license_no: fields.license.trim(),
+      },
+      ...signaturePayload,
+    };
+
+    if (freshPolicyMode === 'before') {
+      startVerification.mutate(checkoutBody(commonPayload), {
         onSuccess: (data) => {
           if (embed.embedded) embed.reportBookingComplete(data.booking_id);
           try { window.sessionStorage.removeItem(persistKey); } catch { /* ignore */ }
@@ -829,35 +813,6 @@ export function useFleetDetail(carId: string) {
       });
       return;
     }
-
-    const commonPayload = {
-      // Checkout keeps a reusable card with the provider either way; this
-      // is what tells the server it may actually file it. reserve() has
-      // already refused to get here without the tick.
-      card_consent: cardConsent,
-      fleet_id: Number(vehicle.id),
-      customer: {
-        first_name: firstName,
-        last_name: lastName,
-        email: fields.email.trim(),
-        phone_no: fields.phone.trim().slice(0, 15),
-        license_no: licenseNo,
-      },
-      pickup_datetime: pickupDatetime,
-      dropoff_datetime: dropoffDatetime,
-      pickup_location_id: pickupLocationId,
-      dropoff_location_id: dropoffLocationId,
-      insurance_selected: insuranceSelected,
-      cdw_cover: selectedInsurance.has('cdw'),
-      rcli_cover: selectedInsurance.has('rcli'),
-      sli_cover: selectedInsurance.has('sli'),
-      pai_cover: selectedInsurance.has('pai'),
-      ...(manualIds.length > 0 ? { manual_insurance_package_ids: manualIds } : {}),
-      extras: activeExtraItems.length > 0 ? activeExtraItems : undefined,
-      abi_coverage: !!abiAvailable && abiOptedIn,
-      ...(promoApplied && promoCode ? { promo_code: promoCode } : {}),
-      ...signaturePayload,
-    };
 
     // NMI: no hosted page exists to send the renter to, so the hold is
     // placed first and the card is taken in a payment window over this
@@ -873,7 +828,7 @@ export function useFleetDetail(carId: string) {
           pendingId: data.pending_id,
           amount: Number(data.amount) || pricing.total,
           currency: data.currency || 'usd',
-          deposit: Number((vehicle as { securityDeposit?: number })?.securityDeposit) || 0,
+          deposit: pricing.deposit,
         });
       } catch (error) {
         setCheckoutError(

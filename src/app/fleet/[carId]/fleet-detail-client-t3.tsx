@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Dyn } from '@/components/i18n/Dyn';
 import { CardConsent } from '@/components/booking/card-consent';
+import { depositSummary, rateRows, taxRows, weeklySavingText } from '@/lib/price-rows';
 import { NmiPayModal } from '@/components/booking/nmi-pay-modal';
 import { RentalAgreementSignModal } from '@/components/booking/rental-agreement-sign-modal';
 import { EmbedPaymentPanel } from '@/components/checkout/embed-payment-panel';
@@ -132,6 +133,8 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
   } = fd;
 
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  const rateLines = rateRows(pricing);
+  const savingText = weeklySavingText(pricing);
   const hero = galleryImages[0];
   const second = galleryImages[1];
   const third = galleryImages[2];
@@ -416,7 +419,7 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
                   returnUrl={`${origin}/booking/success?session_id=${embedIntent.pendingId}`}
                   amount={embedIntent.amount}
                   currency={embedIntent.currency}
-                  depositAmount={Number(vehicle?.securityDeposit) || 0}
+                  depositAmount={pricing.deposit}
                   tenantName={tenant?.name}
                   onCancel={() => {
                     fd.releaseNow();
@@ -479,13 +482,23 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
               <div className="ln">
                 <span>
                   <Dyn>Car rental</Dyn>
-                  <small>
-                    {money(Number(vehicle.pricePerDay) || 0)} × {days}{' '}
-                    <Dyn>{days === 1 ? 'day' : 'days'}</Dyn>
-                  </small>
+                  {rateLines.length === 1 ? <small>{rateLines[0].label}</small> : null}
                 </span>
-                <span>{money(pricing.subtotal)}</span>
+                <span>{money(pricing.rentalTotal)}</span>
               </div>
+              {rateLines.length > 1
+                ? rateLines.map((row) => (
+                    <div className="ln mut" key={row.key}>
+                      <span>{row.label}</span>
+                      <span>{money(row.amount)}</span>
+                    </div>
+                  ))
+                : null}
+              {savingText ? (
+                <p className="note">
+                  <Dyn>{savingText}</Dyn>
+                </p>
+              ) : null}
 
               <h5>
                 <Dyn>Protection</Dyn>
@@ -573,22 +586,14 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
                   <span>{money(pricing.bookingFee)}</span>
                 </div>
               ) : null}
-              {pricing.tax > 0 ? (
-                <div className="ln">
+              {taxRows(pricing).map((row) => (
+                <div className="ln" key={row.key}>
                   <span>
-                    <Dyn>Tax</Dyn>
+                    <Dyn>{row.label}</Dyn>
                   </span>
-                  <span>{money(pricing.tax)}</span>
+                  <span>{money(row.amount)}</span>
                 </div>
-              ) : null}
-              {pricing.deposit > 0 ? (
-                <div className="ln">
-                  <span>
-                    <Dyn>Security deposit</Dyn> <small className="inline">(<Dyn>refundable</Dyn>)</small>
-                  </span>
-                  <span>{money(pricing.deposit)}</span>
-                </div>
-              ) : null}
+              ))}
             </section>
 
             <section>
@@ -601,14 +606,9 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
                   <b>{money(total)}</b>
                 </div>
               </div>
-              {pricing.deposit > 0 ? (
-                <p className="note">
-                  <Dyn>Includes a refundable</Dyn> {money(pricing.deposit)}{' '}
-                  <Dyn>
-                    security deposit, returned after your rental minus any damage claims.
-                  </Dyn>
-                </p>
-              ) : null}
+              <p className="note">
+                <Dyn>Security deposit</Dyn>: <Dyn>{depositSummary(pricing.deposit, pricing.depositMode)}</Dyn>
+              </p>
             </section>
 
             <section className="sum-act">
@@ -616,7 +616,8 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
                 checked={cardConsent}
                 onChange={setCardConsent}
                 companyName={tenant.name}
-                depositAmount={Number(vehicle?.securityDeposit) || 0}
+                depositAmount={pricing.deposit}
+                depositMode={pricing.depositMode}
               />
 
               {rentalAgreementRequired ? (

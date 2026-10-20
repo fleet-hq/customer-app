@@ -1020,17 +1020,10 @@ export function tripLocations(pickupLocationId: number, dropoffLocationId?: numb
   };
 }
 
-export async function startEmbedBookingPayment(
-  payload: CreateBookingPayload,
-  options: { provider?: 'stripe' | 'square' } = {},
-): Promise<StartEmbedPaymentResponse> {
-  const domainParams = getDomainParams();
-  const body = {
-    first_name: payload.customer.first_name,
-    last_name: payload.customer.last_name,
-    email: payload.customer.email,
-    phone: payload.customer.phone_no.slice(0, 15),
-    ...(payload.customer.license_no ? { license_no: payload.customer.license_no } : {}),
+export type QuotePayload = Omit<CreateBookingPayload, 'customer' | 'signature_image' | 'card_consent'>;
+
+function tripBody(payload: QuotePayload) {
+  return {
     fleet_id: payload.fleet_id,
     ...tripLocations(payload.pickup_location_id, payload.dropoff_location_id),
     pickup_datetime: payload.pickup_datetime,
@@ -1049,9 +1042,82 @@ export async function startEmbedBookingPayment(
       ? { manual_insurance_package_ids: payload.manual_insurance_package_ids }
       : {}),
     ...(payload.promo_code ? { promo_code: payload.promo_code } : {}),
-    ...(options.provider ? { provider: options.provider } : {}),
+  };
+}
+
+export function checkoutBody(payload: CreateBookingPayload) {
+  return {
+    first_name: payload.customer.first_name,
+    last_name: payload.customer.last_name,
+    email: payload.customer.email,
+    phone: payload.customer.phone_no.slice(0, 15),
+    ...(payload.customer.license_no ? { license_no: payload.customer.license_no } : {}),
+    ...tripBody(payload),
     ...(payload.signature_image ? { signature_image: payload.signature_image } : {}),
     ...(payload.card_consent ? { card_consent: true } : {}),
+  };
+}
+
+export interface QuoteRateLine {
+  label: string;
+  quantity: number;
+  unit: string;
+  unit_price: string;
+  amount: string;
+}
+
+export interface QuoteTaxLine {
+  tax_name: string;
+  tax_type: string;
+  trip_type: string;
+  percentage: string | null;
+  fixed_amount: string | null;
+  tax_amount: string;
+  includes_fixed?: boolean;
+}
+
+export interface BookingQuote {
+  breakdown: {
+    base_price: string;
+    discounted_price: string;
+    total_discount: string;
+    fleet_discount: string;
+    booking_days: number;
+    rate_lines: QuoteRateLine[];
+    weekly_applied: boolean;
+    weekly_savings: string;
+    extras_price: string;
+    extras_by_id: Record<string, string>;
+    manual_insurance_total: string;
+    fees: string;
+    location_charges: string;
+    subtotal: string;
+    tax: string;
+    tax_details: { tax_breakdown?: QuoteTaxLine[] };
+    total: string;
+  };
+  insurance_premium: string | null;
+  abi_premium: string | null;
+  total: string;
+  deposit: { amount: string; mode: 'hold' | 'charge_refund' };
+}
+
+export async function getBookingQuote(payload: QuotePayload): Promise<BookingQuote> {
+  const res = await axios.post<BookingQuote>(`${API_URL}/api/bookings/public/quote/`, tripBody(payload), {
+    params: getDomainParams(),
+    headers: { 'Content-Type': 'application/json' },
+  });
+  return res.data;
+}
+
+export async function startEmbedBookingPayment(
+  payload: CreateBookingPayload,
+  options: { provider?: 'stripe' | 'square' } = {},
+): Promise<StartEmbedPaymentResponse> {
+  const domainParams = getDomainParams();
+  const body = {
+    ...checkoutBody(payload),
+    ...(options.provider ? { provider: options.provider } : {}),
   };
   const res = await axios.post<StartEmbedPaymentResponse>(
     `${API_URL}/api/bookings/public/start-embed-payment/`,
@@ -1088,32 +1154,8 @@ export async function startBookingCheckout(
 ): Promise<StartCheckoutResponse> {
   const domainParams = getDomainParams();
   const body = {
-    first_name: payload.customer.first_name,
-    last_name: payload.customer.last_name,
-    email: payload.customer.email,
-    phone: payload.customer.phone_no.slice(0, 15),
-    ...(payload.customer.license_no ? { license_no: payload.customer.license_no } : {}),
-    fleet_id: payload.fleet_id,
-    ...tripLocations(payload.pickup_location_id, payload.dropoff_location_id),
-    pickup_datetime: payload.pickup_datetime,
-    dropoff_datetime: payload.dropoff_datetime,
-    extras: payload.extras || [],
-    additional_drivers: 0,
-    fuel_pre_purchase: false,
-    notes: '',
-    insurance_selected: payload.insurance_selected,
-    abi_coverage: payload.abi_coverage ?? false,
-    cdw_cover: payload.cdw_cover,
-    rcli_cover: payload.rcli_cover,
-    sli_cover: payload.sli_cover,
-    pai_cover: payload.pai_cover,
-    ...(payload.manual_insurance_package_ids && payload.manual_insurance_package_ids.length > 0
-      ? { manual_insurance_package_ids: payload.manual_insurance_package_ids }
-      : {}),
-    ...(payload.promo_code ? { promo_code: payload.promo_code } : {}),
+    ...checkoutBody(payload),
     ...(payload.provider ? { provider: payload.provider } : {}),
-    ...(payload.signature_image ? { signature_image: payload.signature_image } : {}),
-    ...(payload.card_consent ? { card_consent: true } : {}),
     success_url: payload.success_url,
     cancel_url: payload.cancel_url,
   };
@@ -1194,24 +1236,7 @@ export async function createBooking(payload: CreateBookingPayload): Promise<{ id
       last_name: payload.customer.last_name,
       email: payload.customer.email,
       phone: payload.customer.phone_no.slice(0, 15),
-      fleet_id: payload.fleet_id,
-      ...tripLocations(payload.pickup_location_id, payload.dropoff_location_id),
-      pickup_datetime: payload.pickup_datetime,
-      dropoff_datetime: payload.dropoff_datetime,
-      extras: payload.extras || [],
-      additional_drivers: 0,
-      fuel_pre_purchase: false,
-        notes: '',
-      insurance_selected: payload.insurance_selected,
-      abi_coverage: payload.abi_coverage ?? false,
-      cdw_cover: payload.cdw_cover,
-      rcli_cover: payload.rcli_cover,
-      sli_cover: payload.sli_cover,
-      pai_cover: payload.pai_cover,
-      ...(payload.manual_insurance_package_ids && payload.manual_insurance_package_ids.length > 0
-        ? { manual_insurance_package_ids: payload.manual_insurance_package_ids }
-        : {}),
-      ...(payload.promo_code ? { promo_code: payload.promo_code } : {}),
+      ...tripBody(payload),
     };
 
     const res = await axios.post<CreateBookingResponse>(

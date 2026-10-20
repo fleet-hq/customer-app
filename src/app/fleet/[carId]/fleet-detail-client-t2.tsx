@@ -7,6 +7,7 @@ import { Check, Info, Close, ChevronLeft } from '@/components/ui/icons';
 import { Dialog } from '@/components/ui/dialog';
 import { DateDealsCallout } from '@/components/booking/date-deals-callout';
 import { RentalBreakdown } from '@/components/booking/rental-breakdown';
+import { depositSummary, taxRows } from '@/lib/price-rows';
 import { NmiPayModal } from '@/components/booking/nmi-pay-modal';
 import { EmbedPaymentPanel } from '@/components/checkout/embed-payment-panel';
 import ProtectionSection from '@/components/checkout/protection-section';
@@ -125,7 +126,6 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
     unavailableDates,
     abiAvailable,
     days,
-    rentalHours,
     minDuration,
     meetsMinDuration,
     reserveBlocked,
@@ -162,7 +162,6 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
     dropoffMinTime,
     dropoffMaxTime,
     pricing,
-    pricingStale,
     extraInvoiceItems,
     insuranceLabel,
   } = fd;
@@ -346,7 +345,7 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
                     returnUrl={`${origin}/booking/success?session_id=${embedIntent.pendingId}`}
                     amount={embedIntent.amount}
                     currency={embedIntent.currency}
-                    depositAmount={Number(vehicle?.securityDeposit) || 0}
+                    depositAmount={pricing.deposit}
                     tenantName={tenant?.name}
                     onCancel={() => {
                       fd.releaseNow();
@@ -393,16 +392,7 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
             <DateDealsCallout days={days} isPeakPricing={vehicle.isPeakPricing} isPromoPricing={vehicle.isPromoPricing} />
 
             <p className={styles.priceLabel}><Dyn>Rental</Dyn></p>
-            <RentalBreakdown
-              rateUnit={pricing.rateUnit}
-              pricePerHour={vehicle.pricePerHour}
-              rentalHours={rentalHours}
-              pricePerDay={vehicle.pricePerDay}
-              days={days}
-              dailyRates={vehicle.dailyRates}
-              total={pricing.subtotal - pricing.insuranceCost - pricing.extrasCost}
-              stale={pricingStale}
-            />
+            <RentalBreakdown pricing={pricing} dailyRates={vehicle.dailyRates} />
             <div className={styles.priceDivider} />
 
             <p className={styles.priceLabel}>
@@ -511,12 +501,11 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
             {pricing.bookingFee > 0 ? (
               <div className={styles.priceLine}><span><Dyn>Booking fees</Dyn></span><b>{money(pricing.bookingFee)}</b></div>
             ) : null}
-            <div className={styles.priceLine}><span><Dyn>Tax</Dyn></span><b>{money(pricing.tax)}</b></div>
-            {pricing.deposit > 0 ? (
-              <div className={styles.priceLine}>
-                <span><Dyn>Security deposit</Dyn> <small><Dyn>(refundable)</Dyn></small></span>
-                <b>{money(pricing.deposit)}</b>
-              </div>
+            {taxRows(pricing).map((row) => (
+              <div key={row.key} className={styles.priceLine}><span><Dyn>{row.label}</Dyn></span><b>{money(row.amount)}</b></div>
+            ))}
+            {pricing.taxLines.length === 0 ? (
+              <div className={styles.priceLine}><span><Dyn>Tax</Dyn></span><b>{money(pricing.tax)}</b></div>
             ) : null}
             <div className={styles.priceDivider} />
 
@@ -527,14 +516,13 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
                   <div className={styles.totalSaving}><Dyn>You&apos;re saving</Dyn> {money(discount)}</div>
                 ) : null}
               </div>
-              <b>{money(total + (pricing.deposit || 0))}</b>
+              <b>{money(total)}</b>
             </div>
 
-            {pricing.deposit > 0 ? (
-              <p style={{ marginTop: '0.5rem', fontSize: '0.76rem', color: 'var(--text-muted)' }}>
-                <Dyn>Includes a refundable</Dyn> {money(pricing.deposit)} <Dyn>security deposit, refunded after your trip minus any damage claims.</Dyn>
-              </p>
-            ) : null}
+            <div className={styles.priceLine} style={{ marginTop: '0.5rem' }}>
+              <span style={{ whiteSpace: 'nowrap' }}><Dyn>Security deposit</Dyn></span>
+              <small style={{ color: 'var(--text-muted)', textAlign: 'right' }}><Dyn>{depositSummary(pricing.deposit, pricing.depositMode)}</Dyn></small>
+            </div>
 
             {!meetsMinDuration ? (
               <div className={`${styles.noticeBox} ${styles.noticeBoxDanger}`}>
@@ -556,7 +544,8 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
               checked={cardConsent}
               onChange={setCardConsent}
               companyName={tenant.name}
-              depositAmount={Number(vehicle?.securityDeposit) || 0}
+              depositAmount={pricing.deposit}
+              depositMode={pricing.depositMode}
               required
             />
 

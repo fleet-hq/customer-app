@@ -9,6 +9,7 @@ import { Check, Info, Pencil, ImageIcon, Close, ChevronLeft } from '@/components
 import { Dialog } from '@/components/ui/dialog';
 import { DateDealsCallout } from '@/components/booking/date-deals-callout';
 import { RentalBreakdown } from '@/components/booking/rental-breakdown';
+import { depositSummary, taxRows } from '@/lib/price-rows';
 import { NmiPayModal } from '@/components/booking/nmi-pay-modal';
 import { EmbedPaymentPanel } from '@/components/checkout/embed-payment-panel';
 import ProtectionSection from '@/components/checkout/protection-section';
@@ -150,7 +151,6 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
     unavailableDates,
     abiAvailable,
     days,
-    rentalHours,
     minDuration,
     meetsMinDuration,
     reserveBlocked,
@@ -186,7 +186,6 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
     dropoffMinTime,
     dropoffMaxTime,
     pricing,
-    pricingStale,
     extraInvoiceItems,
     insuranceLabel,
     agreementPreviewData,
@@ -434,7 +433,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                 returnUrl={`${origin}/booking/success?session_id=${embedIntent.pendingId}`}
                 amount={embedIntent.amount}
                 currency={embedIntent.currency}
-                depositAmount={Number(vehicle?.securityDeposit) || 0}
+                depositAmount={pricing.deposit}
                 tenantName={tenantData?.name}
                 onCancel={() => {
                   fd.releaseNow();
@@ -494,16 +493,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
             />
 
             <div className="mb-[11px] text-[11px] font-semibold uppercase tracking-[0.05em] text-muted"><Dyn>Rental</Dyn></div>
-            <RentalBreakdown
-              rateUnit={pricing.rateUnit}
-              pricePerHour={vehicle.pricePerHour}
-              rentalHours={rentalHours}
-              pricePerDay={vehicle.pricePerDay}
-              days={days}
-              dailyRates={vehicle.dailyRates}
-              total={pricing.subtotal - pricing.insuranceCost - pricing.extrasCost}
-              stale={pricingStale}
-            />
+            <RentalBreakdown pricing={pricing} dailyRates={vehicle.dailyRates} />
             <div className="my-[14px] h-px bg-card-border" />
 
             <div className="mb-[11px] flex items-center justify-between">
@@ -657,16 +647,16 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                   <span className="font-medium text-ink">{money(pricing.bookingFee)}</span>
                 </div>
               )}
-              <div className="flex items-center justify-between">
-                <span className="text-muted"><Dyn>Tax</Dyn></span>
-                <span className="font-medium text-ink">{money(pricing.tax)}</span>
-              </div>
-              {pricing.deposit > 0 && (
+              {taxRows(pricing).map((row) => (
+                <div key={row.key} className="flex items-center justify-between">
+                  <span className="text-muted"><Dyn>{row.label}</Dyn></span>
+                  <span className="font-medium text-ink">{money(row.amount)}</span>
+                </div>
+              ))}
+              {pricing.taxLines.length === 0 && (
                 <div className="flex items-center justify-between">
-                  <span className="text-muted">
-                    <Dyn>Security deposit</Dyn> <span className="text-[11px]"><Dyn>(refundable)</Dyn></span>
-                  </span>
-                  <span className="font-medium text-ink">{money(pricing.deposit)}</span>
+                  <span className="text-muted"><Dyn>Tax</Dyn></span>
+                  <span className="font-medium text-ink">{money(pricing.tax)}</span>
                 </div>
               )}
             </div>
@@ -684,15 +674,14 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               </div>
               <div className="text-right">
                 <span className="mr-[3px] text-[11px] text-muted">USD</span>
-                <span className="text-[22px] font-bold text-secondary">{money(total + (pricing.deposit || 0))}</span>
+                <span className="text-[22px] font-bold text-secondary">{money(total)}</span>
               </div>
             </div>
 
-            {pricing.deposit > 0 && (
-              <div className="mt-[6px] text-[11px] leading-[1.5] text-muted">
-                <Dyn>Includes a refundable</Dyn> {money(pricing.deposit)} <Dyn>security deposit, refunded after your trip minus any damage claims.</Dyn>
-              </div>
-            )}
+            <div className="mt-[10px] flex items-start justify-between gap-3 text-[12px]">
+              <span className="whitespace-nowrap font-medium text-ink"><Dyn>Security deposit</Dyn></span>
+              <span className="text-right text-muted"><Dyn>{depositSummary(pricing.deposit, pricing.depositMode)}</Dyn></span>
+            </div>
 
             {!meetsMinDuration && (
               <div className="mt-4 flex items-center gap-[7px] rounded-[9px] border border-danger-border bg-danger-bg px-3 py-[9px] text-[11.5px] leading-[1.4] text-danger-text">
@@ -717,7 +706,8 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               checked={cardConsent}
               onChange={setCardConsent}
               companyName={tenant.name}
-              depositAmount={Number(vehicle?.securityDeposit) || 0}
+              depositAmount={pricing.deposit}
+              depositMode={pricing.depositMode}
               required
             />
 
