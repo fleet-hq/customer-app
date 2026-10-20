@@ -8,6 +8,7 @@ import { INITIAL_FILTERS } from '@/components/fleet/fleet-filters';
 import { SearchBarT3 } from '@/components/search/search-bar-t3';
 import { paths } from '@/lib/paths';
 import { useFleetListing, SORTS } from './use-fleet-listing';
+import { PlanPicker, RentalModelBar } from '@/components/fleet/rental-model-bar';
 
 /** Template-3 fleet listing.
  *
@@ -46,6 +47,7 @@ export default function FleetClientT3() {
     goToPage,
     countLabel,
     heading,
+    rentalTabs,
   } = useFleetListing();
 
   const [panelOpen, setPanelOpen] = useState(false);
@@ -208,13 +210,17 @@ export default function FleetClientT3() {
             </div>
           </div>
 
-          {isLoading ? (
+          <RentalModelBar state={rentalTabs} />
+
+          {rentalTabs.showPlans ? (
+            <PlanPicker plans={rentalTabs.plans} />
+          ) : rentalTabs.modelOff ? null : isLoading ? (
             <p className="count"><Dyn>Loading the fleet…</Dyn></p>
           ) : isError ? (
             <p className="count"><Dyn>The fleet could not be loaded. Please try again.</Dyn></p>
           ) : vehicles.length === 0 ? (
             <div className="empty">
-              <h3><Dyn>No cars match</Dyn></h3>
+              <h3><Dyn>{rentalTabs.emptyText ?? 'No cars match'}</Dyn></h3>
               <p><Dyn>Try a different search or clear your filters.</Dyn></p>
               <button type="button" className="btn ghost" onClick={() => setFilters(INITIAL_FILTERS)}>
                 <Dyn>Clear filters</Dyn>

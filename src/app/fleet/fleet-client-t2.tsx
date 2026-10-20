@@ -9,6 +9,7 @@ import { paths } from '@/lib/paths';
 import { Dyn } from '@/components/i18n/Dyn';
 import { useFleetListing, SORTS, applicableDiscountPct } from './use-fleet-listing';
 import styles from '@/styles/template-2.module.css';
+import { PlanPicker, RentalModelBar } from '@/components/fleet/rental-model-bar';
 
 export default function FleetClientT2() {
   const {
@@ -35,6 +36,7 @@ export default function FleetClientT2() {
     countLabel,
     heading,
     isFiltered,
+    rentalTabs,
   } = useFleetListing();
 
   const fleetPage = tenant.sections.fleet_page;
@@ -85,6 +87,8 @@ export default function FleetClientT2() {
           </div>
         ) : null}
 
+        <RentalModelBar state={rentalTabs} />
+
         <div className={styles.toolbar}>
           <h2 className={styles.toolbarHeading}>{heading}</h2>
           <div className={styles.toolbarRight}>
@@ -117,7 +121,9 @@ export default function FleetClientT2() {
           activeCount={clientFilterCount}
         />
 
-        {isError ? (
+        {rentalTabs.showPlans ? (
+          <PlanPicker plans={rentalTabs.plans} />
+        ) : rentalTabs.modelOff ? null : isError ? (
           <div className={styles.emptyState}>
             <Dyn>We couldn&apos;t load the fleet right now. Please try again shortly.</Dyn>
           </div>
@@ -129,7 +135,7 @@ export default function FleetClientT2() {
           </div>
         ) : vehicles.length === 0 ? (
           <div className={styles.emptyState}>
-            <Dyn>No vehicles match your search right now.</Dyn>
+            <Dyn>{rentalTabs.emptyText ?? 'No vehicles match your search right now.'}</Dyn>
           </div>
         ) : (
           <>

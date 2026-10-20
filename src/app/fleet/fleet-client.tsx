@@ -13,6 +13,7 @@ import { useFleetListing, SORTS, applicableDiscountPct } from './use-fleet-listi
 import FleetClientT2 from './fleet-client-t2';
 import FleetClientT3 from './fleet-client-t3';
 import { pickTemplateView } from '@/lib/template-view';
+import { PlanPicker, RentalModelBar } from '@/components/fleet/rental-model-bar';
 
 const FLEET_GRID_CLASS =
   'grid gap-x-4 gap-y-6 sm:gap-x-5 sm:gap-y-8 lg:gap-x-[30px] lg:gap-y-[34px] grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
@@ -44,6 +45,7 @@ export default function FleetClient() {
     heading,
     isFiltered,
     activeLabel,
+    rentalTabs,
   } = useFleetListing();
 
   const Template = pickTemplateView(tenant.websiteTemplate, {
@@ -100,6 +102,8 @@ export default function FleetClient() {
           </div>
         ) : null}
 
+        <RentalModelBar state={rentalTabs} />
+
         <FleetToolbar
           showAvailability={hasAvailabilityWindow}
           heading={heading}
@@ -118,7 +122,9 @@ export default function FleetClient() {
           activeFilterCount={clientFilterCount}
         />
 
-        {isError ? (
+        {rentalTabs.showPlans ? (
+          <PlanPicker plans={rentalTabs.plans} />
+        ) : rentalTabs.modelOff ? null : isError ? (
           <div className="rounded-2xl border border-card-border bg-subtle py-16 text-center text-sm text-muted">
             <Dyn>We couldn&apos;t load the fleet right now. Please try again shortly.</Dyn>
           </div>
@@ -130,7 +136,7 @@ export default function FleetClient() {
           </div>
         ) : vehicles.length === 0 ? (
           <div className="rounded-2xl border border-card-border bg-subtle py-16 text-center text-sm text-muted">
-            <Dyn>No vehicles match your search right now.</Dyn>
+            <Dyn>{rentalTabs.emptyText ?? 'No vehicles match your search right now.'}</Dyn>
           </div>
         ) : (
           <>

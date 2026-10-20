@@ -9,11 +9,18 @@ import {
 } from '@/services/fleetServices';
 import { useTenant } from '@/lib/tenant-context';
 
-export const useFleets = (page: number = 1, name: string = '', pageSize?: number) => {
+export const useFleets = (
+  page: number = 1,
+  name: string = '',
+  pageSize?: number,
+  filters: { rental_model?: string; subscription_plan?: number } = {},
+  enabled: boolean = true,
+) => {
   const tenant = useTenant();
   return useQuery({
-    queryKey: ['fleets', tenant.slug, { page, name, pageSize }],
-    queryFn: () => listFleets({ page, name, page_size: pageSize }, tenant.domain),
+    queryKey: ['fleets', tenant.slug, { page, name, pageSize, ...filters }],
+    queryFn: () => listFleets({ page, name, page_size: pageSize, ...filters }, tenant.domain),
+    enabled,
   });
 };
 

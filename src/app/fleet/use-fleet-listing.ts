@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { INITIAL_FILTERS, activeFilterCount, type FilterState } from '@/components/fleet/fleet-filters';
 import { useTenant } from '@/lib/tenant-context';
 import { useFleets, useFleetAvailability, useCompanyLocations } from '@/hooks';
@@ -11,6 +11,8 @@ import { rentalDays } from '@/lib/utils';
 import { activeTier } from '@/lib/discount-tiers';
 import { useDynamicTranslation } from '@/hooks/useDynamicTranslation';
 import { trackFleetList } from '@/lib/tracking-events';
+import { useRentalSiteConfig } from '@/hooks/useRentalSiteConfig';
+import { RENTAL_TABS, modelForPath } from '@/lib/rental-tabs';
 
 export const SORTS = ['Recommended', 'Price: low to high', 'Price: high to low'] as const;
 const PAGE_SIZE = 12;
@@ -93,7 +95,21 @@ export function useFleetListing() {
     return () => clearTimeout(timeout);
   }, [searchInput]);
 
-  const { data, isLoading, isError } = useFleets(page, search, PAGE_SIZE);
+  const pathname = usePathname();
+  const rentalConfig = useRentalSiteConfig();
+  const activeModel = modelForPath(pathname);
+  const tabs = RENTAL_TABS.filter((tab) => rentalConfig.models.includes(tab.model));
+  const modelOff = rentalConfig.ready && !rentalConfig.models.includes(activeModel);
+  const planId = activeModel === 'subscription' ? Number(searchParams.get('plan')) || null : null;
+  const selectedPlan = rentalConfig.plans.find((plan) => plan.id === planId) ?? null;
+  const showPlans = activeModel === 'subscription' && !selectedPlan && !modelOff;
+  const modelFilter =
+    tabs.length > 1 && !modelOff
+      ? { rental_model: activeModel, ...(selectedPlan ? { subscription_plan: selectedPlan.id } : {}) }
+      : {};
+  const listReady = activeModel === 'daily' || (rentalConfig.ready && !modelOff && !showPlans);
+
+  const { data, isLoading, isError } = useFleets(page, search, PAGE_SIZE, modelFilter, listReady);
   const { data: companyLocations } = useCompanyLocations();
   const tz = useDefaultLocation()?.timezone ?? null;
 
@@ -103,8 +119,9 @@ export function useFleetListing() {
       const value = searchParams.get(key);
       if (value) params.set(key, value);
     });
+    if (activeModel !== 'daily') params.set('model', activeModel);
     return params.toString();
-  }, [searchParams]);
+  }, [searchParams, activeModel]);
 
   const selectedHours = useMemo(() => {
     const pickupDate = searchParams.get('pickupDate');
@@ -223,11 +240,17 @@ export function useFleetListing() {
 
   const clientFiltered = isFiltered || clientFilterCount > 0;
   const shown = clientFiltered ? vehicles.length : count;
-  const countLabel = isLoading
-    ? t('Loading…')
-    : `${t('Showing')} ${shown} ${shown === 1 ? t('car') : t('cars')} · ${t('your')} ${days}${t('-day trip')}${pct > 0 ? ` (${pct}% ${t('off daily')})` : ''}`;
+  const shownLabel = `${t('Showing')} ${shown} ${shown === 1 ? t('car') : t('cars')}`;
+  const countLabel = showPlans || modelOff
+    ? ''
+    : isLoading
+      ? t('Loading…')
+      : activeModel === 'daily'
+        ? `${shownLabel} · ${t('your')} ${days}${t('-day trip')}${pct > 0 ? ` (${pct}% ${t('off daily')})` : ''}`
+        : shownLabel;
 
-  const heading = isFiltered ? t(activeLabel) : t('Pick your next ride from our fleet.');
+  const modelHeading = activeModel === 'daily' ? null : selectedPlan?.name ?? RENTAL_TABS.find((tab) => tab.model === activeModel)?.label;
+  const heading = isFiltered ? t(activeLabel) : modelHeading ?? t('Pick your next ride from our fleet.');
 
   return {
     tenant,
@@ -258,5 +281,14 @@ export function useFleetListing() {
     heading,
     isFiltered,
     activeLabel: t(activeLabel),
+    rentalTabs: {
+      tabs: tabs.length > 1 ? tabs : [],
+      active: activeModel,
+      modelOff,
+      plans: rentalConfig.plans,
+      selectedPlan,
+      showPlans,
+      emptyText: selectedPlan ? 'No cars available in this plan right now' : null,
+    },
   };
 }

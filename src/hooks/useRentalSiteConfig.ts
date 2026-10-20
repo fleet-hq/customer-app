@@ -13,15 +13,15 @@ import { useDebounce } from './use-debounce';
 import { useTenant } from '@/lib/tenant-context';
 import { rateCard, type RateCard } from '@/lib/rate-card';
 
-export function useRentalSiteConfig(): RentalSiteConfig {
+export function useRentalSiteConfig(): RentalSiteConfig & { ready: boolean } {
   const tenant = useTenant();
-  const { data } = useQuery({
+  const { data, isFetched } = useQuery({
     queryKey: ['rental-site-config', tenant.slug],
     queryFn: () => getRentalSiteConfig(tenant.domain),
     staleTime: 60_000,
     retry: false,
   });
-  return data ?? DAILY_ONLY;
+  return { ...(data ?? DAILY_ONLY), ready: isFetched };
 }
 
 export function useRateCard(vehicle: Parameters<typeof rateCard>[0]): RateCard {

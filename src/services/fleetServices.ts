@@ -13,6 +13,8 @@ export interface ListFleetsParams {
   page?: number;
   name?: string;
   page_size?: number;
+  rental_model?: string;
+  subscription_plan?: number;
   /** When supplied, the backend FleetFilter excludes fleets that
    *  have overlapping bookings or admin-set unavailability blocks
    *  in the given window — used by the swap picker so unavailable
