@@ -35,6 +35,7 @@ import { useAbiQuote } from '@/hooks/useAbi';
 import type { AbiQuoteAvailable } from '@/services/abiServices';
 import { useDynamicTranslation } from '@/hooks/useDynamicTranslation';
 import { pickDefaultLocation } from '@/lib/locations';
+import { chargesAtLocation } from '@/types/vehicle';
 import { extractApiErrorMessage } from './fleet-detail-shared';
 import { trackVehicleView, trackBeginCheckout } from '@/lib/tracking-events';
 
@@ -338,8 +339,7 @@ export function useFleetDetail(carId: string) {
             dailyRates: vehicle.dailyRates,
             discounts: vehicle.discounts,
             securityDeposit: vehicle.securityDeposit,
-            bookingFee: vehicle.bookingFee,
-            taxProfile: vehicle.taxProfile,
+            ...chargesAtLocation(vehicle, pickupLocId),
             image: vehicle.images?.[0] ?? PLACEHOLDER_IMAGE,
             name: vehicle.name,
             licensePlate: vehicle.licensePlate,
@@ -347,7 +347,7 @@ export function useFleetDetail(carId: string) {
             extras: vehicle.extras ?? [],
           }
         : null,
-    [vehicle],
+    [vehicle, pickupLocId],
   );
 
   const selectedManualPackages = useMemo(() => {

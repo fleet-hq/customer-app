@@ -87,6 +87,8 @@ export interface ApiBookingRule {
    *  ``tax_profile`` is a bare id and says nothing about either, so
    *  reading it is how the site quoted tax on an untaxed vehicle. */
   resolved_tax_profile?: ApiTaxProfile | null;
+  booking_fee_by_location?: Record<string, number>;
+  resolved_tax_profile_by_location?: Record<string, ApiTaxProfile | null>;
 }
 
 export interface ApiFleetClass {
@@ -184,6 +186,8 @@ export interface Vehicle {
   securityDeposit?: number;
   bookingFee?: number;
   taxProfile?: TaxProfile | null;
+  bookingFeeByLocation?: Record<string, number>;
+  taxProfileByLocation?: Record<string, TaxProfile | null>;
   extras: VehicleExtra[];
 }
 
@@ -221,6 +225,19 @@ export function parseTaxProfile(raw: ApiTaxProfile | null | undefined): TaxProfi
 /**
  * Calculate tax based on a tax profile and pricing components.
  */
+export function chargesAtLocation(
+  vehicle: Pick<Vehicle, 'bookingFee' | 'taxProfile' | 'bookingFeeByLocation' | 'taxProfileByLocation'>,
+  locationId: string | number | null | undefined,
+): { bookingFee: number; taxProfile: TaxProfile | null } {
+  const key = locationId == null ? null : String(locationId);
+  const fees = vehicle.bookingFeeByLocation ?? {};
+  const taxes = vehicle.taxProfileByLocation ?? {};
+  return {
+    bookingFee: key !== null && key in fees ? fees[key] : vehicle.bookingFee ?? 0,
+    taxProfile: key !== null && key in taxes ? taxes[key] : vehicle.taxProfile ?? null,
+  };
+}
+
 export function calculateTax(
   taxProfile: TaxProfile | null | undefined,
   amounts: {
@@ -326,6 +343,12 @@ export function transformApiVehicle(apiVehicle: ApiVehicle): Vehicle {
     securityDeposit: Number(apiVehicle.booking_rule?.security_deposit) || 0,
     bookingFee: Number(apiVehicle.booking_rule?.booking_fee) || 0,
     taxProfile: parseTaxProfile(apiVehicle.booking_rule?.resolved_tax_profile),
+    bookingFeeByLocation: Object.fromEntries(
+      Object.entries(apiVehicle.booking_rule?.booking_fee_by_location ?? {}).map(([id, fee]) => [id, Number(fee) || 0]),
+    ),
+    taxProfileByLocation: Object.fromEntries(
+      Object.entries(apiVehicle.booking_rule?.resolved_tax_profile_by_location ?? {}).map(([id, profile]) => [id, parseTaxProfile(profile)]),
+    ),
     extras: (apiVehicle.booking_rule?.extras || []).map((e) => ({
       id: String(e.id),
       title: e.description,
