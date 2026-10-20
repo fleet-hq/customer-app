@@ -1,15 +1,16 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 
-import NmiCardEntry, {
-  type NmiCardEntryHandle,
-} from '@/components/checkout/nmi-card-entry';
+import type { NmiCardEntryHandle } from '@/components/checkout/nmi-card-entry';
 import { Dyn } from '@/components/i18n/Dyn';
 import { useDynamicTranslation } from '@/hooks/useDynamicTranslation';
 import { cn } from '@/lib/utils';
 import { useTenant } from '@/lib/tenant-context';
 import styles from '@/styles/template-2.module.css';
+
+const NmiCardEntry = dynamic(() => import('@/components/checkout/nmi-card-entry'), { ssr: false });
 
 /**
  * The payment window for NMI.
