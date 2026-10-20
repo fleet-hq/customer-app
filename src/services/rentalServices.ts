@@ -69,6 +69,7 @@ export type OngoingQuote =
       insurance_mode: string;
       min_term_weeks: number;
       return_notice_days: number;
+      required_documents: string[];
       consent_text: string;
     };
 
