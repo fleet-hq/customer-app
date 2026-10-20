@@ -162,6 +162,7 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
     dropoffMinTime,
     dropoffMaxTime,
     pricing,
+    rates,
     extraInvoiceItems,
     insuranceLabel,
   } = fd;
@@ -177,6 +178,8 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
           <div className={styles.detailRate}>
             <b>{money(vehicle.pricePerDay)}</b>
             <span><Dyn>per day</Dyn></span>
+            {rates.extras ? <span>{rates.extras}</span> : null}
+            {rates.weekly ? <span><Dyn>{rates.weekly.label}</Dyn></span> : null}
           </div>
         </div>
 

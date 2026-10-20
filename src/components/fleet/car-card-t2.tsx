@@ -8,6 +8,7 @@ import type { Vehicle } from '@/types/vehicle';
 import { Dyn } from '@/components/i18n/Dyn';
 import { trackVehicleSelect } from '@/lib/tracking-events';
 import styles from '@/styles/template-2.module.css';
+import { useRateCard } from '@/hooks/useRentalSiteConfig';
 
 interface CarCardT2Props {
   vehicle: Vehicle;
@@ -26,6 +27,7 @@ export function CarCardT2({ vehicle, bookingQuery, hours, discountPct, unavailab
 
   const perDay = Number(vehicle.pricePerDay) || 0;
   const perHour = Number(vehicle.pricePerHour) || 0;
+  const card = useRateCard(vehicle);
 
   let mode: 'idle' | 'hourly' | 'daily' = 'idle';
   let unitLabel = '/day';
@@ -69,6 +71,10 @@ export function CarCardT2({ vehicle, bookingQuery, hours, discountPct, unavailab
           </span>
         ) : hasDiscount ? (
           <span className={styles.carTag}>{Math.round(pct)}% OFF</span>
+        ) : card.weekly?.badge ? (
+          <span className={styles.carTag}>
+            <Dyn>{card.weekly.badge}</Dyn>
+          </span>
         ) : null}
         {vehicle.image ? (
           <Image src={vehicle.image} alt={vehicle.name} width={780} height={523} unoptimized />
@@ -83,6 +89,12 @@ export function CarCardT2({ vehicle, bookingQuery, hours, discountPct, unavailab
             .filter(Boolean)
             .join(' · ')}
         </p>
+        {card.extras ? (
+          <p className={styles.carSpec}>
+            {card.extras}
+            {card.weekly ? <> · <Dyn>{card.weekly.label}</Dyn></> : null}
+          </p>
+        ) : null}
         <div className={styles.carFoot}>
           <span className={styles.carPrice}>
             {hasDiscount ? <s>{money(baseUnitPrice)}</s> : null}

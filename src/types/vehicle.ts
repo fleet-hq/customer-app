@@ -7,10 +7,14 @@ export interface ApiVehicleImage {
   is_thumbnail: boolean;
 }
 
+export type WeeklyScope = 'all' | 'ongoing';
+
 export interface ApiBookingPrice {
   id?: number;
   price_per_day?: number | null;
   price_per_hour?: number | null;
+  price_per_week?: number | null;
+  weekly_scope?: WeeklyScope;
   auto_cap_enabled?: boolean;
   discounts?: {
     unit_type?: string;
@@ -60,6 +64,10 @@ export interface ApiBookingRule {
   extras?: ApiFleetExtra[];
   tax_profile?: number | null;
   use_default_tax_profile?: boolean;
+  offers_daily?: boolean;
+  offers_gig?: boolean;
+  offers_subscription?: boolean;
+  subscription_plan?: number | null;
 }
 
 export interface ApiFleetClass {
@@ -120,6 +128,12 @@ export interface Vehicle {
   color: string;
   pricePerDay: number;
   pricePerHour: number;
+  pricePerWeek: number;
+  weeklyScope: WeeklyScope;
+  offersDaily: boolean;
+  offersGig: boolean;
+  offersSubscription: boolean;
+  subscriptionPlanId: number | null;
   autoCapEnabled: boolean;
   isDynamicPricing?: boolean;
   isPeakPricing?: boolean;
@@ -193,6 +207,12 @@ export function transformApiVehicle(apiVehicle: ApiVehicle): Vehicle {
     color: apiVehicle.color || '',
     pricePerDay,
     pricePerHour,
+    pricePerWeek: Number(apiVehicle.booking_price?.price_per_week ?? 0) || 0,
+    weeklyScope: apiVehicle.booking_price?.weekly_scope === 'all' ? 'all' : 'ongoing',
+    offersDaily: apiVehicle.booking_rule?.offers_daily !== false,
+    offersGig: !!apiVehicle.booking_rule?.offers_gig,
+    offersSubscription: !!apiVehicle.booking_rule?.offers_subscription,
+    subscriptionPlanId: apiVehicle.booking_rule?.subscription_plan ?? null,
     autoCapEnabled,
     isDynamicPricing: !!apiVehicle.booking_price?.is_dynamic,
     isPeakPricing: !!apiVehicle.booking_price?.is_peak,

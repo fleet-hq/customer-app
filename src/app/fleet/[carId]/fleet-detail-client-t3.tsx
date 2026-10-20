@@ -89,6 +89,7 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
     photoCount,
     days,
     pricing,
+    rates,
     total,
     discount,
     extraInvoiceItems,
@@ -220,6 +221,12 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
                 <span>
                   <Dyn>per day</Dyn>
                 </span>
+                {rates.extras ? <span>{rates.extras}</span> : null}
+                {rates.weekly ? (
+                  <span>
+                    <Dyn>{rates.weekly.label}</Dyn>
+                  </span>
+                ) : null}
               </div>
             </div>
 

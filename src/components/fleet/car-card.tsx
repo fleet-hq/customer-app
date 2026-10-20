@@ -6,6 +6,7 @@ import { money } from '@/lib/utils';
 import type { Vehicle } from '@/types/vehicle';
 import { Dyn } from '@/components/i18n/Dyn';
 import { trackVehicleSelect } from '@/lib/tracking-events';
+import { useRateCard } from '@/hooks/useRentalSiteConfig';
 
 interface CarCardProps {
   vehicle: Vehicle;
@@ -32,6 +33,8 @@ export function CarCard({ vehicle, badge, oldPrice, bookingQuery, hours, discoun
 
   const perDay = Number(vehicle.pricePerDay) || 0;
   const perHour = Number(vehicle.pricePerHour) || 0;
+  const card = useRateCard(vehicle);
+  const tag = badge ?? card.weekly?.badge ?? null;
 
   let mode: 'idle' | 'hourly' | 'daily' = 'idle';
   let unitLabel = '/day';
@@ -89,9 +92,9 @@ export function CarCard({ vehicle, badge, oldPrice, bookingQuery, hours, discoun
           className="h-full w-full bg-cover bg-center transition-transform duration-300 group-hover:scale-[1.03]"
           style={{ backgroundImage: `url('${vehicle.image}')` }}
         />
-        {badge && (
+        {tag && (
           <span className="absolute top-[10px] left-[10px] rounded-full bg-primary px-[8px] py-[3px] text-[9px] font-semibold tracking-[0.02em] text-white">
-            {badge}
+            <Dyn>{tag}</Dyn>
           </span>
         )}
       </div>
@@ -155,6 +158,14 @@ export function CarCard({ vehicle, badge, oldPrice, bookingQuery, hours, discoun
                 )}
               </div>
               <ViewCta />
+            </div>
+          )}
+          {card.extras && (
+            <div className="mt-[6px] text-[11.5px] text-faint">
+              {card.extras}
+              {card.weekly && (
+                <span className="font-semibold text-primary"> · <Dyn>{card.weekly.label}</Dyn></span>
+              )}
             </div>
           )}
         </div>

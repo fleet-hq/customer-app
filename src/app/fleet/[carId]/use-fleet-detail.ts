@@ -36,6 +36,8 @@ import type { AbiQuoteAvailable } from '@/services/abiServices';
 import { useDynamicTranslation } from '@/hooks/useDynamicTranslation';
 import { pickDefaultLocation } from '@/lib/locations';
 import { extractApiErrorMessage } from './fleet-detail-shared';
+import { useRentalSiteConfig } from '@/hooks/useRentalSiteConfig';
+import { rateCard } from '@/lib/rate-card';
 import { trackVehicleView, trackBeginCheckout } from '@/lib/tracking-events';
 
 export const PLACEHOLDER_IMAGE = '/images/vehicles/car_placeholder.svg';
@@ -234,6 +236,7 @@ export function useFleetDetail(carId: string) {
   }, [fleetTz, pickupDate, pickupTime, returnDate, returnTime]);
 
   const { data: vehicle, isLoading } = useFleet(carId, true, fleetDateArgs);
+  const rentalConfig = useRentalSiteConfig();
 
   // Fire once per vehicle, not per render — price and availability
   // refetch as the trip dates change, which would otherwise re-fire
@@ -958,6 +961,7 @@ export function useFleetDetail(carId: string) {
 
   return {
     status: 'ready' as const,
+    rates: rateCard(vehicle, rentalConfig),
     ...common,
     vehicle,
     plans,

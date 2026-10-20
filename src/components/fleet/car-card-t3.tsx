@@ -7,6 +7,7 @@ import { paths } from '@/lib/paths';
 import { trackVehicleSelect } from '@/lib/tracking-events';
 import { money } from '@/lib/utils';
 import type { Vehicle } from '@/types/vehicle';
+import { useRateCard } from '@/hooks/useRentalSiteConfig';
 
 interface CarCardT3Props {
   vehicle: Vehicle;
@@ -38,6 +39,7 @@ export function CarCardT3({
   const checkoutPath = paths.checkout(vehicle.slug || vehicle.id);
   const href = bookingQuery ? `${checkoutPath}?${bookingQuery}` : checkoutPath;
   const perDay = Number(vehicle.pricePerDay) || 0;
+  const card = useRateCard(vehicle);
 
   const specs = [
     vehicle.seats ? `${vehicle.seats} seats` : '',
@@ -49,7 +51,7 @@ export function CarCardT3({
     <article className="car">
       <div className="ph">
         <span className="avail">
-          <Dyn>{unavailable ? 'Unavailable' : 'Available'}</Dyn>
+          <Dyn>{unavailable ? 'Unavailable' : card.weekly?.badge ?? 'Available'}</Dyn>
         </span>
         {vehicle.image ? (
           <Image className="img" src={vehicle.image} alt={vehicle.name} width={520} height={340} loading="lazy" unoptimized />
@@ -67,6 +69,16 @@ export function CarCardT3({
                 <Dyn>{spec}</Dyn>
               </span>
             ))}
+          </div>
+        ) : null}
+        {card.extras ? (
+          <div className="specs">
+            <span>{card.extras}</span>
+            {card.weekly ? (
+              <span>
+                <Dyn>{card.weekly.label}</Dyn>
+              </span>
+            ) : null}
           </div>
         ) : null}
         <div className="ft">

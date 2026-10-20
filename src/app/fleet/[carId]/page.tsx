@@ -186,6 +186,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
     dropoffMinTime,
     dropoffMaxTime,
     pricing,
+    rates,
     extraInvoiceItems,
     insuranceLabel,
     agreementPreviewData,
@@ -234,6 +235,10 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               <div className="text-right">
                 <div className="text-[19px] font-bold text-secondary">{money(vehicle.pricePerDay)}</div>
                 <div className="text-[11px] text-muted"><Dyn>per day</Dyn></div>
+                {rates.extras && <div className="mt-[4px] text-[11.5px] text-muted">{rates.extras}</div>}
+                {rates.weekly && (
+                  <div className="mt-[2px] text-[11.5px] font-semibold text-primary"><Dyn>{rates.weekly.label}</Dyn></div>
+                )}
               </div>
             </div>
 
