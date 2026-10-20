@@ -8,6 +8,7 @@ import { Dialog } from '@/components/ui/dialog';
 import { DateDealsCallout } from '@/components/booking/date-deals-callout';
 import { RentalBreakdown } from '@/components/booking/rental-breakdown';
 import { depositSummary, taxRows } from '@/lib/price-rows';
+import { ReturnModeToggle, WeeklyRentalSummary } from '@/components/booking/weekly-rental';
 import { NmiPayModal } from '@/components/booking/nmi-pay-modal';
 import { EmbedPaymentPanel } from '@/components/checkout/embed-payment-panel';
 import ProtectionSection from '@/components/checkout/protection-section';
@@ -163,6 +164,8 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
     dropoffMaxTime,
     pricing,
     rates,
+    weekly,
+    cardDeposit,
     extraInvoiceItems,
     insuranceLabel,
   } = fd;
@@ -255,7 +258,7 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
               </div>
             ) : null}
 
-            <div className={styles.detailSection}>
+            {!weekly.on ? <div className={styles.detailSection}>
               <ProtectionSection
                 headingRef={protectionRef}
                 bonzahPlans={plans}
@@ -272,7 +275,7 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
                 abiOpted={abiOptedIn}
                 onToggleAbi={handleToggleAbi}
               />
-            </div>
+            </div> : null}
 
             {vehicle.extras.length > 0 ? (
               <div className={styles.detailSection}>
@@ -348,7 +351,7 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
                     returnUrl={`${origin}/booking/success?session_id=${embedIntent.pendingId}`}
                     amount={embedIntent.amount}
                     currency={embedIntent.currency}
-                    depositAmount={pricing.deposit}
+                    depositAmount={cardDeposit.amount}
                     tenantName={tenant?.name}
                     onCancel={() => {
                       fd.releaseNow();
@@ -382,16 +385,22 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
             >
               <div>
                 <span><Dyn>Drop-off</Dyn></span>
-                <b>{dropoffCity} · {formatTripStamp(returnDate, returnTime)}</b>
+                <b>{dropoffCity} · {weekly.on ? <Dyn>No fixed return</Dyn> : formatTripStamp(returnDate, returnTime)}</b>
               </div>
               <span className={styles.tripEdit}><Dyn>Edit</Dyn></span>
             </div>
+            {weekly.model && weekly.canPickDate ? (
+              <div style={{ marginTop: '0.8rem' }}>
+                <ReturnModeToggle weekly={weekly} />
+              </div>
+            ) : null}
 
             <div className={styles.priceHeadRow}>
               <h3><Dyn>Price details</Dyn></h3>
-              <span className={styles.priceDayPill}>{days} <Dyn>days</Dyn></span>
+              <span className={styles.priceDayPill}>{weekly.on ? <Dyn>Weekly</Dyn> : <>{days} <Dyn>days</Dyn></>}</span>
             </div>
 
+            {weekly.on ? <WeeklyRentalSummary weekly={weekly} /> : (<>
             <DateDealsCallout days={days} isPeakPricing={vehicle.isPeakPricing} isPromoPricing={vehicle.isPromoPricing} />
 
             <p className={styles.priceLabel}><Dyn>Rental</Dyn></p>
@@ -526,8 +535,9 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
               <span style={{ whiteSpace: 'nowrap' }}><Dyn>Security deposit</Dyn></span>
               <small style={{ color: 'var(--text-muted)', textAlign: 'right' }}><Dyn>{depositSummary(pricing.deposit, pricing.depositMode)}</Dyn></small>
             </div>
+            </>)}
 
-            {!meetsMinDuration ? (
+            {!weekly.on && !meetsMinDuration ? (
               <div className={`${styles.noticeBox} ${styles.noticeBoxDanger}`}>
                 <Info size={14} strokeWidth={2} />
                 <span><Dyn>This vehicle has a minimum rental of</Dyn> {minDuration} <Dyn>{minDuration === 1 ? 'day' : 'days'}</Dyn>. <Dyn>Choose a longer trip to continue.</Dyn></span>
@@ -547,8 +557,8 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
               checked={cardConsent}
               onChange={setCardConsent}
               companyName={tenant.name}
-              depositAmount={pricing.deposit}
-              depositMode={pricing.depositMode}
+              depositAmount={cardDeposit.amount}
+              depositMode={cardDeposit.timing}
               required
             />
 
@@ -697,7 +707,7 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
               />
             </div>
           </div>
-          <div>
+          {!weekly.on ? <div>
             <div className={styles.dialogFieldLabel}><Dyn>Return date &amp; time</Dyn></div>
             <div className={styles.dialogFieldBox}>
               <DateTimeField
@@ -714,7 +724,7 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
                 label={t('Return')}
               />
             </div>
-          </div>
+          </div> : null}
         </div>
         <DateDealsCallout
           className="mt-5"

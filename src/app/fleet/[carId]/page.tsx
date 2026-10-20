@@ -10,6 +10,7 @@ import { Dialog } from '@/components/ui/dialog';
 import { DateDealsCallout } from '@/components/booking/date-deals-callout';
 import { RentalBreakdown } from '@/components/booking/rental-breakdown';
 import { depositSummary, taxRows } from '@/lib/price-rows';
+import { ReturnModeToggle, WeeklyRentalSummary } from '@/components/booking/weekly-rental';
 import { NmiPayModal } from '@/components/booking/nmi-pay-modal';
 import { EmbedPaymentPanel } from '@/components/checkout/embed-payment-panel';
 import ProtectionSection from '@/components/checkout/protection-section';
@@ -187,6 +188,8 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
     dropoffMaxTime,
     pricing,
     rates,
+    cardDeposit,
+    weekly,
     extraInvoiceItems,
     insuranceLabel,
     agreementPreviewData,
@@ -319,7 +322,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               </>
             )}
 
-            <ProtectionSection
+            {!weekly.on && <ProtectionSection
               headingRef={protectionRef}
               bonzahPlans={plans}
               manualPackages={manualInsurancePackages ?? []}
@@ -334,7 +337,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               abiQuote={abiAvailable}
               abiOpted={abiOptedIn}
               onToggleAbi={handleToggleAbi}
-            />
+            />}
 
             {vehicle.extras.length > 0 && (
               <>
@@ -438,7 +441,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                 returnUrl={`${origin}/booking/success?session_id=${embedIntent.pendingId}`}
                 amount={embedIntent.amount}
                 currency={embedIntent.currency}
-                depositAmount={pricing.deposit}
+                depositAmount={cardDeposit.amount}
                 tenantName={tenantData?.name}
                 onCancel={() => {
                   fd.releaseNow();
@@ -476,20 +479,26 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               >
                 <div>
                   <div className="text-[10px] uppercase tracking-[0.03em] text-muted"><Dyn>Drop-off</Dyn></div>
-                  <div className="mt-[2px] text-[12.5px] font-semibold text-secondary">{dropoffCity} · {formatTripStamp(returnDate, returnTime)}</div>
+                  <div className="mt-[2px] text-[12.5px] font-semibold text-secondary">{dropoffCity} · {weekly.on ? <Dyn>No fixed return</Dyn> : formatTripStamp(returnDate, returnTime)}</div>
                 </div>
                 <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary">
                   <Dyn>Edit</Dyn> <Pencil size={12} strokeWidth={2} />
                 </span>
               </div>
             </div>
+            {weekly.model && weekly.canPickDate ? (
+              <div className="mt-3">
+                <ReturnModeToggle weekly={weekly} />
+              </div>
+            ) : null}
             <div className="my-[18px] h-px bg-card-border" />
 
             <div className="mb-4 flex items-center justify-between">
               <span className="text-sm font-semibold text-ink"><Dyn>Price details</Dyn></span>
-              <span className="rounded-full border border-line bg-white px-[10px] py-[3px] text-[11px] font-medium text-muted">{days} <Dyn>days</Dyn></span>
+              <span className="rounded-full border border-line bg-white px-[10px] py-[3px] text-[11px] font-medium text-muted">{weekly.on ? <Dyn>Weekly</Dyn> : <>{days} <Dyn>days</Dyn></>}</span>
             </div>
 
+            {weekly.on ? <WeeklyRentalSummary weekly={weekly} /> : (<>
             <DateDealsCallout
               className="mb-4"
               days={days}
@@ -687,8 +696,9 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               <span className="whitespace-nowrap font-medium text-ink"><Dyn>Security deposit</Dyn></span>
               <span className="text-right text-muted"><Dyn>{depositSummary(pricing.deposit, pricing.depositMode)}</Dyn></span>
             </div>
+            </>)}
 
-            {!meetsMinDuration && (
+            {!weekly.on && !meetsMinDuration && (
               <div className="mt-4 flex items-center gap-[7px] rounded-[9px] border border-danger-border bg-danger-bg px-3 py-[9px] text-[11.5px] leading-[1.4] text-danger-text">
                 <Info size={14} strokeWidth={2} className="flex-shrink-0 text-danger" />
                 <Dyn>This vehicle has a minimum rental of</Dyn> {minDuration} <Dyn>{minDuration === 1 ? 'day' : 'days'}</Dyn>. <Dyn>Choose a longer trip to continue.</Dyn>
@@ -711,8 +721,8 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               checked={cardConsent}
               onChange={setCardConsent}
               companyName={tenant.name}
-              depositAmount={pricing.deposit}
-              depositMode={pricing.depositMode}
+              depositAmount={cardDeposit.amount}
+              depositMode={cardDeposit.timing}
               required
             />
 
@@ -879,7 +889,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                   />
                 </div>
               </div>
-              <div>
+              {!weekly.on && <div>
                 <div className="mb-[7px] text-[11px] uppercase tracking-[0.03em] text-muted"><Dyn>Return date &amp; time</Dyn></div>
                 <div className="rounded-[9px] border border-line px-[14px] py-3">
                   <DateTimeField
@@ -896,7 +906,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                     label={t('Return')}
                   />
                 </div>
-              </div>
+              </div>}
             </div>
             <DateDealsCallout
               className="mt-5"

@@ -960,6 +960,9 @@ export interface CreateBookingPayload {
    *  only says they ticked it. Without it no card is filed, even though
    *  the provider keeps one. */
   card_consent?: boolean;
+  rental_model?: 'daily' | 'gig' | 'subscription';
+  subscription_plan_id?: number | null;
+  weekly_consent?: boolean;
 }
 
 // Create booking API response
@@ -1042,6 +1045,13 @@ function tripBody(payload: QuotePayload) {
       ? { manual_insurance_package_ids: payload.manual_insurance_package_ids }
       : {}),
     ...(payload.promo_code ? { promo_code: payload.promo_code } : {}),
+    ...(payload.rental_model && payload.rental_model !== 'daily'
+      ? {
+          rental_model: payload.rental_model,
+          subscription_plan_id: payload.subscription_plan_id ?? null,
+          weekly_consent: !!payload.weekly_consent,
+        }
+      : {}),
   };
 }
 

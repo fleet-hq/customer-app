@@ -38,6 +38,11 @@ import { pickDefaultLocation } from '@/lib/locations';
 import { extractApiErrorMessage } from './fleet-detail-shared';
 import { useRentalSiteConfig } from '@/hooks/useRentalSiteConfig';
 import { rateCard } from '@/lib/rate-card';
+import { weeklyDepositTiming } from '@/lib/price-rows';
+import { useOngoingQuote } from '@/hooks/useRentalSiteConfig';
+import type { OngoingOffer, OngoingQuotePayload, RentalModel } from '@/services/rentalServices';
+
+type OngoingModel = Exclude<RentalModel, 'daily'>;
 import { trackVehicleView, trackBeginCheckout } from '@/lib/tracking-events';
 
 export const PLACEHOLDER_IMAGE = '/images/vehicles/car_placeholder.svg';
@@ -379,13 +384,70 @@ export function useFleetDetail(carId: string) {
     return list.filter((p) => selectedManualIds.has(p.id));
   }, [manualInsurancePackages, selectedManualIds]);
 
+  const ongoingOptions = useMemo<OngoingModel[]>(() => {
+    if (!vehicle || !rentalConfig.website_ongoing) return [];
+    const out: OngoingModel[] = [];
+    if (vehicle.offersGig && vehicle.pricePerWeek > 0 && rentalConfig.models.includes('gig')) out.push('gig');
+    if (
+      vehicle.offersSubscription &&
+      rentalConfig.models.includes('subscription') &&
+      rentalConfig.plans.some((plan) => plan.id === vehicle.subscriptionPlanId)
+    ) {
+      out.push('subscription');
+    }
+    return out;
+  }, [vehicle, rentalConfig]);
+  const urlModel = searchParams.get('model') as OngoingModel | null;
+  const ongoingModel = ongoingOptions.find((m) => m === urlModel) ?? ongoingOptions[0] ?? null;
+  const dailyAllowed = !vehicle || (vehicle.offersDaily && rentalConfig.models.includes('daily'));
+  const [weeklyChosen, setWeekly] = useState(urlModel === 'gig' || urlModel === 'subscription');
+  const [weeklyConsent, setWeeklyConsent] = useState(false);
+  const weeklyOn = !!ongoingModel && (weeklyChosen || !dailyAllowed);
+  const planId = ongoingModel === 'subscription' ? vehicle?.subscriptionPlanId ?? null : null;
+
+  const ongoingPayload = useMemo<OngoingQuotePayload | null>(() => {
+    if (!weeklyOn || !ongoingModel || !quotePayload) return null;
+    return {
+      fleet_id: quotePayload.fleet_id,
+      rental_model: ongoingModel,
+      subscription_plan_id: planId,
+      pickup_datetime: quotePayload.pickup_datetime,
+      pickup_location_id: quotePayload.pickup_location_id,
+      extras: quotePayload.extras,
+    };
+  }, [weeklyOn, ongoingModel, planId, quotePayload]);
+  const { quote: ongoingQuote, stale: ongoingStale } = useOngoingQuote(ongoingPayload);
+  const offer: OngoingOffer | null = ongoingQuote && ongoingQuote.available ? ongoingQuote : null;
+
+  const bookingPayload = useMemo<QuotePayload | null>(() => {
+    if (!quotePayload || !weeklyOn) return quotePayload;
+    if (!offer || !ongoingModel) return null;
+    return {
+      fleet_id: quotePayload.fleet_id,
+      pickup_datetime: quotePayload.pickup_datetime,
+      dropoff_datetime: offer.first_period_end,
+      pickup_location_id: quotePayload.pickup_location_id,
+      dropoff_location_id: quotePayload.pickup_location_id,
+      insurance_selected: false,
+      cdw_cover: false,
+      rcli_cover: false,
+      sli_cover: false,
+      pai_cover: false,
+      extras: quotePayload.extras,
+      abi_coverage: false,
+      rental_model: ongoingModel,
+      subscription_plan_id: planId,
+      weekly_consent: weeklyConsent,
+    };
+  }, [quotePayload, weeklyOn, offer, ongoingModel, planId, weeklyConsent]);
+
   const bonzahSelected = useMemo(
     () => Array.from(selectedInsurance).some((id) => id !== 'own'),
     [selectedInsurance],
   );
 
   const { pricing, extraInvoiceItems, extrasById, insuranceLabel } = useBookingInvoice({
-    quotePayload,
+    quotePayload: weeklyOn ? null : quotePayload,
     vehicleData,
     selectedInsurance,
     selectedExtras,
@@ -585,11 +647,23 @@ export function useFleetDetail(carId: string) {
     // One rule for both templates. The agreement and the card
     // authorization are the renter's two consents, and neither is
     // optional, so neither lets the button through.
+    weekly: {
+      options: ongoingOptions,
+      model: ongoingModel,
+      on: weeklyOn,
+      canPickDate: dailyAllowed,
+      set: setWeekly,
+      offer,
+      reason: ongoingQuote && !ongoingQuote.available ? ongoingQuote.reason : null,
+      stale: ongoingStale,
+      consent: weeklyConsent,
+      setConsent: setWeeklyConsent,
+    },
     reserveBlocked:
       startCheckout.isPending ||
       startVerification.isPending ||
       startEmbedPayment.isPending ||
-      !meetsMinDuration ||
+      (weeklyOn ? !offer || !weeklyConsent || ongoingStale : !meetsMinDuration) ||
       !cardConsent ||
       (rentalAgreementRequired && !rentalAgreementSigned),
     carId,
@@ -611,7 +685,10 @@ export function useFleetDetail(carId: string) {
   const galleryImages = vehicle.images.length > 0 ? vehicle.images : ['/images/vehicles/car_placeholder.svg'];
 
   const discount = pricing.discount;
-  const total = pricing.total + abiPremium;
+  const total = weeklyOn ? Number(offer?.first.total ?? 0) : pricing.total + abiPremium;
+  const cardDeposit = weeklyOn && offer
+    ? { amount: Number(offer.deposit), timing: weeklyDepositTiming(offer.deposit_method) }
+    : { amount: pricing.deposit, timing: pricing.depositMode };
 
   const isInsuranceDisabled = (id: string) => id === 'sli' && !selectedInsurance.has('rcli');
   const clearOwnInsurance = () =>
@@ -715,8 +792,13 @@ export function useFleetDetail(carId: string) {
     if (Object.keys(e).length > 0 || !cardConsent) return;
     setCheckoutError('');
 
-    if (!pickupDate || !pickupTime || !returnDate || !returnTime) {
+    if (!pickupDate || !pickupTime || (!weeklyOn && (!returnDate || !returnTime))) {
       setCheckoutError('Please select a pick-up date, pick-up time, return date, and return time.');
+      return;
+    }
+
+    if (weeklyOn && !weeklyConsent) {
+      setCheckoutError('Agree to the weekly charges to continue.');
       return;
     }
 
@@ -726,14 +808,19 @@ export function useFleetDetail(carId: string) {
       return;
     }
 
-    if (!quotePayload || !fleetTz) {
+    if (weeklyOn && !offer) {
+      setCheckoutError(ongoingQuote && !ongoingQuote.available ? ongoingQuote.reason : 'Weekly rental pricing is still loading.');
+      return;
+    }
+
+    if (!bookingPayload || !fleetTz) {
       setCheckoutError("Couldn't determine the rental location's timezone, please refresh.");
       return;
     }
 
     const tz = fleetTz;
-    const pickupDatetime = quotePayload.pickup_datetime;
-    const dropoffDatetime = quotePayload.dropoff_datetime;
+    const pickupDatetime = bookingPayload.pickup_datetime;
+    const dropoffDatetime = bookingPayload.dropoff_datetime;
 
     const conflict = firstBlockInSpan(
       unavailableRanges,
@@ -789,7 +876,7 @@ export function useFleetDetail(carId: string) {
       : {};
 
     const commonPayload = {
-      ...quotePayload,
+      ...bookingPayload,
       card_consent: cardConsent,
       customer: {
         first_name: fields.firstName.trim(),
@@ -829,7 +916,7 @@ export function useFleetDetail(carId: string) {
         setNmiCardError(null);
         setNmiPay({
           pendingId: data.pending_id,
-          amount: Number(data.amount) || pricing.total,
+          amount: Number(data.amount) || total,
           currency: data.currency || 'usd',
           deposit: pricing.deposit,
         });
@@ -972,6 +1059,7 @@ export function useFleetDetail(carId: string) {
     galleryImages,
     discount,
     total,
+    cardDeposit,
     isInsuranceDisabled,
     clearOwnInsurance,
     toggleInsurance,

@@ -1,8 +1,7 @@
 'use client';
 
 import { Dyn } from '@/components/i18n/Dyn';
-import { depositNotice } from '@/lib/price-rows';
-import type { BookingPricing } from '@/hooks/useBookingInvoice';
+import { depositNotice, type DepositTiming } from '@/lib/price-rows';
 
 interface CardConsentProps {
   checked: boolean;
@@ -11,7 +10,7 @@ interface CardConsentProps {
   /** Deposit the renter will be asked for, so the notice can say what
    *  actually happens rather than a generic line. */
   depositAmount?: number;
-  depositMode?: BookingPricing['depositMode'];
+  depositMode?: DepositTiming;
   /** PRD E8.6 makes consent mandatory at website checkout; E8.5 lets a
    *  renter paying a link decline and pay anyway. */
   required?: boolean;

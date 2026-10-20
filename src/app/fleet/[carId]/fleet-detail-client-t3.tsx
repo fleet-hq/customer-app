@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Dyn } from '@/components/i18n/Dyn';
 import { CardConsent } from '@/components/booking/card-consent';
 import { depositSummary, rateRows, taxRows, weeklySavingText } from '@/lib/price-rows';
+import { ReturnModeToggle, WeeklyRentalSummary } from '@/components/booking/weekly-rental';
 import { NmiPayModal } from '@/components/booking/nmi-pay-modal';
 import { RentalAgreementSignModal } from '@/components/booking/rental-agreement-sign-modal';
 import { EmbedPaymentPanel } from '@/components/checkout/embed-payment-panel';
@@ -90,6 +91,8 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
     days,
     pricing,
     rates,
+    weekly,
+    cardDeposit,
     total,
     discount,
     extraInvoiceItems,
@@ -281,7 +284,7 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
               </div>
             ) : null}
 
-            <div className="blk" id="protection">
+            {!weekly.on ? <div className="blk" id="protection">
               <h2 ref={protectionRef}>
                 <i />
                 <Dyn>Protection</Dyn>
@@ -327,7 +330,7 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
                   />
                 ) : null}
               </div>
-            </div>
+            </div> : null}
 
             {vehicle.extras.length > 0 ? (
               <div className="blk">
@@ -426,7 +429,7 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
                   returnUrl={`${origin}/booking/success?session_id=${embedIntent.pendingId}`}
                   amount={embedIntent.amount}
                   currency={embedIntent.currency}
-                  depositAmount={pricing.deposit}
+                  depositAmount={cardDeposit.amount}
                   tenantName={tenant?.name}
                   onCancel={() => {
                     fd.releaseNow();
@@ -466,7 +469,7 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
                     <Dyn>Drop-off</Dyn>
                   </span>
                   <b>
-                    {dropoffCity} · {formatTripStamp(returnDate, returnTime)}
+                    {dropoffCity} · {weekly.on ? <Dyn>No fixed return</Dyn> : formatTripStamp(returnDate, returnTime)}
                   </b>
                 </div>
                 <button type="button" onClick={() => setTripOpen(true)}>
@@ -475,13 +478,20 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
               </div>
             </section>
 
+            {weekly.model && weekly.canPickDate ? (
+              <section>
+                <ReturnModeToggle weekly={weekly} variant="inherit" />
+              </section>
+            ) : null}
+
             <section>
               <h3>
                 <Dyn>Price details</Dyn>
                 <span className="daypill">
-                  {days} <Dyn>{days === 1 ? 'day' : 'days'}</Dyn>
+                  {weekly.on ? <Dyn>Weekly</Dyn> : <>{days} <Dyn>{days === 1 ? 'day' : 'days'}</Dyn></>}
                 </span>
               </h3>
+              {weekly.on ? <WeeklyRentalSummary weekly={weekly} variant="inherit" /> : (<>
 
               <h5>
                 <Dyn>Rental</Dyn>
@@ -601,9 +611,10 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
                   <span>{money(row.amount)}</span>
                 </div>
               ))}
+              </>)}
             </section>
 
-            <section>
+            {!weekly.on ? <section>
               <div className="total">
                 <span>
                   <Dyn>Total</Dyn>
@@ -616,15 +627,15 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
               <p className="note">
                 <Dyn>Security deposit</Dyn>: <Dyn>{depositSummary(pricing.deposit, pricing.depositMode)}</Dyn>
               </p>
-            </section>
+            </section> : null}
 
             <section className="sum-act">
               <CardConsent
                 checked={cardConsent}
                 onChange={setCardConsent}
                 companyName={tenant.name}
-                depositAmount={pricing.deposit}
-                depositMode={pricing.depositMode}
+                depositAmount={cardDeposit.amount}
+                depositMode={cardDeposit.timing}
               />
 
               {rentalAgreementRequired ? (
@@ -644,7 +655,7 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
                 </button>
               ) : null}
 
-              {!meetsMinDuration ? (
+              {!weekly.on && !meetsMinDuration ? (
                 <p className="note">
                   <Dyn>This vehicle has a minimum rental of</Dyn> {minDuration}{' '}
                   <Dyn>days</Dyn>.
