@@ -23,6 +23,9 @@ export default function ManageClientT3() {
     errors,
     isLoading,
     handleSubmit,
+    mode,
+    switchMode,
+    linkSent,
   } = useManageLookup();
 
   return (
@@ -43,6 +46,14 @@ export default function ManageClientT3() {
           </p>
 
           <form className="mg-card" onSubmit={handleSubmit} noValidate>
+            {linkSent ? (
+              <p className="note">
+                <Dyn>If that email has bookings with us, a sign-in link is on its way. It works for 5 days.</Dyn>
+              </p>
+            ) : null}
+
+            {mode === 'details' ? (
+            <>
             <div className="lfield">
               <label htmlFor="t3-bid">
                 <Dyn>Booking ID</Dyn>
@@ -73,6 +84,8 @@ export default function ManageClientT3() {
               />
             </div>
             {errors.last_name ? <p className="mg-err on">{t(errors.last_name)}</p> : null}
+            </>
+            ) : null}
 
             <div className="lfield">
               <label htmlFor="t3-eml">
@@ -92,7 +105,14 @@ export default function ManageClientT3() {
             {errors.general ? <p className="mg-err on">{t(errors.general)}</p> : null}
 
             <button className="btn" type="submit" disabled={isLoading}>
-              {isLoading ? t('Looking up…') : t('Continue')} <span className="chev">›</span>
+              {mode === 'link'
+                ? isLoading ? t('Sending…') : t('Send me a sign-in link')
+                : isLoading ? t('Looking up…') : t('Continue')}{' '}
+              <span className="chev">›</span>
+            </button>
+
+            <button type="button" className="crumb mg-switch" onClick={() => switchMode(mode === 'details' ? 'link' : 'details')}>
+              <Dyn>{mode === 'details' ? 'No booking ID? Email me a sign-in link' : 'Look up with my booking ID instead'}</Dyn>
             </button>
           </form>
         </div>

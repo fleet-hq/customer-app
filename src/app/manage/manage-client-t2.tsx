@@ -16,6 +16,9 @@ export default function ManageClientT2() {
     errors,
     isLoading,
     handleSubmit,
+    mode,
+    switchMode,
+    linkSent,
   } = useManageLookup();
 
   return (
@@ -34,6 +37,12 @@ export default function ManageClientT2() {
               <div className={`${styles.noticeBox} ${styles.noticeBoxDanger}`}>{t(errors.general)}</div>
             ) : null}
 
+            {linkSent ? (
+              <div className={`${styles.noticeBox} ${styles.noticeBoxSuccess}`}><Dyn>If that email has bookings with us, a sign-in link is on its way. It works for 5 days.</Dyn></div>
+            ) : null}
+
+            {mode === 'details' ? (
+            <>
             <div className={styles.field}>
               <label className={styles.fieldLabel}><Dyn>Booking ID</Dyn></label>
               <div className={styles.fieldAffixWrap}>
@@ -60,6 +69,8 @@ export default function ManageClientT2() {
               />
               {errors.last_name ? <p className={styles.fieldError}>{t(errors.last_name)}</p> : null}
             </div>
+            </>
+            ) : null}
 
             <div className={styles.field}>
               <label className={styles.fieldLabel}><Dyn>Email address</Dyn></label>
@@ -74,7 +85,17 @@ export default function ManageClientT2() {
             </div>
 
             <button type="submit" disabled={isLoading} className={`${styles.btn} ${styles.btnBrass} ${styles.lookupSubmit}`}>
-              {isLoading ? t('Looking up…') : t('Continue')}
+              {mode === 'link'
+                ? isLoading ? t('Sending…') : t('Send me a sign-in link')
+                : isLoading ? t('Looking up…') : t('Continue')}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => switchMode(mode === 'details' ? 'link' : 'details')}
+              className={`${styles.linkMore} ${styles.lookupSwitch}`}
+            >
+              <Dyn>{mode === 'details' ? 'No booking ID? Email me a sign-in link' : 'Look up with my booking ID instead'}</Dyn>
             </button>
           </form>
         </div>

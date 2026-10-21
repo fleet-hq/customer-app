@@ -1313,11 +1313,9 @@ export async function cancelBooking(
 }
 
 // Lookup a booking by ID + last name/email (public, no auth)
-export interface BookingLookupPayload {
-  booking_id: string;
-  last_name?: string;
-  email?: string;
-}
+export type BookingLookupPayload =
+  | { booking_id: string; last_name?: string; email?: string }
+  | { token: string };
 
 export interface LookupBookingItem {
   id: number;
@@ -1342,6 +1340,14 @@ export interface BookingLookupResponse {
   booking_token: string;
   customer_name: string;
   bookings: LookupBookingItem[];
+}
+
+export async function requestSignInLink(email: string): Promise<void> {
+  await axios.post(
+    `${API_URL}/api/bookings/public/sign-in-link/`,
+    { email },
+    { params: getDomainParams(), headers: { 'Content-Type': 'application/json' } }
+  );
 }
 
 export async function lookupBooking(payload: BookingLookupPayload): Promise<BookingLookupResponse> {

@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { cn } from '@/lib/utils';
 import { Dyn } from '@/components/i18n/Dyn';
 import { useManageLookup } from './use-manage-lookup';
@@ -7,7 +8,7 @@ import ManageClientT2 from './manage-client-t2';
 import ManageClientT3 from './manage-client-t3';
 import { pickTemplateView } from '@/lib/template-view';
 
-export default function ManageBookingsPage() {
+function ManageBookingsContent() {
   const {
     tenant,
     t,
@@ -20,6 +21,9 @@ export default function ManageBookingsPage() {
     errors,
     isLoading,
     handleSubmit,
+    mode,
+    switchMode,
+    linkSent,
   } = useManageLookup();
 
   // Template 3 shares this surface with template 2: the markup is
@@ -52,6 +56,13 @@ export default function ManageBookingsPage() {
             </div>
           )}
 
+          {linkSent && (
+            <div className="mb-5 rounded-[10px] bg-green-bg-2 px-4 py-3 text-[13px] text-success">
+              <Dyn>If that email has bookings with us, a sign-in link is on its way. It works for 5 days.</Dyn>
+            </div>
+          )}
+
+          {mode === 'details' && (
           <div className="mb-5">
             <label className="block text-[13px] font-semibold text-ink"><Dyn>Booking ID</Dyn></label>
             <div className="mt-2 flex items-center gap-1 rounded-[10px] border border-line bg-white px-3 focus-within:border-primary">
@@ -69,7 +80,9 @@ export default function ManageBookingsPage() {
             </div>
             {errors.booking_id && <p className="mt-1 text-[11px] text-danger-text">{t(errors.booking_id)}</p>}
           </div>
+          )}
 
+          {mode === 'details' && (
           <div className="mb-5">
             <label className="block text-[13px] font-semibold text-ink"><Dyn>Last name on driver&apos;s license</Dyn></label>
             <input
@@ -84,6 +97,7 @@ export default function ManageBookingsPage() {
             />
             {errors.last_name && <p className="mt-1 text-[11px] text-danger-text">{t(errors.last_name)}</p>}
           </div>
+          )}
 
           <div className="mb-6">
             <label className="block text-[13px] font-semibold text-ink"><Dyn>Email address</Dyn></label>
@@ -105,10 +119,28 @@ export default function ManageBookingsPage() {
             disabled={isLoading}
             className="w-full rounded-[10px] bg-primary py-[12px] text-[13px] font-semibold text-white transition-colors hover:bg-primary-hover disabled:opacity-60"
           >
-            {isLoading ? t('Looking up…') : t('Continue')}
+            {mode === 'link'
+              ? isLoading ? t('Sending…') : t('Send me a sign-in link')
+              : isLoading ? t('Looking up…') : t('Continue')}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => switchMode(mode === 'details' ? 'link' : 'details')}
+            className="mt-4 w-full text-center text-[12px] font-semibold text-primary hover:text-primary-hover"
+          >
+            <Dyn>{mode === 'details' ? 'No booking ID? Email me a sign-in link' : 'Look up with my booking ID instead'}</Dyn>
           </button>
         </form>
       </section>
     </div>
+  );
+}
+
+export default function ManageBookingsPage() {
+  return (
+    <Suspense fallback={null}>
+      <ManageBookingsContent />
+    </Suspense>
   );
 }

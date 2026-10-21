@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTenant } from '@/lib/tenant-context';
 import { paths } from '@/lib/paths';
 import { setBookingToken } from '@/utils/booking-token';
-import { lookupBooking, type BookingLookupResponse } from '@/services/bookingServices';
+import { lookupBooking, requestSignInLink, type BookingLookupResponse } from '@/services/bookingServices';
 import { useDynamicTranslation } from '@/hooks/useDynamicTranslation';
+import { extractBackendErrorMessage } from '@/lib/error-sanitizer';
 
 export interface ManageLookupFormErrors {
   booking_id?: string;
@@ -16,6 +17,9 @@ export interface ManageLookupFormErrors {
 }
 
 const LOOKUP_STORAGE_KEY = 'cc_lookup';
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export type ManageLookupMode = 'details' | 'link';
 
 function redirectForResult(router: ReturnType<typeof useRouter>, data: BookingLookupResponse, replace = false) {
   const go = replace ? router.replace : router.push;
@@ -33,6 +37,9 @@ function redirectForResult(router: ReturnType<typeof useRouter>, data: BookingLo
 export function useManageLookup() {
   const tenant = useTenant();
   const router = useRouter();
+  const signInToken = useSearchParams().get('token');
+  const [mode, setMode] = useState<ManageLookupMode>('details');
+  const [linkSent, setLinkSent] = useState(false);
   const [bookingId, setBookingId] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -49,9 +56,37 @@ export function useManageLookup() {
     'Last name can only contain letters, spaces, hyphens, and apostrophes.',
     'Please enter a valid email address.',
     'No booking found. Please check your details and try again.',
+    'Send me a sign-in link',
+    'Sending…',
+    'This sign-in link has expired. Request a new one.',
+    'Something went wrong. Please try again.',
   ]);
 
+  function openLookup(response: BookingLookupResponse, replace = false) {
+    setBookingToken(response.booking_token);
+    sessionStorage.setItem(LOOKUP_STORAGE_KEY, JSON.stringify(response));
+    redirectForResult(router, response, replace);
+  }
+
+  function lookupErrors(err: unknown): ManageLookupFormErrors {
+    return { general: extractBackendErrorMessage(err, 'No booking found. Please check your details and try again.') };
+  }
+
   useEffect(() => {
+    if (!signInToken) return;
+    setIsLoading(true);
+    lookupBooking({ token: signInToken })
+      .then((response) => openLookup(response, true))
+      .catch((err) => {
+        setMode('link');
+        setErrors(lookupErrors(err));
+      })
+      .finally(() => setIsLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signInToken]);
+
+  useEffect(() => {
+    if (signInToken) return;
     const stored = sessionStorage.getItem(LOOKUP_STORAGE_KEY);
     if (!stored) return;
     try {
@@ -62,7 +97,7 @@ export function useManageLookup() {
     } catch {
       sessionStorage.removeItem(LOOKUP_STORAGE_KEY);
     }
-  }, [router]);
+  }, [router, signInToken]);
 
   function validate(): ManageLookupFormErrors {
     const errs: ManageLookupFormErrors = {};
@@ -75,18 +110,41 @@ export function useManageLookup() {
     if (lastName.trim() && !/^[a-zA-Z\s'-]+$/.test(lastName.trim())) {
       errs.last_name = 'Last name can only contain letters, spaces, hyphens, and apostrophes.';
     }
-    if (email.trim()) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email.trim())) {
-        errs.email = 'Please enter a valid email address.';
-      }
+    if (email.trim() && !EMAIL_PATTERN.test(email.trim())) {
+      errs.email = 'Please enter a valid email address.';
     }
     return errs;
+  }
+
+  async function sendLink() {
+    if (!EMAIL_PATTERN.test(email.trim())) {
+      setErrors({ email: email.trim() ? 'Please enter a valid email address.' : 'Enter your email address' });
+      return;
+    }
+    setIsLoading(true);
+    try {
+      await requestSignInLink(email.trim());
+      setLinkSent(true);
+    } catch {
+      setErrors({ general: 'Something went wrong. Please try again.' });
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  function switchMode(next: ManageLookupMode) {
+    setErrors({});
+    setLinkSent(false);
+    setMode(next);
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErrors({});
+    if (mode === 'link') {
+      await sendLink();
+      return;
+    }
 
     const validationErrors = validate();
     if (Object.keys(validationErrors).length > 0) {
@@ -102,19 +160,9 @@ export function useManageLookup() {
         ...(email.trim() ? { email: email.trim() } : {}),
       });
 
-      setBookingToken(response.booking_token);
-      sessionStorage.setItem(LOOKUP_STORAGE_KEY, JSON.stringify(response));
-
-      redirectForResult(router, response);
+      openLookup(response);
     } catch (err) {
-      const data = (err as { response?: { data?: { non_field_errors?: string[]; booking_id?: string[] } } })?.response?.data;
-      if (data?.non_field_errors) {
-        setErrors({ general: data.non_field_errors[0] });
-      } else if (data?.booking_id) {
-        setErrors({ booking_id: data.booking_id[0] });
-      } else {
-        setErrors({ general: 'No booking found. Please check your details and try again.' });
-      }
+      setErrors(lookupErrors(err));
     } finally {
       setIsLoading(false);
     }
@@ -132,5 +180,8 @@ export function useManageLookup() {
     errors,
     isLoading,
     handleSubmit,
+    mode,
+    switchMode,
+    linkSent,
   };
 }
