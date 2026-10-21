@@ -404,6 +404,22 @@ export function useFleetDetail(carId: string) {
   const [weeklyChosen, setWeekly] = useState(urlModel === 'gig' || urlModel === 'subscription');
   const [weeklyConsent, setWeeklyConsent] = useState(false);
   const weeklyOn = !!ongoingModel && (weeklyChosen || !dailyAllowed);
+  const insuranceRule = weeklyOn ? null : rentalConfig.daily_insurance_mode ?? null;
+  const ownOnly = insuranceRule === 'own_policy_only';
+  const cdwRequired = insuranceRule === 'bonzah_cdw_required';
+  useEffect(() => {
+    if (ownOnly) {
+      setSelectedInsurance((prev) => (prev.size === 1 && prev.has('own') ? prev : new Set(['own'])));
+    } else if (cdwRequired) {
+      setSelectedInsurance((prev) => {
+        if (prev.has('cdw') && !prev.has('own')) return prev;
+        const next = new Set(prev);
+        next.delete('own');
+        next.add('cdw');
+        return next;
+      });
+    }
+  }, [ownOnly, cdwRequired]);
   const planId = ongoingModel === 'subscription' ? vehicle?.subscriptionPlanId ?? null : null;
 
   const ongoingPayload = useMemo<OngoingQuotePayload | null>(() => {
@@ -719,7 +735,9 @@ export function useFleetDetail(carId: string) {
     return { status: 'not-found' as const };
   }
 
-  const plans: InsuranceOption[] = insuranceOptions ?? [];
+  const plans: InsuranceOption[] = (insuranceOptions ?? []).filter((p) =>
+    ownOnly ? p.id === 'own' : cdwRequired ? p.id !== 'own' : true,
+  );
   const recommendedPlanId = (plans.find((p) => p.price > 0) ?? plans[0])?.id ?? null;
   const selectedPlans = plans.filter((p) => selectedInsurance.has(p.id) && p.id !== 'own');
   const ownSelected = selectedInsurance.has('own');
@@ -746,6 +764,7 @@ export function useFleetDetail(carId: string) {
   // turning any real source ON clears 'own' (handled here for Bonzah,
   // in handleToggleAbi/handleToggleManual for the other two).
   const toggleInsurance = (id: string) => {
+    if (ownOnly || (cdwRequired && (id === 'cdw' || id === 'own'))) return;
     if (id === 'own') {
       const turningOn = !selectedInsurance.has('own');
       setSelectedInsurance(turningOn ? new Set(['own']) : new Set());
