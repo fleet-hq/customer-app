@@ -10,6 +10,7 @@ import {
   DOCUMENT_TYPES_FOR_KIND,
   DOCUMENT_TYPE_LABELS,
   MAX_DOCUMENT_BYTES,
+  ON_REQUEST_DOCUMENT_TYPES,
   deleteManualDocument,
   uploadManualVerification,
   type ManualDocumentType,
@@ -45,10 +46,13 @@ function sizeLabel(bytes: number): string {
 export function BookingDocuments({
   submissions,
   onUploaded,
+  requiredDocuments = [],
 }: {
   submissions: ManualVerificationSubmission[];
   onUploaded: () => void;
+  requiredDocuments?: string[];
 }) {
+  const choices = CHOICES.filter((type) => !ON_REQUEST_DOCUMENT_TYPES.includes(type) || requiredDocuments.includes(type));
   const isT2 = useIsT2();
   const inputRef = useRef<HTMLInputElement>(null);
   const [documentType, setDocumentType] = useState<ManualDocumentType>('licence');
@@ -193,7 +197,7 @@ export function BookingDocuments({
               : 'h-9 rounded-[8px] border border-card-border bg-white pl-2 pr-3 text-ink',
           )}
         >
-          {CHOICES.map((type) => (
+          {choices.map((type) => (
             <option key={type} value={type}>
               {DOCUMENT_TYPE_LABELS[type]}
             </option>

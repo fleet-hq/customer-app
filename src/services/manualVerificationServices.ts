@@ -4,7 +4,7 @@ import { getBookingTokenAuthHeaders, getBookingTokenHeaders } from '@/utils/book
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export type ManualVerificationKind = 'id' | 'insurance';
-export type ManualDocumentType = 'licence' | 'insurance_document' | 'selfie';
+export type ManualDocumentType = 'licence' | 'insurance_document' | 'selfie' | 'rideshare_profile';
 
 export interface ManualVerificationDocument {
   id: number;
@@ -25,13 +25,16 @@ export interface ManualVerificationSubmission {
 
 export const DOCUMENT_TYPES_FOR_KIND: Record<ManualVerificationKind, ManualDocumentType[]> = {
   id: ['licence', 'selfie'],
-  insurance: ['insurance_document'],
+  insurance: ['insurance_document', 'rideshare_profile'],
 };
+
+export const ON_REQUEST_DOCUMENT_TYPES: ManualDocumentType[] = ['rideshare_profile'];
 
 export const DOCUMENT_TYPE_LABELS: Record<ManualDocumentType, string> = {
   licence: "Driver's licence",
   insurance_document: 'Insurance document',
   selfie: 'Selfie or ID photo',
+  rideshare_profile: 'Rideshare driver profile',
 };
 
 export const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024;

@@ -377,5 +377,14 @@
   "to your original payment method.": "a su método de pago original.",
   "unpaid": "no pagado",
   "verified": "verificado",
-  "your": "tu"
+  "your": "tu",
+  "WEEKLY": "SEMANAL",
+  "Until returned": "Hasta la devolución",
+  "Send me a sign-in link": "Envíame un enlace de acceso",
+  "No booking ID? Email me a sign-in link": "¿Sin número de reserva? Envíame un enlace de acceso",
+  "Look up with my booking ID instead": "Buscar con mi número de reserva",
+  "If that email has bookings with us, a sign-in link is on its way. It works for 5 days.": "Si ese correo tiene reservas con nosotros, te enviamos un enlace de acceso. Funciona durante 5 días.",
+  "This sign-in link has expired. Request a new one.": "Este enlace de acceso ha caducado. Solicita uno nuevo.",
+  "Something went wrong. Please try again.": "Algo salió mal. Inténtalo de nuevo.",
+  "Rideshare driver profile": "Perfil de conductor de viajes compartidos"
 }

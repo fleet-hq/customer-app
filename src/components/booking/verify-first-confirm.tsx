@@ -6,6 +6,7 @@ import { BackLink } from '@/components/ui/back-link';
 import { cn, money } from '@/lib/utils';
 import { Dyn } from '@/components/i18n/Dyn';
 import { BookingDocuments } from './booking-documents';
+import { useRenterRental } from '@/hooks/useRentalSiteConfig';
 import { useIsT2 } from '@/lib/use-is-t2';
 import { insuranceCoverageLines } from '@/lib/insurance-lines';
 import { paths } from '@/lib/paths';
@@ -183,6 +184,7 @@ export function VerifyFirstConfirm(props: Props) {
     postTripPhotos,
     canUploadPhotos,
   } = props;
+  const { data: rental } = useRenterRental(bookingId, booking.rentalModel !== 'daily');
 
   // Staff asked for a card, so the emailed link has to land on something
   // the renter can act on, whatever else the booking is waiting for.
@@ -453,6 +455,7 @@ export function VerifyFirstConfirm(props: Props) {
             <BookingDocuments
               submissions={documentSubmissions}
               onUploaded={onDocumentUploaded}
+              requiredDocuments={rental?.required_documents}
             />
 
 
@@ -476,112 +479,116 @@ export function VerifyFirstConfirm(props: Props) {
                 isT2 ? 'rounded-[var(--skin-radius,3px)] border-[var(--line)] bg-[var(--card)]' : 'border-card-border bg-white',
               )}
             >
-              <h3 className={cn('text-[16px] font-bold', isT2 ? 'text-[var(--text)]' : 'text-ink')}>
-                <Dyn>Price summary</Dyn>
-              </h3>
-              <div className="mt-4 flex flex-col gap-3">
-                {lineItems.map((item) => (
-                  <div
-                    key={item.label}
-                    className="flex items-start justify-between gap-3 text-[13px]"
-                  >
-                    <div className="min-w-0">
-                      <p className={isT2 ? 'text-[var(--text)]' : 'text-ink'}><Dyn>{item.label}</Dyn></p>
-                      {item.sub && (
-                        <p className={cn('mt-0.5 text-[11.5px]', isT2 ? 'text-[var(--text-muted)]' : 'text-faint')}>
-                          {item.sub}
-                        </p>
-                      )}
-                    </div>
-                    <span className={cn('whitespace-nowrap font-medium', isT2 ? 'text-[var(--text)]' : 'text-ink')}>
-                      {money(item.value)}
-                    </span>
-                  </div>
-                ))}
-                {inv.discount > 0 && (
-                  <div
-                    className={cn(
-                      'flex items-start justify-between gap-3 text-[13px]',
-                      isT2 ? 'text-[var(--success)]' : 'text-success',
-                    )}
-                  >
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold">
-                          <Dyn>{inv.discountCode ? 'Discount' : 'Discount applied'}</Dyn>
-                        </span>
-                        {inv.discountCode && (
-                          <span
-                            className={cn(
-                              'rounded-md border px-1.5 py-[1px] text-[10.5px] font-bold uppercase tracking-[0.04em]',
-                              isT2
-                                ? 'border-[color-mix(in_srgb,var(--success)_45%,var(--line))] bg-[color-mix(in_srgb,var(--success)_14%,var(--card))] text-[var(--success)]'
-                                : 'border-green-border-2 bg-green-bg text-success',
-                            )}
-                          >
-                            {inv.discountCode}
-                          </span>
-                        )}
-                      </div>
-                      {inv.discountAppliesTo?.length > 0 && (
-                        <p
-                          className={cn(
-                            'mt-[3px] text-[11px] font-normal',
-                            isT2 ? 'text-[var(--text-muted)]' : 'text-faint',
+              {booking.rentalModel === 'daily' && (
+                <>
+                  <h3 className={cn('text-[16px] font-bold', isT2 ? 'text-[var(--text)]' : 'text-ink')}>
+                    <Dyn>Price summary</Dyn>
+                  </h3>
+                  <div className="mt-4 flex flex-col gap-3">
+                    {lineItems.map((item) => (
+                      <div
+                        key={item.label}
+                        className="flex items-start justify-between gap-3 text-[13px]"
+                      >
+                        <div className="min-w-0">
+                          <p className={isT2 ? 'text-[var(--text)]' : 'text-ink'}><Dyn>{item.label}</Dyn></p>
+                          {item.sub && (
+                            <p className={cn('mt-0.5 text-[11.5px]', isT2 ? 'text-[var(--text-muted)]' : 'text-faint')}>
+                              {item.sub}
+                            </p>
                           )}
-                        >
-                          <Dyn>Applied to</Dyn>: {inv.discountAppliesTo.join(', ')}
+                        </div>
+                        <span className={cn('whitespace-nowrap font-medium', isT2 ? 'text-[var(--text)]' : 'text-ink')}>
+                          {money(item.value)}
+                        </span>
+                      </div>
+                    ))}
+                    {inv.discount > 0 && (
+                      <div
+                        className={cn(
+                          'flex items-start justify-between gap-3 text-[13px]',
+                          isT2 ? 'text-[var(--success)]' : 'text-success',
+                        )}
+                      >
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold">
+                              <Dyn>{inv.discountCode ? 'Discount' : 'Discount applied'}</Dyn>
+                            </span>
+                            {inv.discountCode && (
+                              <span
+                                className={cn(
+                                  'rounded-md border px-1.5 py-[1px] text-[10.5px] font-bold uppercase tracking-[0.04em]',
+                                  isT2
+                                    ? 'border-[color-mix(in_srgb,var(--success)_45%,var(--line))] bg-[color-mix(in_srgb,var(--success)_14%,var(--card))] text-[var(--success)]'
+                                    : 'border-green-border-2 bg-green-bg text-success',
+                                )}
+                              >
+                                {inv.discountCode}
+                              </span>
+                            )}
+                          </div>
+                          {inv.discountAppliesTo?.length > 0 && (
+                            <p
+                              className={cn(
+                                'mt-[3px] text-[11px] font-normal',
+                                isT2 ? 'text-[var(--text-muted)]' : 'text-faint',
+                              )}
+                            >
+                              <Dyn>Applied to</Dyn>: {inv.discountAppliesTo.join(', ')}
+                            </p>
+                          )}
+                        </div>
+                        <span className="whitespace-nowrap text-[14px] font-bold">
+                          −{money(inv.discount)}
+                        </span>
+                      </div>
+                    )}
+                    {inv.deposit > 0 && (
+                      <div className="flex items-start justify-between gap-3 text-[13px]">
+                        <p className={isT2 ? 'text-[var(--text)]' : 'text-ink'}>
+                          <Dyn>Security deposit</Dyn>{' '}
+                          <span className={cn('text-[11px]', isT2 ? 'text-[var(--text-muted)]' : 'text-faint')}>
+                            <Dyn>(refundable)</Dyn>
+                          </span>
                         </p>
-                      )}
-                    </div>
-                    <span className="whitespace-nowrap text-[14px] font-bold">
-                      −{money(inv.discount)}
-                    </span>
+                        <span className={cn('whitespace-nowrap font-medium', isT2 ? 'text-[var(--text)]' : 'text-ink')}>
+                          {money(inv.deposit)}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                )}
-                {inv.deposit > 0 && (
-                  <div className="flex items-start justify-between gap-3 text-[13px]">
-                    <p className={isT2 ? 'text-[var(--text)]' : 'text-ink'}>
-                      <Dyn>Security deposit</Dyn>{' '}
-                      <span className={cn('text-[11px]', isT2 ? 'text-[var(--text-muted)]' : 'text-faint')}>
-                        <Dyn>(refundable)</Dyn>
+                  <div className={cn('my-5 h-px', isT2 ? 'bg-[var(--line)]' : 'bg-card-border')} />
+                  <div className="flex items-baseline justify-between">
+                    <span className={cn('text-[16px] font-bold', isT2 ? 'text-[var(--text)]' : 'text-ink')}>
+                      <Dyn>{mode === 'confirmed_paid' ? 'Total paid' : 'Total due'}</Dyn>
+                    </span>
+                    <span>
+                      <span className={cn('mr-1 text-[10px] font-semibold', isT2 ? 'text-[var(--text-muted)]' : 'text-faint')}>
+                        USD
                       </span>
-                    </p>
-                    <span className={cn('whitespace-nowrap font-medium', isT2 ? 'text-[var(--text)]' : 'text-ink')}>
-                      {money(inv.deposit)}
+                      <span
+                        className={cn(
+                          'text-[22px] font-bold',
+                          isT2
+                            ? mode === 'confirmed_paid' ? 'text-[var(--success)]' : 'text-[var(--brass)]'
+                            : mode === 'confirmed_paid' ? 'text-success' : 'text-secondary',
+                        )}
+                      >
+                        {money(
+                          mode === 'payment_due'
+                            ? outstanding || totalDue
+                            : totalDue + (inv.deposit || 0),
+                        )}
+                      </span>
                     </span>
                   </div>
-                )}
-              </div>
-              <div className={cn('my-5 h-px', isT2 ? 'bg-[var(--line)]' : 'bg-card-border')} />
-              <div className="flex items-baseline justify-between">
-                <span className={cn('text-[16px] font-bold', isT2 ? 'text-[var(--text)]' : 'text-ink')}>
-                  <Dyn>{mode === 'confirmed_paid' ? 'Total paid' : 'Total due'}</Dyn>
-                </span>
-                <span>
-                  <span className={cn('mr-1 text-[10px] font-semibold', isT2 ? 'text-[var(--text-muted)]' : 'text-faint')}>
-                    USD
-                  </span>
-                  <span
-                    className={cn(
-                      'text-[22px] font-bold',
-                      isT2
-                        ? mode === 'confirmed_paid' ? 'text-[var(--success)]' : 'text-[var(--brass)]'
-                        : mode === 'confirmed_paid' ? 'text-success' : 'text-secondary',
-                    )}
-                  >
-                    {money(
-                      mode === 'payment_due'
-                        ? outstanding || totalDue
-                        : totalDue + (inv.deposit || 0),
-                    )}
-                  </span>
-                </span>
-              </div>
-              {inv.deposit > 0 && mode !== 'payment_due' && (
-                <p className={cn('mt-2 text-[11px] leading-[1.5]', isT2 ? 'text-[var(--text-muted)]' : 'text-faint')}>
-                  <Dyn>Includes a refundable</Dyn> {money(inv.deposit)} <Dyn>security deposit, refunded after your trip minus any damage claims.</Dyn>
-                </p>
+                  {inv.deposit > 0 && mode !== 'payment_due' && (
+                    <p className={cn('mt-2 text-[11px] leading-[1.5]', isT2 ? 'text-[var(--text-muted)]' : 'text-faint')}>
+                      <Dyn>Includes a refundable</Dyn> {money(inv.deposit)} <Dyn>security deposit, refunded after your trip minus any damage claims.</Dyn>
+                    </p>
+                  )}
+                </>
               )}
 
               {mode === 'pending_verification' || mode === 'payment_due' ? (

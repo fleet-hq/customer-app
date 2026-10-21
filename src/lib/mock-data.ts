@@ -196,9 +196,9 @@ function tripDateOffset(days: number): string {
 }
 
 export const DEFAULT_TRIP = {
-  pickupDate: tripDateOffset(0),
+  pickupDate: tripDateOffset(1),
   pickupTime: '09:00',
-  returnDate: tripDateOffset(2),
+  returnDate: tripDateOffset(3),
   returnTime: '09:00',
 };
 

@@ -125,6 +125,7 @@ export interface RenterRental {
   ended_at: string | null;
   plan: { name: string; weekly_price: string; miles_per_week: number } | null;
   charges: RenterCharge[];
+  required_documents: string[];
 }
 
 export async function getRenterRental(): Promise<RenterRental> {

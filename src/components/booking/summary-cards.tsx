@@ -90,6 +90,7 @@ function Detail({
 }
 
 export function TripDetails({ booking }: { booking: BookingDetails }) {
+  const ongoing = booking.rentalModel !== 'daily';
   return (
     <div className="rounded-2xl border border-card-border bg-white p-4 sm:p-6">
       <h3 className="mb-4 text-[15px] font-semibold text-ink sm:mb-4.5">Trip details</h3>
@@ -103,7 +104,7 @@ export function TripDetails({ booking }: { booking: BookingDetails }) {
         />
         <div className="flex flex-shrink-0 items-center justify-center sm:justify-start">
           <span className="rounded-full bg-chip px-[10px] py-[5px] text-[10px] font-semibold whitespace-nowrap text-muted">
-            {rentalDays(booking)} <Dyn>DAYS</Dyn>
+            {ongoing ? <Dyn>WEEKLY</Dyn> : <>{rentalDays(booking)} <Dyn>DAYS</Dyn></>}
           </span>
         </div>
         <TripEnd
@@ -111,7 +112,7 @@ export function TripDetails({ booking }: { booking: BookingDetails }) {
           dotClass="bg-danger"
           labelClass="text-danger"
           location={booking.dropOff.address}
-          when={`${booking.dropOff.date} · ${booking.dropOff.time}`}
+          when={ongoing ? <Dyn>Until returned</Dyn> : `${booking.dropOff.date} · ${booking.dropOff.time}`}
         />
       </div>
     </div>
@@ -129,7 +130,7 @@ function TripEnd({
   dotClass: string;
   labelClass: string;
   location: string;
-  when: string;
+  when: React.ReactNode;
 }) {
   return (
     <div className="flex-1 rounded-[11px] border border-hairline bg-subtle px-4 py-[14px]">
