@@ -311,8 +311,9 @@ export function useFleetDetail(carId: string) {
   // trip that reaches the minimum on price is accepted even though it
   // falls short on the clock.
   const allowShortAtMin = vehicle?.allowShortTripsAtMinimum ?? false;
+  const minHours = vehicle?.minHours ?? 1;
   const meetsMinDuration = isHourlyFleet
-    ? rawRentalHours >= 1
+    ? rawRentalHours >= minHours
     : allowShortAtMin
       ? days >= minDuration
       : minDuration > 1
@@ -403,7 +404,23 @@ export function useFleetDetail(carId: string) {
   const dailyAllowed = !vehicle || (vehicle.offersDaily && rentalConfig.models.includes('daily'));
   const [weeklyChosen, setWeekly] = useState(urlModel === 'gig' || urlModel === 'subscription');
   const [weeklyConsent, setWeeklyConsent] = useState(false);
-  const weeklyOn = !!ongoingModel && (weeklyChosen || !dailyAllowed);
+  const planId = ongoingModel === 'subscription' ? vehicle?.subscriptionPlanId ?? null : null;
+
+  const ongoingPayload = useMemo<OngoingQuotePayload | null>(() => {
+    if (!ongoingModel || !quotePayload) return null;
+    return {
+      fleet_id: quotePayload.fleet_id,
+      rental_model: ongoingModel,
+      subscription_plan_id: planId,
+      pickup_datetime: quotePayload.pickup_datetime,
+      pickup_location_id: quotePayload.pickup_location_id,
+      extras: quotePayload.extras,
+    };
+  }, [ongoingModel, planId, quotePayload]);
+  const { quote: ongoingQuote, stale: ongoingStale } = useOngoingQuote(ongoingPayload);
+  const futureBooked = !!ongoingQuote && !ongoingQuote.available && ongoingQuote.code === 'future_booking';
+  const hideWeekly = futureBooked && dailyAllowed;
+  const weeklyOn = !!ongoingModel && !hideWeekly && (weeklyChosen || !dailyAllowed);
   const insuranceRule = weeklyOn ? null : rentalConfig.daily_insurance_mode ?? null;
   const ownOnly = insuranceRule === 'own_policy_only';
   const cdwRequired = insuranceRule === 'bonzah_cdw_required';
@@ -420,21 +437,7 @@ export function useFleetDetail(carId: string) {
       });
     }
   }, [ownOnly, cdwRequired]);
-  const planId = ongoingModel === 'subscription' ? vehicle?.subscriptionPlanId ?? null : null;
-
-  const ongoingPayload = useMemo<OngoingQuotePayload | null>(() => {
-    if (!weeklyOn || !ongoingModel || !quotePayload) return null;
-    return {
-      fleet_id: quotePayload.fleet_id,
-      rental_model: ongoingModel,
-      subscription_plan_id: planId,
-      pickup_datetime: quotePayload.pickup_datetime,
-      pickup_location_id: quotePayload.pickup_location_id,
-      extras: quotePayload.extras,
-    };
-  }, [weeklyOn, ongoingModel, planId, quotePayload]);
-  const { quote: ongoingQuote, stale: ongoingStale } = useOngoingQuote(ongoingPayload);
-  const offer: OngoingOffer | null = ongoingQuote && ongoingQuote.available ? ongoingQuote : null;
+  const offer: OngoingOffer | null = weeklyOn && ongoingQuote && ongoingQuote.available ? ongoingQuote : null;
 
   const bookingPayload = useMemo<QuotePayload | null>(() => {
     if (!quotePayload || !weeklyOn) return quotePayload;
@@ -697,6 +700,9 @@ export function useFleetDetail(carId: string) {
     abiPremium,
     days,
     minDuration,
+    minDurationLabel: isHourlyFleet
+      ? `${minHours} ${minHours === 1 ? 'hour' : 'hours'}`
+      : `${minDuration} ${minDuration === 1 ? 'day' : 'days'}`,
     isHourlyFleet,
     meetsMinDuration,
     // The fleet payload is kept on screen while a date change refetches,
@@ -707,7 +713,7 @@ export function useFleetDetail(carId: string) {
     // optional, so neither lets the button through.
     weekly: {
       options: ongoingOptions,
-      model: ongoingModel,
+      model: hideWeekly ? null : ongoingModel,
       on: weeklyOn,
       canPickDate: dailyAllowed,
       set: setWeekly,

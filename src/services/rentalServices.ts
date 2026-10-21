@@ -58,7 +58,7 @@ export interface PeriodPrice {
 }
 
 export type OngoingQuote =
-  | { available: false; reason: string }
+  | { available: false; reason: string; code?: string }
   | {
       available: true;
       rental_model: Exclude<RentalModel, 'daily'>;
@@ -99,6 +99,16 @@ export interface RenterPeriod {
   method_label: string;
 }
 
+export interface RenterCharge {
+  id: string;
+  label: string;
+  description: string;
+  amount: string;
+  outstanding: string;
+  created_at: string;
+  receipt_url: string | null;
+}
+
 export interface RenterRental {
   rental_model: Exclude<RentalModel, 'daily'>;
   renew_weekday_name: string | null;
@@ -114,6 +124,7 @@ export interface RenterRental {
   earliest_return_date: string;
   ended_at: string | null;
   plan: { name: string; weekly_price: string; miles_per_week: number } | null;
+  charges: RenterCharge[];
 }
 
 export async function getRenterRental(): Promise<RenterRental> {

@@ -112,6 +112,37 @@ export function RenterRentalPanel({
         })}
       </ul>
 
+      {rental.charges.length > 0 ? (
+        <>
+          <h4 className={cn('mt-5 text-[13px] font-semibold', skin.strong)}>
+            <Dyn>Other charges</Dyn>
+          </h4>
+          <ul className={cn('mt-2 divide-y border-y', skin.line)}>
+            {rental.charges.map((charge) => (
+              <li key={charge.id} className={cn('flex items-center justify-between gap-3 py-3 text-[13px]', skin.line)}>
+                <div className="min-w-0">
+                  <div className={cn('font-medium', skin.strong)}><Dyn>{charge.label}</Dyn></div>
+                  {charge.description ? <div className={cn('mt-0.5 truncate text-[11.5px]', skin.quiet)}><Dyn>{charge.description}</Dyn></div> : null}
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className={cn('font-medium tabular-nums', skin.strong)}>{money(Number(charge.amount))}</span>
+                  {charge.receipt_url ? (
+                    <a href={charge.receipt_url} target="_blank" rel="noreferrer" className={cn('font-semibold', skin.link)}>
+                      <Dyn>View receipt</Dyn>
+                    </a>
+                  ) : null}
+                  {Number(charge.outstanding) > 0 ? (
+                    <Link href={payHref} className={cn('font-semibold', skin.link)}>
+                      <Dyn>Pay now</Dyn>
+                    </Link>
+                  ) : null}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
+
       <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-[13px]">
         <span className={skin.quiet}>
           <Dyn>Card on file</Dyn>: <span className={skin.strong}>{rental.card_on_file?.label ?? <Dyn>None</Dyn>}</span>

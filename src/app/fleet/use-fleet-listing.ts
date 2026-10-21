@@ -12,6 +12,7 @@ import { activeTier } from '@/lib/discount-tiers';
 import { useDynamicTranslation } from '@/hooks/useDynamicTranslation';
 import { trackFleetList } from '@/lib/tracking-events';
 import { useRentalSiteConfig } from '@/hooks/useRentalSiteConfig';
+import { rateCard } from '@/lib/rate-card';
 import { RENTAL_TABS, modelForPath } from '@/lib/rental-tabs';
 
 export const SORTS = ['Recommended', 'Price: low to high', 'Price: high to low'] as const;
@@ -183,8 +184,9 @@ export function useFleetListing() {
       makes: [...new Set(enrichedResults.map((v) => v.make).filter(Boolean))].sort(),
       colors: [...new Set(enrichedResults.map((v) => v.color).filter(Boolean))].sort(),
       seats: [...new Set(enrichedResults.map((v) => v.seats).filter(Boolean))].sort((a, b) => a - b),
+      weekly: enrichedResults.some((v) => rateCard(v, rentalConfig).week != null),
     }),
-    [enrichedResults],
+    [enrichedResults, rentalConfig],
   );
 
   const clientFilterCount = activeFilterCount(filters);
@@ -214,13 +216,14 @@ export function useFleetListing() {
       if (filters.minPrice != null && v.pricePerDay < filters.minPrice) return false;
       if (filters.maxPrice != null && v.pricePerDay > filters.maxPrice) return false;
       if (filters.availableOnly && hasWindow && unavailableIds.has(v.id)) return false;
+      if (filters.weeklyOnly && rateCard(v, rentalConfig).week == null) return false;
       return true;
     });
     if (sort === 'Price: low to high') list.sort((a, b) => a.pricePerDay - b.pricePerDay);
     if (sort === 'Price: high to low') list.sort((a, b) => b.pricePerDay - a.pricePerDay);
     if (days >= 7) list.sort((a, b) => weeklyDiscountPct(b) - weeklyDiscountPct(a));
     return list;
-  }, [enrichedResults, sort, isFiltered, type, filters, days, hasWindow, unavailableIds]);
+  }, [enrichedResults, sort, isFiltered, type, filters, days, hasWindow, unavailableIds, rentalConfig]);
 
   // Fire the list-view signal once per distinct result set rather than
   // on every render — filtering and sorting reshuffle `vehicles` on the

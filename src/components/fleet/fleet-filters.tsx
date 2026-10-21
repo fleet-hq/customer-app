@@ -15,6 +15,7 @@ export interface FilterState {
   /** Only meaningful once a pickup/drop-off window is chosen — that is
    *  what availability is resolved against. */
   availableOnly: boolean;
+  weeklyOnly: boolean;
 }
 
 export const INITIAL_FILTERS: FilterState = {
@@ -25,6 +26,7 @@ export const INITIAL_FILTERS: FilterState = {
   minPrice: null,
   maxPrice: null,
   availableOnly: false,
+  weeklyOnly: false,
 };
 
 export interface FilterOptions {
@@ -32,6 +34,7 @@ export interface FilterOptions {
   makes: string[];
   colors: string[];
   seats: number[];
+  weekly: boolean;
 }
 
 export function activeFilterCount(filters: FilterState): number {
@@ -42,7 +45,8 @@ export function activeFilterCount(filters: FilterState): number {
     filters.seats.length +
     (filters.minPrice != null ? 1 : 0) +
     (filters.maxPrice != null ? 1 : 0) +
-    (filters.availableOnly ? 1 : 0)
+    (filters.availableOnly ? 1 : 0) +
+    (filters.weeklyOnly ? 1 : 0)
   );
 }
 
@@ -87,6 +91,17 @@ export function FleetFilters({ filters, options, onChange, showAvailability }: F
               className="h-[15px] w-[15px] accent-primary"
             />
             <Dyn>Available only</Dyn>
+          </label>
+        ) : null}
+        {options.weekly ? (
+          <label className="flex cursor-pointer items-center gap-[7px] text-[13px] text-ink">
+            <input
+              type="checkbox"
+              checked={filters.weeklyOnly}
+              onChange={(e) => onChange({ ...filters, weeklyOnly: e.target.checked })}
+              className="h-[15px] w-[15px] accent-primary"
+            />
+            <Dyn>Weekly available</Dyn>
           </label>
         ) : null}
         {count > 0 && (

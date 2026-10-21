@@ -128,6 +128,7 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
     abiAvailable,
     days,
     minDuration,
+    minDurationLabel,
     meetsMinDuration,
     reserveBlocked,
     tenant,
@@ -540,7 +541,7 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
             {!weekly.on && !meetsMinDuration ? (
               <div className={`${styles.noticeBox} ${styles.noticeBoxDanger}`}>
                 <Info size={14} strokeWidth={2} />
-                <span><Dyn>This vehicle has a minimum rental of</Dyn> {minDuration} <Dyn>{minDuration === 1 ? 'day' : 'days'}</Dyn>. <Dyn>Choose a longer trip to continue.</Dyn></span>
+                <span><Dyn>This vehicle has a minimum rental of</Dyn> <Dyn>{minDurationLabel}</Dyn>. <Dyn>Choose a longer trip to continue.</Dyn></span>
               </div>
             ) : null}
 

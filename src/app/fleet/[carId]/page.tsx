@@ -153,6 +153,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
     abiAvailable,
     days,
     minDuration,
+    minDurationLabel,
     meetsMinDuration,
     reserveBlocked,
     tenant: tenantData,
@@ -701,7 +702,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
             {!weekly.on && !meetsMinDuration && (
               <div className="mt-4 flex items-center gap-[7px] rounded-[9px] border border-danger-border bg-danger-bg px-3 py-[9px] text-[11.5px] leading-[1.4] text-danger-text">
                 <Info size={14} strokeWidth={2} className="flex-shrink-0 text-danger" />
-                <Dyn>This vehicle has a minimum rental of</Dyn> {minDuration} <Dyn>{minDuration === 1 ? 'day' : 'days'}</Dyn>. <Dyn>Choose a longer trip to continue.</Dyn>
+                <Dyn>This vehicle has a minimum rental of</Dyn> <Dyn>{minDurationLabel}</Dyn>. <Dyn>Choose a longer trip to continue.</Dyn>
               </div>
             )}
 

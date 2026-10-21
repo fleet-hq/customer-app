@@ -113,6 +113,24 @@ export function FleetFiltersT2({ filters, options, onChange, activeCount }: Flee
             </div>
           ) : null}
 
+          {options.weekly ? (
+            <div className={styles.filterGroup}>
+              <span className={styles.filterGroupLabel}>
+                <Dyn>Rental length</Dyn>
+              </span>
+              <div className={styles.filterChips}>
+                <button
+                  type="button"
+                  aria-pressed={filters.weeklyOnly}
+                  onClick={() => onChange({ ...filters, weeklyOnly: !filters.weeklyOnly })}
+                  className={`${styles.filterChip} ${filters.weeklyOnly ? styles.filterChipActive : ''}`}
+                >
+                  <Dyn>Weekly available</Dyn>
+                </button>
+              </div>
+            </div>
+          ) : null}
+
           <div className={styles.filterGroup}>
             <span className={styles.filterGroupLabel}>
               <Dyn>Price per day</Dyn>

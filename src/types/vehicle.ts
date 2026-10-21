@@ -16,6 +16,7 @@ export interface ApiBookingPrice {
   price_per_week?: number | null;
   weekly_scope?: WeeklyScope;
   auto_cap_enabled?: boolean;
+  min_hours?: number | null;
   discounts?: {
     unit_type?: string;
     number_of_days: number;
@@ -135,6 +136,7 @@ export interface Vehicle {
   offersSubscription: boolean;
   subscriptionPlanId: number | null;
   autoCapEnabled: boolean;
+  minHours: number;
   isDynamicPricing?: boolean;
   isPeakPricing?: boolean;
   isPromoPricing?: boolean;
@@ -183,6 +185,7 @@ export function transformApiVehicle(apiVehicle: ApiVehicle): Vehicle {
   );
   const pricePerHour = Number(apiVehicle.booking_price?.price_per_hour ?? 0);
   const autoCapEnabled = apiVehicle.booking_price?.auto_cap_enabled !== false;
+  const minHours = Math.max(1, Number(apiVehicle.booking_price?.min_hours ?? 1));
   const activeDiscounts = (apiVehicle.booking_price?.discounts || []).filter((d) => d.is_active);
   const maxDiscount = activeDiscounts.length > 0
     ? Math.max(...activeDiscounts.map((d) => d.discount_percentage))
@@ -214,6 +217,7 @@ export function transformApiVehicle(apiVehicle: ApiVehicle): Vehicle {
     offersSubscription: !!apiVehicle.booking_rule?.offers_subscription,
     subscriptionPlanId: apiVehicle.booking_rule?.subscription_plan ?? null,
     autoCapEnabled,
+    minHours,
     isDynamicPricing: !!apiVehicle.booking_price?.is_dynamic,
     isPeakPricing: !!apiVehicle.booking_price?.is_peak,
     isPromoPricing: !!apiVehicle.booking_price?.is_promo,

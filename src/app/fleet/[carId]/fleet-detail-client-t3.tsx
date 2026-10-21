@@ -114,6 +114,7 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
     reserveBlocked,
     meetsMinDuration,
     minDuration,
+    minDurationLabel,
     rentalAgreementRequired,
     rentalAgreementSigned,
     rentalAgreementSignature,
@@ -657,8 +658,7 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
 
               {!weekly.on && !meetsMinDuration ? (
                 <p className="note">
-                  <Dyn>This vehicle has a minimum rental of</Dyn> {minDuration}{' '}
-                  <Dyn>days</Dyn>.
+                  <Dyn>This vehicle has a minimum rental of</Dyn> <Dyn>{minDurationLabel}</Dyn>.
                 </p>
               ) : null}
 
