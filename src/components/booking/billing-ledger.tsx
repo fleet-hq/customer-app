@@ -111,20 +111,30 @@ export function SyntheticBookingRow({ amount, bookedOn }: { amount: number; book
   );
 }
 
+export function historyStatus(status: string, tone: 'paid' | 'refund') {
+  if (tone === 'refund') return status === 'failed' ? 'failed' : 'refunded';
+  if (status === 'succeeded' || status === 'paid') return 'paid';
+  return status || 'paid';
+}
+
 export function HistoryRow({
   label,
   amount,
   status,
   date,
   tone,
+  detail,
 }: {
   label: string;
   amount: number;
   status: string;
   date: string | null;
   tone: 'paid' | 'refund';
+  detail?: string;
 }) {
   const { t } = useDynamicTranslation([
+    'Payment',
+    'Refund',
     'Payment received',
     'Refund issued',
     'refunded',
@@ -145,9 +155,10 @@ export function HistoryRow({
         <div className="flex flex-wrap items-center gap-2">
           <p className="truncate text-[13.5px] font-semibold text-ink">{t(label)}</p>
           <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide', pill)}>
-            {t(status || (tone === 'refund' ? 'refunded' : 'paid'))}
+            {t(historyStatus(status, tone))}
           </span>
         </div>
+        {detail ? <p className="mt-0.5 text-[12px] text-muted">{detail}</p> : null}
         {date ? <p className="mt-0.5 text-[11px] text-faint">{fmtDate(date)}</p> : null}
       </div>
       <p className={cn('shrink-0 text-[13.5px] font-semibold tabular-nums', tone === 'refund' ? 'text-glyph' : 'text-ink')}>

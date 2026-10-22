@@ -4,7 +4,7 @@ import { money } from '@/lib/utils';
 import type { BillingChargeRow } from '@/services/billingServices';
 import { Dyn } from '@/components/i18n/Dyn';
 import { useDynamicTranslation } from '@/hooks/useDynamicTranslation';
-import { CHARGE_TYPE_LABELS, fmtDate } from './billing-ledger';
+import { CHARGE_TYPE_LABELS, fmtDate, historyStatus } from './billing-ledger';
 import styles from '@/styles/template-2.module.css';
 
 // Template-2 counterpart of billing-ledger.tsx's row components — shared
@@ -77,14 +77,18 @@ export function HistoryRowT2({
   status,
   date,
   tone,
+  detail,
 }: {
   label: string;
   amount: number;
   status: string;
   date: string | null;
   tone: 'paid' | 'refund';
+  detail?: string;
 }) {
   const { t } = useDynamicTranslation([
+    'Payment',
+    'Refund',
     'Payment received',
     'Refund issued',
     'refunded',
@@ -99,8 +103,9 @@ export function HistoryRowT2({
       <div className={styles.ledgerRowInfo}>
         <div className={styles.ledgerRowTitle}>
           <span>{t(label)}</span>
-          <span className={`${styles.pill} ${pillClass}`}>{t(status || (tone === 'refund' ? 'refunded' : 'paid'))}</span>
+          <span className={`${styles.pill} ${pillClass}`}>{t(historyStatus(status, tone))}</span>
         </div>
+        {detail ? <div className={styles.ledgerRowMeta}>{detail}</div> : null}
         {date ? <div className={styles.ledgerRowMeta}>{fmtDate(date)}</div> : null}
       </div>
       <div className={styles.ledgerRowAmount}>{tone === 'refund' ? `- ${money(Number(amount))}` : money(Number(amount))}</div>

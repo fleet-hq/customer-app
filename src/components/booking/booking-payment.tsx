@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { ChargeRow, HistoryRow, SyntheticBookingRow } from '@/components/booking/billing-ledger';
-import { ChargeRowT2, HistoryRowT2, SyntheticBookingRowT2 } from '@/components/booking/billing-ledger-t2';
+import { HistoryRow, SyntheticBookingRow } from '@/components/booking/billing-ledger';
+import { HistoryRowT2, SyntheticBookingRowT2 } from '@/components/booking/billing-ledger-t2';
 import { CardConsent } from '@/components/booking/card-consent';
 import { PaymentLinkStatus } from '@/components/booking/payment-link-status';
 import { SecondaryButton } from '@/components/booking/secondary-button';
@@ -102,20 +102,25 @@ export function PaymentHistory({ bookingId, enabled }: { bookingId: string; enab
     );
   }
 
-  const Charge = isT2 ? ChargeRowT2 : ChargeRow;
   const History = isT2 ? HistoryRowT2 : HistoryRow;
   const Synthetic = isT2 ? SyntheticBookingRowT2 : SyntheticBookingRow;
+  const paidWith = (card?: string, method?: string) => card || (method && method !== 'card_on_file' ? method.replace(/_/g, ' ') : '');
   const rows = (
     <>
-      {pay.showSyntheticBooking && <Synthetic amount={pay.syntheticBookingTotal} bookedOn={pay.bookedOn} />}
-      {pay.settledCharges.map((c) => (
-        <Charge key={c.id} charge={c} />
-      ))}
+      {pay.showSyntheticBooking && pay.payments.length === 0 && <Synthetic amount={pay.syntheticBookingTotal} bookedOn={pay.bookedOn} />}
       {pay.payments.map((p) => (
-        <History key={`pay-${p.id}`} label="Payment received" amount={Number(p.amount)} status={p.status} date={p.succeeded_at} tone="paid" />
+        <History
+          key={`pay-${p.id}`}
+          label="Payment"
+          amount={Number(p.amount)}
+          status={p.status}
+          date={p.succeeded_at}
+          tone="paid"
+          detail={[(p.covers ?? []).join(', '), paidWith(p.card_label, p.method)].filter(Boolean).join(' · ')}
+        />
       ))}
       {pay.refunds.map((r) => (
-        <History key={`ref-${r.id}`} label="Refund issued" amount={Number(r.amount)} status={r.status} date={r.succeeded_at} tone="refund" />
+        <History key={`ref-${r.id}`} label="Refund" amount={Number(r.amount)} status={r.status} date={r.succeeded_at} tone="refund" detail={r.reason || undefined} />
       ))}
     </>
   );

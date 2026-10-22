@@ -389,5 +389,7 @@
   "Rideshare driver profile": "Perfil de conductor de viajes compartidos",
   "View payment history": "Ver historial de pagos",
   "Hide": "Ocultar",
-  "Pick a return date": "Elige una fecha de devolución"
+  "Pick a return date": "Elige una fecha de devolución",
+  "Payment": "Pago",
+  "Refund": "Reembolso"
 }

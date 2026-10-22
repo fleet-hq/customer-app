@@ -70,9 +70,6 @@ export function useBookingPayment(bookingId: string, enabled: boolean) {
   const charges = balance?.charges ?? [];
   const payments: BillingPaymentRow[] = balance?.payments ?? [];
   const refunds: BillingRefundRow[] = balance?.refunds ?? [];
-  const settledCharges = charges.filter(
-    (c) => !c.is_voided && (c.status === 'paid' || c.status === 'refunded' || c.status === 'partially_refunded'),
-  );
   const ledgerHasBookingFee = charges.some((c) => c.type === 'booking_fee');
   const syntheticBookingTotal = Number(booking?.invoice?.total ?? 0);
   const showSyntheticBooking = !ledgerHasBookingFee && syntheticBookingTotal > 0 && booking?.paymentStatus === 'paid';
@@ -94,9 +91,8 @@ export function useBookingPayment(bookingId: string, enabled: boolean) {
     handlePay,
     payments,
     refunds,
-    settledCharges,
     showSyntheticBooking,
     syntheticBookingTotal,
-    hasHistory: showSyntheticBooking || payments.length > 0 || refunds.length > 0 || settledCharges.length > 0,
+    hasHistory: showSyntheticBooking || payments.length > 0 || refunds.length > 0,
   };
 }

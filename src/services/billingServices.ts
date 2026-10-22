@@ -34,6 +34,9 @@ export interface BillingPaymentRow {
   status: string;
   succeeded_at: string | null;
   stripe_payment_intent_id: string;
+  card_label?: string;
+  method?: string;
+  covers?: string[];
 }
 
 export interface BillingRefundRow {
@@ -41,6 +44,7 @@ export interface BillingRefundRow {
   amount: string;
   status: string;
   succeeded_at: string | null;
+  reason?: string;
 }
 
 export type PaymentLinkStatus = 'active' | 'paid' | 'already_paid' | 'expired' | 'superseded' | 'cancelled';
