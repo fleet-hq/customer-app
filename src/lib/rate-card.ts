@@ -1,3 +1,4 @@
+import { released } from '@/lib/release';
 import { money } from '@/lib/utils';
 import type { RentalSiteConfig } from '@/services/rentalServices';
 import type { Vehicle } from '@/types/vehicle';
@@ -20,7 +21,7 @@ type RateVehicle = Pick<Vehicle, 'pricePerHour' | 'pricePerWeek' | 'weeklyScope'
 export function rateCard(vehicle: RateVehicle, config: RentalSiteConfig): RateCard {
   const ongoingOnly = vehicle.weeklyScope === 'ongoing';
   const weeklyBookable = !ongoingOnly || (config.models.includes('gig') && vehicle.offersGig);
-  const week = vehicle.pricePerWeek > 0 && weeklyBookable ? vehicle.pricePerWeek : null;
+  const week = released('weeklyRates') && vehicle.pricePerWeek > 0 && weeklyBookable ? vehicle.pricePerWeek : null;
   const hourFrom = vehicle.pricePerHour > 0 ? vehicle.pricePerHour : null;
   const extras = [week ? `${money(week)}/week` : null, hourFrom ? `from ${money(hourFrom)}/hr` : null]
     .filter(Boolean)

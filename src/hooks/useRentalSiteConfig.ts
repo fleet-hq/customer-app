@@ -14,6 +14,7 @@ import {
 import { useDebounce } from './use-debounce';
 import { useTenant } from '@/lib/tenant-context';
 import { rateCard, type RateCard } from '@/lib/rate-card';
+import { released } from '@/lib/release';
 
 export function useRentalSiteConfig(): RentalSiteConfig & { ready: boolean } {
   const tenant = useTenant();
@@ -23,7 +24,13 @@ export function useRentalSiteConfig(): RentalSiteConfig & { ready: boolean } {
     staleTime: 60_000,
     retry: false,
   });
-  return { ...(data ?? DAILY_ONLY), ready: isFetched };
+  const config = data ?? DAILY_ONLY;
+  return {
+    ...config,
+    models: released('modelTabs') ? config.models : config.models.filter((model) => model === 'daily'),
+    website_ongoing: released('websiteOngoing') && config.website_ongoing,
+    ready: isFetched,
+  };
 }
 
 export function useRateCard(vehicle: Parameters<typeof rateCard>[0]): RateCard {
