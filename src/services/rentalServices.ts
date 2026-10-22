@@ -1,4 +1,5 @@
 import axios from 'axios';
+import type { OngoingAgreementTerms } from '@/services/agreementServices';
 
 import { getDomainParams } from '@/utils/company';
 import { getBookingTokenHeaders } from '@/utils/booking-token';
@@ -74,6 +75,7 @@ export type OngoingQuote =
       return_notice_days: number;
       required_documents: string[];
       consent_text: string;
+      agreement: OngoingAgreementTerms;
     };
 
 export type OngoingOffer = Extract<OngoingQuote, { available: true }>;
@@ -126,6 +128,7 @@ export interface RenterRental {
   plan: { name: string; weekly_price: string; miles_per_week: number } | null;
   charges: RenterCharge[];
   required_documents: string[];
+  agreement: OngoingAgreementTerms | null;
 }
 
 export async function getRenterRental(): Promise<RenterRental> {

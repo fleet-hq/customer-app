@@ -18,6 +18,7 @@ import {
 import { useTenant } from '@/lib/tenant-context';
 import { milesLabel, overageLabel } from '@/lib/agreement-format';
 import type { BookingDetails } from '@/services/bookingServices';
+import { useRenterRental } from '@/hooks/useRentalSiteConfig';
 
 /** The whole rental agreement for a booking, ready to render or sign.
  *
@@ -40,6 +41,7 @@ export function useAgreementDocument(
   const { data: template } = useDefaultAgreementTemplate();
   const { data: bonzahAddendum } = useBonzahAddendum();
   const isBound = !!bookingId;
+  const { data: rental } = useRenterRental(bookingId, !!bookingData && bookingData.rentalModel !== 'daily');
 
   const agreement = useMemo<AgreementData | null>(() => {
     if (!isBound || !bookingData) return null;
@@ -48,6 +50,7 @@ export function useAgreementDocument(
     const miles = milesLabel(bookingData.vehicle);
     return {
       id: apiAgreement?.id ?? 0,
+      ongoingTerms: signedSnapshot?.ongoingTerms !== undefined ? signedSnapshot.ongoingTerms : rental?.agreement ?? null,
       status: apiAgreement?.signatureImage ? 'signed' : 'pending',
       signedAt: apiAgreement?.signedAt ?? null,
       signatureImage: apiAgreement?.signatureImage ?? null,
@@ -144,6 +147,6 @@ export function useAgreementDocument(
         description: template?.description || 'Please review and sign this rental agreement before pickup.',
       },
     };
-  }, [isBound, bookingData, apiAgreement, bookingDrivers, company, template, tenant.name, bonzahAddendum]);
+  }, [isBound, bookingData, apiAgreement, bookingDrivers, company, template, tenant.name, bonzahAddendum, rental]);
   return agreement;
 }

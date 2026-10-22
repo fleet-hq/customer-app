@@ -144,6 +144,7 @@ export function toAgreementExtras(
 
 export interface AgreementSnapshot {
   version?: number;
+  ongoing_terms?: OngoingAgreementTerms | null;
   clauses?: { title: string; content: string }[];
   addendum?: BonzahAddendum | null;
   extras?: {
@@ -263,6 +264,7 @@ export function agreementPartsFromSnapshot(snapshot: AgreementSnapshot): {
   addendum: BonzahAddendum | null;
   invoice: AgreementData['invoice'];
   cardOnFile: AgreementData['cardOnFile'];
+  ongoingTerms: AgreementData['ongoingTerms'];
 } {
   return {
     clauses: (snapshot.clauses ?? []).map((c, i) => ({
@@ -279,12 +281,21 @@ export function agreementPartsFromSnapshot(snapshot: AgreementSnapshot): {
     addendum: snapshot.addendum ?? null,
     invoice: snapshot.invoice ? snapshotInvoice(snapshot.invoice) : undefined,
     cardOnFile: mapCardOnFile(snapshot.card_on_file),
+    ongoingTerms: snapshot.ongoing_terms,
   };
 }
 
 // Transformed types for frontend
+export type AgreementRow = [label: string, value: string];
+
+export interface OngoingAgreementTerms {
+  term: AgreementRow[];
+  fees: AgreementRow[];
+}
+
 export interface AgreementData {
   id: number;
+  ongoingTerms?: OngoingAgreementTerms | null;
   status: string;
   signedAt: string | null;
   /** The card kept for incidentals, masked. Absent when none is held —
@@ -441,6 +452,7 @@ function transformAgreement(api: ApiAgreement): AgreementData {
     // shows the booking's current card, so the renter sees it in the
     // document before agreeing to it.
     cardOnFile: snapshot?.cardOnFile ?? mapCardOnFile((api as any).card_on_file),
+    ongoingTerms: snapshot?.ongoingTerms,
     // Resolved tenant TZ for the booking the agreement belongs to.
     // Used so the signed-on date renders in the rental-location clock
     // rather than the customer's browser-local TZ.

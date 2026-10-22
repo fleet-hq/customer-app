@@ -89,9 +89,10 @@ export function AgreementTemplate1({ data, onSignatureChange }: RentalAgreementP
             ? `Maximum ${v.maxDriverAge} years`
             : 'No restriction';
 
+  const ongoing = d.ongoingTerms;
   const rentalTerm: SpecRow[] = [
     ['Pickup Date & Time', dash(v.pickupDateTime)],
-    ['Dropoff Date & Time', dash(v.dropoffDateTime)],
+    ...(ongoing ? ongoing.term : [['Dropoff Date & Time', dash(v.dropoffDateTime)] as SpecRow]),
     ['Booking Date', dash(v.bookedAt)],
   ];
 
@@ -104,8 +105,8 @@ export function AgreementTemplate1({ data, onSignatureChange }: RentalAgreementP
     ['Driver Age Requirement', driverAge],
   ];
 
-  const feeRows: SpecRow[] = [];
-  if (d.invoice) {
+  const feeRows: SpecRow[] = ongoing ? [...ongoing.fees] : [];
+  if (!ongoing && d.invoice) {
     feeRows.push(['Rental Total', dash(d.invoice.rentalTotal)]);
     if (d.invoice.fees) feeRows.push(['Booking Fees', d.invoice.fees]);
     if (d.invoice.discount) feeRows.push(['Discount', d.invoice.discount]);

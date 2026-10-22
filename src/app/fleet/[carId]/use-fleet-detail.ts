@@ -590,6 +590,7 @@ export function useFleetDetail(carId: string) {
     insuranceLabel,
     ownInsurance: selectedInsurance.has('own'),
     signature: rentalAgreementSignature,
+    ongoingTerms: weeklyOn ? offer?.agreement ?? null : null,
   });
 
   const common = {

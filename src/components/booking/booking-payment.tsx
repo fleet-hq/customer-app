@@ -1,9 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import { ChargeRow, HistoryRow, SyntheticBookingRow } from '@/components/booking/billing-ledger';
 import { ChargeRowT2, HistoryRowT2, SyntheticBookingRowT2 } from '@/components/booking/billing-ledger-t2';
 import { CardConsent } from '@/components/booking/card-consent';
 import { PaymentLinkStatus } from '@/components/booking/payment-link-status';
+import { SecondaryButton } from '@/components/booking/secondary-button';
 import { Dyn } from '@/components/i18n/Dyn';
 import { useBookingPayment } from '@/hooks/use-booking-payment';
 import { useDynamicTranslation } from '@/hooks/useDynamicTranslation';
@@ -90,7 +92,15 @@ export function PaymentLinkCard({ bookingId, enabled }: { bookingId: string; ena
 export function PaymentHistory({ bookingId, enabled }: { bookingId: string; enabled: boolean }) {
   const isT2 = useIsT2();
   const pay = useBookingPayment(bookingId, enabled);
+  const [open, setOpen] = useState(false);
   if (!pay.hasHistory) return null;
+  if (!open) {
+    return (
+      <SecondaryButton onClick={() => setOpen(true)} aria-expanded={false}>
+        <Dyn>View payment history</Dyn>
+      </SecondaryButton>
+    );
+  }
 
   const Charge = isT2 ? ChargeRowT2 : ChargeRow;
   const History = isT2 ? HistoryRowT2 : HistoryRow;
@@ -113,7 +123,10 @@ export function PaymentHistory({ bookingId, enabled }: { bookingId: string; enab
   if (isT2) {
     return (
       <section className={styles.ledgerCard}>
-        <div className={styles.ledgerCardHead}><Dyn>Payment history</Dyn></div>
+        <div className={styles.ledgerCardHead} style={{ display: 'flex', justifyContent: 'space-between' }}>
+          <Dyn>Payment history</Dyn>
+          <button type="button" onClick={() => setOpen(false)} aria-expanded className={styles.linkMore}><Dyn>Hide</Dyn></button>
+        </div>
         <div>{rows}</div>
       </section>
     );
@@ -121,8 +134,11 @@ export function PaymentHistory({ bookingId, enabled }: { bookingId: string; enab
 
   return (
     <section className="overflow-hidden rounded-[14px] border border-card-border bg-white">
-      <div className="border-b border-hairline px-5 py-[14px]">
+      <div className="flex items-center justify-between border-b border-hairline px-5 py-[14px]">
         <h2 className="text-[15px] font-semibold text-secondary"><Dyn>Payment history</Dyn></h2>
+        <button type="button" onClick={() => setOpen(false)} aria-expanded className="text-[12.5px] font-semibold text-primary hover:text-primary-hover">
+          <Dyn>Hide</Dyn>
+        </button>
       </div>
       <div className="divide-y divide-hairline">{rows}</div>
     </section>

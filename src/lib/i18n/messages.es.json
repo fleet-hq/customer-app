@@ -386,5 +386,8 @@
   "If that email has bookings with us, a sign-in link is on its way. It works for 5 days.": "Si ese correo tiene reservas con nosotros, te enviamos un enlace de acceso. Funciona durante 5 días.",
   "This sign-in link has expired. Request a new one.": "Este enlace de acceso ha caducado. Solicita uno nuevo.",
   "Something went wrong. Please try again.": "Algo salió mal. Inténtalo de nuevo.",
-  "Rideshare driver profile": "Perfil de conductor de viajes compartidos"
+  "Rideshare driver profile": "Perfil de conductor de viajes compartidos",
+  "View payment history": "Ver historial de pagos",
+  "Hide": "Ocultar",
+  "Pick a return date": "Elige una fecha de devolución"
 }

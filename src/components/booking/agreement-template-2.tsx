@@ -230,12 +230,12 @@ export function AgreementTemplate2({ data, onSignatureChange }: RentalAgreementP
           <FieldGrid
             rows={[
               ['Pickup Date & Time', dash(v.pickupDateTime)],
-              ['Return Date & Time', dash(v.dropoffDateTime)],
+              ...(d.ongoingTerms ? d.ongoingTerms.term : [['Return Date & Time', dash(v.dropoffDateTime)] as [string, string]]),
             ]}
           />
 
           <SummaryHeading>Charges &amp; Extras</SummaryHeading>
-          <FieldGrid rows={[['Number of Days', dash(v.numberOfDays)]]} />
+          {d.ongoingTerms ? null : <FieldGrid rows={[['Number of Days', dash(v.numberOfDays)]]} />}
           {d.extras && d.extras.length > 0 ? (
             <ul className={`${BODY} mt-3 space-y-1`}>
               {d.extras.map((e, i) => (
@@ -250,10 +250,14 @@ export function AgreementTemplate2({ data, onSignatureChange }: RentalAgreementP
             </ul>
           ) : null}
           <FieldGrid
-            rows={[
-              ['Total Due at Booking', dash(d.invoice?.total)],
-              ['Security Deposit', dash(d.invoice?.deposit)],
-            ]}
+            rows={
+              d.ongoingTerms
+                ? d.ongoingTerms.fees
+                : [
+                    ['Total Due at Booking', dash(d.invoice?.total)],
+                    ['Security Deposit', dash(d.invoice?.deposit)],
+                  ]
+            }
           />
 
         </Paper>

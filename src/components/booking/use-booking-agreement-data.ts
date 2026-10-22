@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import type { AgreementData, BonzahAddendum } from '@/services/agreementServices';
+import type { AgreementData, BonzahAddendum, OngoingAgreementTerms } from '@/services/agreementServices';
 import { NA, money, num, milesLabel, overageLabel } from '@/lib/agreement-format';
 import {
   formatBookingDate,
@@ -66,6 +66,7 @@ export interface BookingAgreementInput {
   insuranceLabel?: string;
   ownInsurance?: boolean;
   signature?: string | null;
+  ongoingTerms?: OngoingAgreementTerms | null;
 }
 
 /** The agreement exactly as it will read once the booking exists, built
@@ -93,6 +94,7 @@ export function useBookingAgreementData(input: BookingAgreementInput): Agreement
     insuranceLabel,
     ownInsurance,
     signature,
+    ongoingTerms,
   } = input;
 
   return useMemo<AgreementData>(() => {
@@ -117,6 +119,7 @@ export function useBookingAgreementData(input: BookingAgreementInput): Agreement
 
     return {
       id: 0,
+      ongoingTerms: ongoingTerms ?? null,
       status: signature ? 'signed' : 'pending',
       signedAt: null,
       signatureImage: signature ?? null,
@@ -225,5 +228,6 @@ export function useBookingAgreementData(input: BookingAgreementInput): Agreement
     insuranceLabel,
     ownInsurance,
     signature,
+    ongoingTerms,
   ]);
 }

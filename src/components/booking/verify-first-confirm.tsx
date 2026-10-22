@@ -7,6 +7,7 @@ import { cn, money } from '@/lib/utils';
 import { Dyn } from '@/components/i18n/Dyn';
 import { BookingDocuments } from './booking-documents';
 import { PaymentHistory, PaymentLinkCard } from './booking-payment';
+import { SecondaryButton } from './secondary-button';
 import { useBookingPayment } from '@/hooks/use-booking-payment';
 import { useRenterRental } from '@/hooks/useRentalSiteConfig';
 import { useIsT2 } from '@/lib/use-is-t2';
@@ -731,18 +732,9 @@ export function VerifyFirstConfirm(props: Props) {
                 <TrustRow><Dyn>Encrypted, secure payment</Dyn></TrustRow>
               </ul>
 
-              <button
-                type="button"
-                onClick={() => window.print()}
-                className={cn(
-                  'mt-4 flex w-full items-center justify-center gap-2 rounded-[10px] border py-2.5 text-[12.5px] font-medium',
-                  isT2
-                    ? 'border-[var(--line-strong)] text-[var(--text)] hover:bg-[var(--paper)]'
-                    : 'border-line text-ink hover:bg-subtle',
-                )}
-              >
+              <SecondaryButton onClick={() => window.print()} className="mt-4">
                 <Download size={14} /> <Dyn>Download invoice</Dyn>
-              </button>
+              </SecondaryButton>
             </div>
           </aside>
         </div>
