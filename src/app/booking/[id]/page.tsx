@@ -194,7 +194,6 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
       rentalPanel={
         <RenterRentalPanel
           bookingId={id}
-          token={token}
           ongoing={booking.rentalModel !== 'daily'}
           onUpdateCard={saveCardOnly}
         />

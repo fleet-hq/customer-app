@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 
 import { Dyn } from '@/components/i18n/Dyn';
 import { cn, money } from '@/lib/utils';
@@ -9,6 +8,9 @@ import { useIsT2 } from '@/lib/use-is-t2';
 import { useGiveRenterNotice, useRenterRental } from '@/hooks/useRentalSiteConfig';
 import { extractApiErrorMessage } from '@/app/fleet/[carId]/fleet-detail-shared';
 import type { RenterPeriod, RenterRental } from '@/services/rentalServices';
+import { DatePicker } from '@/components/ui/date-picker';
+import { useBookingPayment } from '@/hooks/use-booking-payment';
+import { Calendar } from '@/components/ui/icons';
 
 const STATUS: Record<string, { label: string; tone: 'good' | 'bad' | 'due' | 'quiet' }> = {
   paid: { label: 'Paid', tone: 'good' },
@@ -55,12 +57,10 @@ function renewalLine(rental: RenterRental): string | null {
 
 export function RenterRentalPanel({
   bookingId,
-  token,
   ongoing,
   onUpdateCard,
 }: {
   bookingId: string;
-  token: string | null;
   ongoing: boolean;
   onUpdateCard: () => void;
 }) {
@@ -68,9 +68,9 @@ export function RenterRentalPanel({
   const { data: rental } = useRenterRental(bookingId, ongoing);
   const notice = useGiveRenterNotice(bookingId);
   const [returnDate, setReturnDate] = useState('');
+  const pay = useBookingPayment(bookingId, ongoing);
   if (!ongoing || !rental) return null;
 
-  const payHref = `/pay/booking/${bookingId}${token ? `?token=${token}` : ''}`;
   const renewal = renewalLine(rental);
   const earliest = rental.earliest_return_date;
   const submitNotice = () => {
@@ -102,9 +102,9 @@ export function RenterRentalPanel({
               <div className="flex items-center gap-3">
                 <span className={cn('font-medium tabular-nums', skin.strong)}>{money(Number(period.amount))}</span>
                 {owing ? (
-                  <Link href={payHref} className={cn('font-semibold', skin.link)}>
+                  <button type="button" onClick={pay.handlePay} disabled={pay.payLoading} className={cn('font-semibold disabled:opacity-60', skin.link)}>
                     <Dyn>Pay now</Dyn>
-                  </Link>
+                  </button>
                 ) : null}
               </div>
             </li>
@@ -132,9 +132,9 @@ export function RenterRentalPanel({
                     </a>
                   ) : null}
                   {Number(charge.outstanding) > 0 ? (
-                    <Link href={payHref} className={cn('font-semibold', skin.link)}>
+                    <button type="button" onClick={pay.handlePay} disabled={pay.payLoading} className={cn('font-semibold disabled:opacity-60', skin.link)}>
                       <Dyn>Pay now</Dyn>
-                    </Link>
+                    </button>
                   ) : null}
                 </div>
               </li>
@@ -162,17 +162,18 @@ export function RenterRentalPanel({
             </p>
           ) : (
             <>
-              <label htmlFor="renter-return" className={cn('text-[13px] font-medium', skin.strong)}>
+              <p className={cn('text-[13px] font-medium', skin.strong)}>
                 <Dyn>Return my car on…</Dyn>
-              </label>
-              <div className="mt-2 flex flex-wrap gap-2">
-                <input
-                  id="renter-return"
-                  type="date"
-                  min={earliest}
+              </p>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <DatePicker
                   value={returnDate}
-                  onChange={(e) => setReturnDate(e.target.value)}
-                  className={cn('rounded-lg border px-3 py-2 text-[13px]', skin.line, skin.strong, 'bg-transparent')}
+                  onChange={setReturnDate}
+                  minDate={earliest}
+                  placeholder="Pick a return date"
+                  aria-label="Return date"
+                  icon={<Calendar size={15} />}
+                  className={cn('min-w-[200px] rounded-lg border px-3 py-2 text-[13px]', skin.line, skin.strong)}
                 />
                 <button
                   type="button"

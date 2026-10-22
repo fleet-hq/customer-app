@@ -6,6 +6,8 @@ import { BackLink } from '@/components/ui/back-link';
 import { cn, money } from '@/lib/utils';
 import { Dyn } from '@/components/i18n/Dyn';
 import { BookingDocuments } from './booking-documents';
+import { PaymentHistory, PaymentLinkCard } from './booking-payment';
+import { useBookingPayment } from '@/hooks/use-booking-payment';
 import { useRenterRental } from '@/hooks/useRentalSiteConfig';
 import { useIsT2 } from '@/lib/use-is-t2';
 import { insuranceCoverageLines } from '@/lib/insurance-lines';
@@ -185,6 +187,7 @@ export function VerifyFirstConfirm(props: Props) {
     canUploadPhotos,
   } = props;
   const { data: rental } = useRenterRental(bookingId, booking.rentalModel !== 'daily');
+  const paymentLink = useBookingPayment(bookingId, true);
 
   // Staff asked for a card, so the emailed link has to land on something
   // the renter can act on, whatever else the booking is waiting for.
@@ -354,6 +357,8 @@ export function VerifyFirstConfirm(props: Props) {
               }
             />
 
+            <PaymentLinkCard bookingId={bookingId} enabled />
+
             {props.rentalPanel}
 
             {requiredCount > 0 && (
@@ -444,6 +449,8 @@ export function VerifyFirstConfirm(props: Props) {
                 booking={booking}
               />
             )}
+
+            <PaymentHistory bookingId={bookingId} enabled />
 
             <AgreementCard
               signed={agreementSigned}
@@ -591,7 +598,7 @@ export function VerifyFirstConfirm(props: Props) {
                 </>
               )}
 
-              {mode === 'pending_verification' || mode === 'payment_due' ? (
+              {mode === 'pending_verification' || (mode === 'payment_due' && !paymentLink.isLink) ? (
                 <PayGate
                   needsAgreement={!agreementSigned && !!agreementHref}
                   onSignAgreement={onSignAgreement}
@@ -625,7 +632,7 @@ export function VerifyFirstConfirm(props: Props) {
                 />
               )}
 
-              {mode === 'payment_due' && (
+              {mode === 'payment_due' && !paymentLink.isLink && (
                 <PayCTA
                   onPay={onPay}
                   disabled={consentChecksDone === false || payLoading}

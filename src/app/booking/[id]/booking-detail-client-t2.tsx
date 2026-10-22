@@ -173,7 +173,6 @@ export default function BookingDetailClientT2({ id }: { id: string }) {
       rentalPanel={
         <RenterRentalPanel
           bookingId={id}
-          token={token}
           ongoing={booking.rentalModel !== 'daily'}
           onUpdateCard={saveCardOnly}
         />

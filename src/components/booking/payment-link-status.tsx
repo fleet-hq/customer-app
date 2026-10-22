@@ -7,7 +7,7 @@ import { cn, money } from '@/lib/utils';
 import { useIsT2 } from '@/lib/use-is-t2';
 import { useTenant } from '@/lib/tenant-context';
 import { telHref } from '@/lib/seo';
-import type { LinkView } from '@/app/pay/booking/[bookingId]/use-pay-booking';
+import type { LinkView } from '@/hooks/use-booking-payment';
 
 interface PaymentLinkStatusProps {
   view: Exclude<LinkView, 'pay'>;
