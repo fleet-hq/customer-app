@@ -240,7 +240,7 @@ export function AgreementTemplate2({ data, onSignatureChange }: RentalAgreementP
             <ul className={`${BODY} mt-3 space-y-1`}>
               {d.extras.map((e, i) => (
                 <li key={i} className="flex items-baseline gap-2">
-                  <span aria-hidden>☑</span>
+                  <span aria-hidden>{e.purchased ? '☑' : '☐'}</span>
                   <span>
                     <Dyn>{e.name}</Dyn>
                     {e.price ? <span className="font-bold"> — {e.price}</span> : null}
