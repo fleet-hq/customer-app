@@ -4,7 +4,7 @@ import { Dyn } from '@/components/i18n/Dyn';
 import { cn, money } from '@/lib/utils';
 import { useIsT2 } from '@/lib/use-is-t2';
 import { depositSummary, weeklyDepositTiming } from '@/lib/price-rows';
-import type { OngoingOffer, RentalModel } from '@/services/rentalServices';
+import type { OngoingOffer, PeriodPrice, RentalModel } from '@/services/rentalServices';
 
 export interface WeeklyState {
   options: Exclude<RentalModel, 'daily'>[];
@@ -31,6 +31,19 @@ const INSURANCE_NOTE: Record<string, string> = {
   own_rideshare_required: 'Your own rideshare insurance policy is required for weekly rentals',
   included_in_plan: 'Insurance is included in the weekly price',
 };
+
+const PERIOD_LINES: [keyof PeriodPrice, string][] = [
+  ['rental', 'Weekly rate'],
+  ['extras', 'Add-ons'],
+  ['location_charges', 'Pick-up and delivery'],
+  ['booking_fee', 'Booking fee'],
+  ['setup_fee', 'Setup fee'],
+  ['tax', 'Taxes'],
+];
+
+function periodLines(period: PeriodPrice): [string, string][] {
+  return PERIOD_LINES.filter(([key]) => Number(period[key]) > 0).map(([key, label]) => [label, money(Number(period[key]))]);
+}
 
 type Variant = 'tokens' | 'inherit';
 
@@ -109,22 +122,34 @@ export function WeeklyRentalSummary({ weekly, variant = 'tokens' }: { weekly: We
   ].filter(Boolean);
   const insurance = INSURANCE_NOTE[offer.insurance_mode] ?? OWN_POLICY;
   const deposit = Number(offer.deposit);
-  const rows: [string, string, string?][] = [
-    ['Week 1', money(Number(offer.first.total))],
-    ['Deposit', depositSummary(deposit, weeklyDepositTiming(offer.deposit_method))],
-    ['Due today', money(Number(offer.first.total) + deposit)],
-    [`Then every ${offer.renew_weekday_name}`, money(Number(offer.recurring.total)), 'until you return the car'],
+  const rows: { label: string; value: string; note?: string; details?: [string, string][] }[] = [
+    { label: 'Week 1', value: money(Number(offer.first.total)), details: periodLines(offer.first) },
+    { label: 'Deposit', value: depositSummary(deposit, weeklyDepositTiming(offer.deposit_method)) },
+    { label: 'Due today', value: money(Number(offer.first.total) + deposit) },
+    {
+      label: `Then every ${offer.renew_weekday_name}`,
+      value: money(Number(offer.recurring.total)),
+      note: 'until you return the car',
+    },
   ];
 
   return (
     <div aria-busy={weekly.stale} className={cn('flex flex-col gap-[10px]', weekly.stale && 'opacity-50 transition-opacity')}>
-      {rows.map(([label, value, note]) => (
-        <div key={label} className="flex items-start justify-between gap-3 text-[13px]">
-          <div>
-            <div className={cn('font-medium', skin.strong)}><Dyn>{label}</Dyn></div>
-            {note ? <div className={cn('mt-px text-[11.5px]', skin.quiet)}><Dyn>{note}</Dyn></div> : null}
+      {rows.map(({ label, value, note, details }) => (
+        <div key={label} className="flex flex-col gap-[6px]">
+          <div className="flex items-start justify-between gap-3 text-[13px]">
+            <div>
+              <div className={cn('font-medium', skin.strong)}><Dyn>{label}</Dyn></div>
+              {note ? <div className={cn('mt-px text-[11.5px]', skin.quiet)}><Dyn>{note}</Dyn></div> : null}
+            </div>
+            <span className={cn('text-right font-medium', skin.strong)}><Dyn>{value}</Dyn></span>
           </div>
-          <span className={cn('text-right font-medium', skin.strong)}><Dyn>{value}</Dyn></span>
+          {details?.map(([line, amount]) => (
+            <div key={line} className={cn('flex justify-between gap-3 pl-3 text-[12px]', skin.quiet)}>
+              <Dyn>{line}</Dyn>
+              <span>{amount}</span>
+            </div>
+          ))}
         </div>
       ))}
       {terms.length > 0 ? <p className={cn('text-[12px]', skin.quiet)}><Dyn>{terms.join(' · ')}</Dyn></p> : null}
