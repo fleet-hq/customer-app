@@ -11,6 +11,7 @@ export interface WeeklyState {
   model: Exclude<RentalModel, 'daily'> | null;
   on: boolean;
   canPickDate: boolean;
+  unavailable: string | null;
   set: (next: boolean) => void;
   offer: OngoingOffer | null;
   reason: string | null;
@@ -55,7 +56,14 @@ function useSkin(variant: Variant) {
 
 export function ReturnModeToggle({ weekly, variant = 'tokens' }: { weekly: WeeklyState; variant?: Variant }) {
   const skin = useSkin(variant);
-  if (!weekly.model || !weekly.canPickDate) return null;
+  if (!weekly.canPickDate) return null;
+  if (!weekly.model) {
+    return weekly.unavailable ? (
+      <p className={cn('text-[12px] leading-[1.5]', skin.quiet)}>
+        <Dyn>{weekly.unavailable}</Dyn>
+      </p>
+    ) : null;
+  }
   const options: [boolean, string][] = [
     [false, 'Pick a date'],
     [true, MODE_LABEL[weekly.model]],

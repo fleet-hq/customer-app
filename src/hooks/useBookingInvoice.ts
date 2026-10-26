@@ -4,6 +4,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import type { VehicleExtra } from '@/types/vehicle';
 import { getBookingQuote, type BookingQuote, type QuotePayload } from '@/services/bookingServices';
 import { useDebounce } from './use-debounce';
+import { extractBackendErrorMessage } from '@/lib/error-sanitizer';
 
 export type RateUnit = 'day' | 'hour';
 
@@ -88,6 +89,7 @@ export interface BookingInvoiceResult {
   extrasById: Record<string, number>;
   insuranceLabel: string;
   quote: BookingQuote | undefined;
+  quoteError: string | null;
 }
 
 const num = (value: unknown) => {
@@ -142,7 +144,7 @@ export function useBookingInvoice({
 }: UseBookingInvoiceParams): BookingInvoiceResult {
   const payload = useDebounce(quotePayload, 250);
   const pending = JSON.stringify(payload) !== JSON.stringify(quotePayload);
-  const { data: quote, isFetching } = useQuery({
+  const { data: lastQuote, isFetching, error } = useQuery({
     queryKey: ['booking-quote', payload],
     queryFn: () => getBookingQuote(payload!),
     enabled: !!payload,
@@ -150,6 +152,8 @@ export function useBookingInvoice({
     staleTime: 30_000,
     retry: false,
   });
+  const quoteError = error && !pending && !isFetching ? extractBackendErrorMessage(error, "These dates can't be booked.") : null;
+  const quote = quoteError ? undefined : lastQuote;
 
   const pricing = useMemo<BookingPricing>(() => {
     if (!quote) return EMPTY;
@@ -221,5 +225,5 @@ export function useBookingInvoice({
     return '';
   }, [selectedInsurance]);
 
-  return { pricing, invoiceItems, extraInvoiceItems, extrasById, insuranceLabel, quote };
+  return { pricing, invoiceItems, extraInvoiceItems, extrasById, insuranceLabel, quote, quoteError };
 }

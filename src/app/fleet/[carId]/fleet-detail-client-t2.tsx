@@ -130,6 +130,7 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
     minDuration,
     minDurationLabel,
     meetsMinDuration,
+    tripProblem,
     reserveBlocked,
     tenant,
     vehicle,
@@ -390,7 +391,7 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
               </div>
               <span className={styles.tripEdit}><Dyn>Edit</Dyn></span>
             </div>
-            {weekly.model && weekly.canPickDate ? (
+            {(weekly.model || weekly.unavailable) && weekly.canPickDate ? (
               <div style={{ marginTop: '0.8rem' }}>
                 <ReturnModeToggle weekly={weekly} />
               </div>
@@ -542,6 +543,12 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
               <div className={`${styles.noticeBox} ${styles.noticeBoxDanger}`}>
                 <Info size={14} strokeWidth={2} />
                 <span><Dyn>This vehicle has a minimum rental of</Dyn> <Dyn>{minDurationLabel}</Dyn>. <Dyn>Choose a longer trip to continue.</Dyn></span>
+              </div>
+            ) : null}
+            {tripProblem ? (
+              <div className={`${styles.noticeBox} ${styles.noticeBoxDanger}`}>
+                <Info size={14} strokeWidth={2} />
+                <span><Dyn>{tripProblem}</Dyn></span>
               </div>
             ) : null}
 

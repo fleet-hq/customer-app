@@ -155,6 +155,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
     minDuration,
     minDurationLabel,
     meetsMinDuration,
+    tripProblem,
     reserveBlocked,
     tenant: tenantData,
     vehicle,
@@ -487,7 +488,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                 </span>
               </div>
             </div>
-            {weekly.model && weekly.canPickDate ? (
+            {(weekly.model || weekly.unavailable) && weekly.canPickDate ? (
               <div className="mt-3">
                 <ReturnModeToggle weekly={weekly} />
               </div>
@@ -703,6 +704,12 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               <div className="mt-4 flex items-center gap-[7px] rounded-[9px] border border-danger-border bg-danger-bg px-3 py-[9px] text-[11.5px] leading-[1.4] text-danger-text">
                 <Info size={14} strokeWidth={2} className="flex-shrink-0 text-danger" />
                 <Dyn>This vehicle has a minimum rental of</Dyn> <Dyn>{minDurationLabel}</Dyn>. <Dyn>Choose a longer trip to continue.</Dyn>
+              </div>
+            )}
+            {tripProblem && (
+              <div className="mt-4 flex items-center gap-[7px] rounded-[9px] border border-danger-border bg-danger-bg px-3 py-[9px] text-[11.5px] leading-[1.4] text-danger-text">
+                <Info size={14} strokeWidth={2} className="flex-shrink-0 text-danger" />
+                <Dyn>{tripProblem}</Dyn>
               </div>
             )}
 

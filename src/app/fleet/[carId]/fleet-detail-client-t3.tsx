@@ -113,6 +113,7 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
     reserve,
     reserveBlocked,
     meetsMinDuration,
+    tripProblem,
     minDuration,
     minDurationLabel,
     rentalAgreementRequired,
@@ -479,7 +480,7 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
               </div>
             </section>
 
-            {weekly.model && weekly.canPickDate ? (
+            {(weekly.model || weekly.unavailable) && weekly.canPickDate ? (
               <section>
                 <ReturnModeToggle weekly={weekly} variant="inherit" />
               </section>
@@ -659,6 +660,11 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
               {!weekly.on && !meetsMinDuration ? (
                 <p className="note">
                   <Dyn>This vehicle has a minimum rental of</Dyn> <Dyn>{minDurationLabel}</Dyn>.
+                </p>
+              ) : null}
+              {tripProblem ? (
+                <p className="note">
+                  <Dyn>{tripProblem}</Dyn>
                 </p>
               ) : null}
 

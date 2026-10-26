@@ -466,13 +466,14 @@ export function useFleetDetail(carId: string) {
     [selectedInsurance],
   );
 
-  const { pricing, extraInvoiceItems, extrasById, insuranceLabel } = useBookingInvoice({
+  const { pricing, extraInvoiceItems, extrasById, insuranceLabel, quoteError } = useBookingInvoice({
     quotePayload: weeklyOn ? null : quotePayload,
     vehicleData,
     selectedInsurance,
     selectedExtras,
     appliedDiscount: promoApplied ? promoDiscount : 0,
   });
+  const tripProblem = !weeklyOn && meetsMinDuration ? quoteError : null;
 
   useEffect(() => {
     if (!checkoutError) return;
@@ -706,6 +707,7 @@ export function useFleetDetail(carId: string) {
       : `${minDuration} ${minDuration === 1 ? 'day' : 'days'}`,
     isHourlyFleet,
     meetsMinDuration,
+    tripProblem,
     // The fleet payload is kept on screen while a date change refetches,
     // so its figures can belong to the previous window. Both templates
     // use this to stop presenting them as final.
@@ -714,7 +716,8 @@ export function useFleetDetail(carId: string) {
     // optional, so neither lets the button through.
     weekly: {
       options: ongoingOptions,
-      model: hideWeekly ? null : ongoingModel,
+      model: ongoingQuote && !hideWeekly ? ongoingModel : null,
+      unavailable: hideWeekly ? ongoingQuote?.reason ?? null : null,
       on: weeklyOn,
       canPickDate: dailyAllowed,
       set: setWeekly,
@@ -728,7 +731,7 @@ export function useFleetDetail(carId: string) {
       startCheckout.isPending ||
       startVerification.isPending ||
       startEmbedPayment.isPending ||
-      (weeklyOn ? !offer || !weeklyConsent || ongoingStale : !meetsMinDuration) ||
+      (weeklyOn ? !offer || !weeklyConsent || ongoingStale : !meetsMinDuration || !!tripProblem) ||
       !cardConsent ||
       (rentalAgreementRequired && !rentalAgreementSigned),
     carId,
