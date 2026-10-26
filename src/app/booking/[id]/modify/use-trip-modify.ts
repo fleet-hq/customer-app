@@ -147,7 +147,7 @@ export function useTripModify(id: string) {
         const res = await axios.get(`${API_URL}/api/bookings/public/modify/`, {
           headers: getBookingTokenHeaders(),
           params: {
-            type: newDropoff > origDropoff ? 'extend' : 'reduce',
+            type: 'dates',
             new_pickup_datetime: newPickup,
             new_dropoff_datetime: newDropoff,
           },
@@ -174,8 +174,6 @@ export function useTripModify(id: string) {
 
     const newPickup = toUtcIso(pickupDate, pickupTime || '00:00', tz);
     const newDropoff = toUtcIso(returnDate, returnTime || '00:00', tz);
-    const isExtension =
-      new Date(newDropoff).getTime() > new Date(booking.dropOff.rawDatetime).getTime();
 
     try {
       const successUrl = `${window.location.origin}/booking/${id}?token=${token || ''}`;
@@ -184,7 +182,7 @@ export function useTripModify(id: string) {
       const res = await axios.post(
         `${API_URL}/api/bookings/public/modify/`,
         {
-          type: isExtension ? 'extend' : 'reduce',
+          type: 'dates',
           new_pickup_datetime: newPickup,
           new_dropoff_datetime: newDropoff,
           success_url: successUrl,
