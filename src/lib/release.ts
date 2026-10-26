@@ -1,7 +1,7 @@
 export const RELEASED = {
-  websiteOngoing: false,
-  modelTabs: false,
-  weeklyRates: false,
+  websiteOngoing: true,
+  modelTabs: true,
+  weeklyRates: true,
 } as const;
 
 export type ReleaseKey = keyof typeof RELEASED;
