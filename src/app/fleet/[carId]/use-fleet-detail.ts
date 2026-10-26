@@ -755,7 +755,7 @@ export function useFleetDetail(carId: string) {
   const galleryImages = vehicle.images.length > 0 ? vehicle.images : ['/images/vehicles/car_placeholder.svg'];
 
   const discount = pricing.discount;
-  const total = weeklyOn ? Number(offer?.first.total ?? 0) : pricing.total + abiPremium;
+  const total = weeklyOn ? Number(offer?.first.total ?? 0) + Number(offer?.deposit ?? 0) : pricing.total + abiPremium;
   const cardDeposit = weeklyOn && offer
     ? { amount: Number(offer.deposit), timing: weeklyDepositTiming(offer.deposit_method) }
     : { amount: pricing.deposit, timing: pricing.depositMode };

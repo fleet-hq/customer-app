@@ -30,22 +30,20 @@ export function weeklySavingText(pricing: BookingPricing): string | null {
   return pricing.weeklySavings > 0 ? `You save ${money(pricing.weeklySavings)} with the weekly rate` : null;
 }
 
-export type DepositTiming = BookingPricing['depositMode'] | 'charge_at_pickup';
+export type DepositTiming = BookingPricing['depositMode'];
 
 export function weeklyDepositTiming(method: string): DepositTiming {
-  return method === 'charge_refund' ? 'charge_at_pickup' : 'hold';
+  return method === 'charge_refund' ? 'charge_refund' : 'hold';
 }
 
 const DEPOSIT_NOTICE: Record<DepositTiming, string> = {
   hold: 'held on your card at pick-up, released after inspection',
   charge_refund: 'charged at checkout and refunded after return and inspection',
-  charge_at_pickup: 'charged at pick-up and refunded after return and inspection',
 };
 
 const DEPOSIT_SUMMARY: Record<DepositTiming, string> = {
   hold: 'held on your card',
   charge_refund: 'charged and refunded after return',
-  charge_at_pickup: 'charged at pick-up, refunded on return',
 };
 
 export function depositNotice(amount: number, timing: DepositTiming): string {

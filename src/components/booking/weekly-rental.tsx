@@ -108,10 +108,12 @@ export function WeeklyRentalSummary({ weekly, variant = 'tokens' }: { weekly: We
     offer.return_notice_days ? `${offer.return_notice_days} days' notice to return` : null,
   ].filter(Boolean);
   const insurance = INSURANCE_NOTE[offer.insurance_mode] ?? OWN_POLICY;
+  const deposit = Number(offer.deposit);
   const rows: [string, string, string?][] = [
-    ['Due today · week 1', money(Number(offer.first.total))],
+    ['Week 1', money(Number(offer.first.total))],
+    ['Deposit', depositSummary(deposit, weeklyDepositTiming(offer.deposit_method))],
+    ['Due today', money(Number(offer.first.total) + deposit)],
     [`Then every ${offer.renew_weekday_name}`, money(Number(offer.recurring.total)), 'until you return the car'],
-    ['Deposit', depositSummary(Number(offer.deposit), weeklyDepositTiming(offer.deposit_method))],
   ];
 
   return (
