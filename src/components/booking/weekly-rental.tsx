@@ -4,6 +4,7 @@ import { Dyn } from '@/components/i18n/Dyn';
 import { cn, money } from '@/lib/utils';
 import { useIsT2 } from '@/lib/use-is-t2';
 import { depositSummary, weeklyDepositTiming } from '@/lib/price-rows';
+import { cycleWords, type CycleWords } from '@/lib/billing-cycle';
 import type { OngoingOffer, PeriodPrice, RentalModel } from '@/services/rentalServices';
 
 export interface WeeklyState {
@@ -16,14 +17,14 @@ export interface WeeklyState {
   offer: OngoingOffer | null;
   reason: string | null;
   stale: boolean;
+  cycle: CycleWords;
   consent: boolean;
   setConsent: (next: boolean) => void;
 }
 
-const MODE_LABEL: Record<Exclude<RentalModel, 'daily'>, string> = {
-  gig: 'Weekly rental · no fixed return',
-  subscription: 'Subscription · no fixed return',
-};
+function modeLabel(model: Exclude<RentalModel, 'daily'>, cycle: CycleWords): string {
+  return `${model === 'subscription' ? 'Subscription' : cycle.rentalTitle} · no fixed return`;
+}
 
 const OWN_POLICY = 'Your own insurance policy is required for weekly rentals';
 
@@ -33,7 +34,6 @@ const INSURANCE_NOTE: Record<string, string> = {
 };
 
 const PERIOD_LINES: [keyof PeriodPrice, string][] = [
-  ['rental', 'Weekly rate'],
   ['extras', 'Add-ons'],
   ['location_charges', 'Pick-up and delivery'],
   ['booking_fee', 'Booking fee'],
@@ -41,8 +41,14 @@ const PERIOD_LINES: [keyof PeriodPrice, string][] = [
   ['tax', 'Taxes'],
 ];
 
-function periodLines(period: PeriodPrice): [string, string][] {
-  return PERIOD_LINES.filter(([key]) => Number(period[key]) > 0).map(([key, label]) => [label, money(Number(period[key]))]);
+function periodLines(period: PeriodPrice, offer: OngoingOffer): [string, string][] {
+  const rental: [string, string][] = Number(period.rental) > 0
+    ? [[cycleWords(offer.billing_cycle).rentalLine(offer.weekly_rate ? Number(offer.weekly_rate) : null), money(Number(period.rental))]]
+    : [];
+  return [
+    ...rental,
+    ...PERIOD_LINES.filter(([key]) => Number(period[key]) > 0).map(([key, label]): [string, string] => [label, money(Number(period[key]))]),
+  ];
 }
 
 type Variant = 'tokens' | 'inherit';
@@ -79,7 +85,7 @@ export function ReturnModeToggle({ weekly, variant = 'tokens' }: { weekly: Weekl
   }
   const options: [boolean, string][] = [
     [false, 'Pick a date'],
-    [true, MODE_LABEL[weekly.model]],
+    [true, modeLabel(weekly.model, weekly.cycle)],
   ];
   return (
     <div role="radiogroup" aria-label="Return" className="flex flex-col gap-2">
@@ -123,13 +129,13 @@ export function WeeklyRentalSummary({ weekly, variant = 'tokens' }: { weekly: We
   const insurance = INSURANCE_NOTE[offer.insurance_mode] ?? OWN_POLICY;
   const deposit = Number(offer.deposit);
   const rows: { label: string; value: string; note?: string; details?: [string, string][] }[] = [
-    { label: 'Week 1', value: money(Number(offer.first.total)), details: periodLines(offer.first) },
+    { label: weekly.cycle.firstPeriod, value: money(Number(offer.first.total)), details: periodLines(offer.first, offer) },
     { label: 'Deposit', value: depositSummary(deposit, weeklyDepositTiming(offer.deposit_method)) },
     { label: 'Due today', value: money(Number(offer.first.total) + deposit) },
     {
-      label: `Then every ${offer.renew_weekday_name}`,
+      label: weekly.cycle.renews(offer.renew_weekday_name),
       value: money(Number(offer.recurring.total)),
-      note: 'until you return the car',
+      note: weekly.cycle.recurringNote,
     },
   ];
 

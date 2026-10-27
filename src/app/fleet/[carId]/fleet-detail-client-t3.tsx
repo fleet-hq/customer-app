@@ -490,7 +490,7 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
               <h3>
                 <Dyn>Price details</Dyn>
                 <span className="daypill">
-                  {weekly.on ? <Dyn>Weekly</Dyn> : <>{days} <Dyn>{days === 1 ? 'day' : 'days'}</Dyn></>}
+                  {weekly.on ? <Dyn>{weekly.cycle.badge}</Dyn> : <>{days} <Dyn>{days === 1 ? 'day' : 'days'}</Dyn></>}
                 </span>
               </h3>
               {weekly.on ? <WeeklyRentalSummary weekly={weekly} variant="inherit" /> : (<>

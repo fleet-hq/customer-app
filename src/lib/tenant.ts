@@ -89,6 +89,7 @@ export interface Tenant {
   slug: string;
   name: string;
   domain: string;
+  timezone: string | null;
   locations: TenantLocation[];
   defaultLocationId: string;
 
@@ -130,6 +131,7 @@ interface ApiCompanyDetail {
   phone_no: string | null;
   company_picture: string | null;
   domain: string | null;
+  timezone?: string | null;
   address: string;
   city: string;
   state: string;
@@ -205,6 +207,7 @@ export function tenantFromApi(detail: ApiCompanyDetail, locations: ApiLocation[]
     slug: deriveSlugFromDomain(detail.domain),
     name: detail.name,
     domain: detail.domain ?? '',
+    timezone: detail.timezone ?? null,
     locations: locations.map((l) => ({ id: String(l.id), name: l.name })),
     defaultLocationId: detail.default_location ? String(detail.default_location.id) : '',
     brand: {

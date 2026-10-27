@@ -188,24 +188,6 @@ export const DEMO_USER = {
   phone: '+1 (321) 213-9874',
 };
 
-function tripDateOffset(days: number, from?: string): string {
-  const d = from ? new Date(`${from}T12:00:00`) : new Date();
-  d.setDate(d.getDate() + days);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
-
-export function defaultReturnDate(pickupDate: string): string {
-  return tripDateOffset(2, pickupDate);
-}
-
-export const DEFAULT_TRIP = {
-  pickupDate: tripDateOffset(1),
-  pickupTime: '09:00',
-  returnDate: tripDateOffset(3),
-  returnTime: '09:00',
-};
-
 export interface BookingExtra {
   name: string;
   perDay: number;

@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { paths } from '@/lib/paths';
 import { isEmbedded, requestHandoff } from '@/lib/embed-bridge';
-import { DEFAULT_TRIP } from '@/lib/mock-data';
+import { defaultTrip } from '@/lib/trip-defaults';
+import { useTenant } from '@/lib/tenant-context';
 import { useCompanyLocations } from '@/hooks';
 import { useCompany } from '@/contexts';
 import { useFleetDiscountsSummary } from '@/hooks/useFleetDiscounts';
@@ -22,6 +23,7 @@ export function useSearchBar() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const rootRef = useRef<HTMLDivElement>(null);
+  const tenant = useTenant();
 
   const { data: apiLocations } = useCompanyLocations();
   const { company, isLoading: companyLoading } = useCompany();
@@ -37,10 +39,11 @@ export function useSearchBar() {
 
   const [pickupLocId, setPickupLocId] = useState<string>(() => searchParams.get('pickupLocId') ?? '');
   const [dropLocId, setDropLocId] = useState<string>(() => searchParams.get('dropoffLocId') ?? '');
-  const [pickupDate, setPickupDate] = useState(() => searchParams.get('pickupDate') ?? DEFAULT_TRIP.pickupDate);
-  const [returnDate, setReturnDate] = useState(() => searchParams.get('returnDate') ?? DEFAULT_TRIP.returnDate);
-  const [pickupTime, setPickupTime] = useState(() => searchParams.get('pickupTime') ?? DEFAULT_TRIP.pickupTime);
-  const [returnTime, setReturnTime] = useState(() => searchParams.get('returnTime') ?? DEFAULT_TRIP.returnTime);
+  const [tripDefaults] = useState(() => defaultTrip(tenant.timezone));
+  const [pickupDate, setPickupDate] = useState(() => searchParams.get('pickupDate') ?? tripDefaults.pickupDate);
+  const [returnDate, setReturnDate] = useState(() => searchParams.get('returnDate') ?? tripDefaults.returnDate);
+  const [pickupTime, setPickupTime] = useState(() => searchParams.get('pickupTime') ?? tripDefaults.pickupTime);
+  const [returnTime, setReturnTime] = useState(() => searchParams.get('returnTime') ?? tripDefaults.returnTime);
   const [diffLocation, setDiffLocation] = useState(() => {
     const drop = searchParams.get('dropoffLocId');
     const pick = searchParams.get('pickupLocId');

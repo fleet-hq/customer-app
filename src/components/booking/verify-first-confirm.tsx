@@ -23,7 +23,8 @@ import { FailedInsurancePanel } from '@/components/booking/failed-insurance-pane
 import { useState } from 'react';
 import { chargeBreakdown } from '@/components/booking/charge-breakdown';
 import { useRenterRental } from '@/hooks/useRentalSiteConfig';
-import type { BillingCycle, RenterRental } from '@/services/rentalServices';
+import type { RenterRental } from '@/services/rentalServices';
+import { cycleWords } from '@/lib/billing-cycle';
 import { PrintableInvoice } from '@/components/booking/printable-invoice';
 import { dueKind, ledgerDeposit, openCharges, type BillingChargeRow, type DueKind } from '@/services/billingServices';
 import type { DepositTiming } from '@/lib/price-rows';
@@ -48,13 +49,11 @@ function rentalDays(booking: BookingDetails): number {
   return Math.max(1, Math.ceil(hours / 24));
 }
 
-const CYCLE_LABEL: Record<BillingCycle, string> = { weekly: 'weekly', biweekly: 'every two weeks' };
-
 function ongoingSpan(start: string, rental: RenterRental | undefined, tz?: string): string {
   if (rental?.ended_at) return `${start} → returned ${shortDate(rental.ended_at, tz)}`;
   if (rental?.closed) return `${start} → closed`;
   if (rental?.notice_return_date) return `${start} → returning ${shortDate(`${rental.notice_return_date}T12:00:00`)}`;
-  return `${start} → no fixed return · ${CYCLE_LABEL[rental?.billing_cycle ?? 'weekly']}`;
+  return `${start} → no fixed return · ${cycleWords(rental?.billing_cycle).span}`;
 }
 
 function shortDate(iso: string, tz?: string): string {

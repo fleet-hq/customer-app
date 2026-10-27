@@ -400,7 +400,7 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
 
             <div className={styles.priceHeadRow}>
               <h3><Dyn>Price details</Dyn></h3>
-              <span className={styles.priceDayPill}>{weekly.on ? <Dyn>Weekly</Dyn> : <>{days} <Dyn>days</Dyn></>}</span>
+              <span className={styles.priceDayPill}>{weekly.on ? <Dyn>{weekly.cycle.badge}</Dyn> : <>{days} <Dyn>days</Dyn></>}</span>
             </div>
 
             {weekly.on ? <WeeklyRentalSummary weekly={weekly} /> : (<>

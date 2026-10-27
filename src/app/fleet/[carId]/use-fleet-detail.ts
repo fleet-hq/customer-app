@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { DEFAULT_TRIP, defaultReturnDate } from '@/lib/mock-data';
+import { defaultReturnDate, defaultTrip } from '@/lib/trip-defaults';
+import { cycleWords } from '@/lib/billing-cycle';
 import {
   useFleet,
   useInsuranceOptions,
@@ -181,13 +182,14 @@ export function useFleetDetail(carId: string) {
   const urlReturnTime = searchParams.get('returnTime');
   const [pickupLocId, setPickupLocId] = useState<string | null>(urlPickupLoc);
   const [dropoffLocId, setDropoffLocId] = useState<string | null>(urlDropoffLoc);
-  const [pickupDate, setPickupDate] = useState(urlPickupDate ?? DEFAULT_TRIP.pickupDate);
-  const [pickupTime, setPickupTime] = useState(urlPickupTime ?? DEFAULT_TRIP.pickupTime);
+  const [tripDefaults] = useState(() => defaultTrip(tenant.timezone));
+  const [pickupDate, setPickupDate] = useState(urlPickupDate ?? tripDefaults.pickupDate);
+  const [pickupTime, setPickupTime] = useState(urlPickupTime ?? tripDefaults.pickupTime);
   const [returnDate, setReturnDate] = useState(() => {
     if (urlReturnDate && (!urlPickupDate || urlReturnDate >= urlPickupDate)) return urlReturnDate;
-    return urlPickupDate ? defaultReturnDate(urlPickupDate) : DEFAULT_TRIP.returnDate;
+    return urlPickupDate ? defaultReturnDate(urlPickupDate) : tripDefaults.returnDate;
   });
-  const [returnTime, setReturnTime] = useState(urlReturnTime ?? DEFAULT_TRIP.returnTime);
+  const [returnTime, setReturnTime] = useState(urlReturnTime ?? tripDefaults.returnTime);
 
   // Persist form fields to sessionStorage so a reload (or a widget parent
   // reload that remounts the iframe) doesn't wipe what the customer just
@@ -450,6 +452,7 @@ export function useFleetDetail(carId: string) {
     }
   }, [ownOnly, cdwRequired]);
   const offer: OngoingOffer | null = weeklyOn && ongoingQuote && ongoingQuote.available ? ongoingQuote : null;
+  const cycle = cycleWords(offer?.billing_cycle);
 
   const bookingPayload = useMemo<QuotePayload | null>(() => {
     if (!quotePayload || !weeklyOn) return quotePayload;
@@ -752,6 +755,7 @@ export function useFleetDetail(carId: string) {
       offer,
       reason: ongoingQuote && !ongoingQuote.available ? ongoingQuote.reason : null,
       stale: ongoingStale,
+      cycle,
       consent: weeklyConsent,
       setConsent: setWeeklyConsent,
     },
@@ -787,7 +791,7 @@ export function useFleetDetail(carId: string) {
   const discount = pricing.discount;
   const total = weeklyOn ? Number(offer?.first.total ?? 0) + Number(offer?.deposit ?? 0) : pricing.total + abiPremium;
   const totalSummary = weeklyOn
-    ? { span: 'Weekly · no fixed return', label: 'Due today' }
+    ? { span: `${cycle.badge} · no fixed return`, label: 'Due today' }
     : { span: `${days} ${days === 1 ? 'day' : 'days'}`, label: 'Total' };
   const cardDeposit = weeklyOn && offer
     ? { amount: Number(offer.deposit), timing: weeklyDepositTiming(offer.deposit_method) }

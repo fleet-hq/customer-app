@@ -8,6 +8,8 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export type RentalModel = 'daily' | 'gig' | 'subscription';
 
+export type BillingCycle = 'weekly' | 'biweekly';
+
 export interface PublicPlan {
   id: number;
   name: string;
@@ -64,6 +66,7 @@ export type OngoingQuote =
   | {
       available: true;
       rental_model: Exclude<RentalModel, 'daily'>;
+      billing_cycle?: BillingCycle;
       first_period_end: string;
       first: PeriodPrice;
       recurring: PeriodPrice;
@@ -111,8 +114,6 @@ export interface RenterCharge {
   created_at: string;
   receipt_url: string | null;
 }
-
-export type BillingCycle = 'weekly' | 'biweekly';
 
 export interface RenterRental {
   rental_model: Exclude<RentalModel, 'daily'>;

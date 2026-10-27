@@ -11,6 +11,7 @@ import type { RenterPeriod, RenterRental } from '@/services/rentalServices';
 import { DatePicker } from '@/components/ui/date-picker';
 import { useBookingPayment } from '@/hooks/use-booking-payment';
 import { Calendar } from '@/components/ui/icons';
+import { cycleWords } from '@/lib/billing-cycle';
 
 const STATUS: Record<string, { label: string; tone: 'good' | 'bad' | 'due' | 'quiet' }> = {
   paid: { label: 'Paid', tone: 'good' },
@@ -86,7 +87,7 @@ export function RenterRentalPanel({
     <section className={cn('border p-5', skin.card)}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h3 className={cn('text-[16px] font-bold', skin.strong)}>
-          <Dyn>{rental.plan?.name ?? 'Weekly rental'}</Dyn>
+          <Dyn>{rental.plan?.name ?? cycleWords(rental.billing_cycle).rentalTitle}</Dyn>
         </h3>
         {renewal ? <span className={cn('text-[13px]', skin.quiet)}><Dyn>{renewal}</Dyn></span> : null}
       </div>
