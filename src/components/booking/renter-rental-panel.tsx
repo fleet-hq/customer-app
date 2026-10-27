@@ -73,6 +73,9 @@ export function RenterRentalPanel({
 
   const renewal = renewalLine(rental);
   const earliest = rental.earliest_return_date;
+  const minimumEnd = rental.minimum_term_end_date;
+  const plannedReturn = returnDate || earliest;
+  const beforeMinimum = !!minimumEnd && plannedReturn < minimumEnd;
   const submitNotice = () => {
     if (returnDate) notice.mutate(returnDate);
   };
@@ -187,6 +190,11 @@ export function RenterRentalPanel({
               {rental.return_notice_days ? (
                 <p className={cn('mt-2 text-[12px]', skin.quiet)}>
                   <Dyn>{`${rental.return_notice_days} days' notice needed — the earliest is ${calendarDay(earliest)}`}</Dyn>
+                </p>
+              ) : null}
+              {beforeMinimum ? (
+                <p className={cn('mt-2 text-[12px]', skin.tone.due)}>
+                  <Dyn>{`Your plan has a ${rental.min_term_weeks}-week minimum, until ${calendarDay(minimumEnd!)}. Returning before then adds the remaining weeks as a charge.`}</Dyn>
                 </p>
               ) : null}
               {notice.isError ? (

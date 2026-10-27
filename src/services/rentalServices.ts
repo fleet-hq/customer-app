@@ -121,6 +121,7 @@ export interface RenterRental {
   periods: RenterPeriod[];
   card_on_file: { label: string } | null;
   min_term_weeks: number;
+  minimum_term_end_date: string | null;
   return_notice_days: number;
   notice_return_date: string | null;
   earliest_return_date: string;
@@ -128,6 +129,7 @@ export interface RenterRental {
   plan: { name: string; weekly_price: string; miles_per_week: number } | null;
   charges: RenterCharge[];
   required_documents: string[];
+  insurance_included: boolean;
   agreement: OngoingAgreementTerms | null;
 }
 

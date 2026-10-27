@@ -27,6 +27,7 @@ import { squareCreatePaymentForVerifyFirst } from '@/services/squarePaymentServi
 import { useCardConsent } from '@/components/booking/use-card-consent';
 import { createBillingCheckoutSession, createSaveCardSession } from '@/services/billingServices';
 import { bookingHasInsuranceCover } from '@/lib/insurance-extras';
+import { useRenterRental } from '@/hooks/useRentalSiteConfig';
 import { setBookingToken } from '@/utils/booking-token';
 import { usePublicPaymentProviders, useActivePaymentProvider } from '@/hooks';
 import { useTenant } from '@/lib/tenant-context';
@@ -103,6 +104,7 @@ export function useBookingDetail(id: string) {
   const agreementDocument = useAgreementDocument(fetchId, booking);
   const { data: secondaryDrivers } = useBookingDrivers(fetchId);
   const { data: bookingImages = [] } = useBookingImages(fetchId);
+  const { data: rental } = useRenterRental(fetchId, !!booking && booking.rentalModel !== 'daily');
   const { data: verificationPolicy } = useBookingVerificationPolicy();
   const { data: manualSubmissions = [] } = useQuery({
     queryKey: ['manualVerifications', fetchId],
@@ -370,7 +372,7 @@ export function useBookingDetail(id: string) {
   // Counts insurance bought through us, not just an extras line. A
   // renter who paid for Bonzah at checkout was still shown "verify
   // your insurance" and held behind it.
-  const hasInsuranceExtra = bookingHasInsuranceCover(booking);
+  const hasInsuranceExtra = bookingHasInsuranceCover(booking) || !!rental?.insurance_included;
   const requireInsurance =
     (verificationPolicy?.require_insurance ?? false) && !hasInsuranceExtra;
   const pendingChecks: string[] = [];

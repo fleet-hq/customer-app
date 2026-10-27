@@ -315,7 +315,7 @@ export function VerifyFirstConfirm(props: Props) {
               {modeCopy.subtitle}
             </p>
           </div>
-          {(mode === 'confirmed_paid' || mode === 'payment_due') && (
+          {(mode === 'confirmed_paid' || mode === 'payment_due') && booking.rentalModel === 'daily' && (
             <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:overflow-visible sm:px-0">
               <BookingActionsRow
                 bookingId={bookingId}
@@ -471,7 +471,7 @@ export function VerifyFirstConfirm(props: Props) {
               <TripPhotos
                 bookingId={bookingId}
                 canUpload={canUploadPhotos}
-                note="Document the car before & after your trip to protect your deposit."
+                note={depositAmount ? 'Document the car before & after your trip to protect your deposit.' : 'Document the car before & after your trip.'}
                 groups={[
                   { title: 'Pre-trip', hint: 'Add before pickup', photos: preTripPhotos, imageType: 'pre_trip' },
                   { title: 'Post-trip', hint: 'Add at drop-off', photos: postTripPhotos, imageType: 'post_trip' },
@@ -728,7 +728,6 @@ export function VerifyFirstConfirm(props: Props) {
                       ? 'Refunds follow the operator policy'
                       : 'No charge until you confirm'}</Dyn>
                 </TrustRow>
-                <TrustRow><Dyn>Free cancellation up to 48h</Dyn></TrustRow>
                 <TrustRow><Dyn>Encrypted, secure payment</Dyn></TrustRow>
               </ul>
 
