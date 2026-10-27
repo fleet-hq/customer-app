@@ -24,6 +24,7 @@ export interface BillingChargeRow {
     | 'partially_refunded'
     | 'voided';
   is_voided: boolean;
+  is_period?: boolean;
   description: string;
   created_at: string;
 }
@@ -72,6 +73,34 @@ export interface BookingBalanceSnapshot {
   payments: BillingPaymentRow[];
   refunds: BillingRefundRow[];
   payment_link?: PaymentLinkState;
+}
+
+const RECEIVED_PAYMENT_STATUSES = new Set(['succeeded', 'partially_refunded', 'refunded']);
+const DEPOSIT_CHARGE_TYPES = new Set(['security_deposit', 'deposit_topup']);
+
+export function receivedPayments(balance: BookingBalanceSnapshot | undefined): BillingPaymentRow[] {
+  return (balance?.payments ?? []).filter((payment) => RECEIVED_PAYMENT_STATUSES.has(payment.status));
+}
+
+export function openCharges(charges: BillingChargeRow[]): BillingChargeRow[] {
+  return charges.filter((charge) => !charge.is_voided && Number(charge.outstanding) > 0);
+}
+
+export type DueKind = 'scheduled' | 'additional';
+
+export function dueKind(charges: BillingChargeRow[]): DueKind {
+  const open = openCharges(charges);
+  const scheduled = open.length > 0 && open.every((charge) => charge.is_period || DEPOSIT_CHARGE_TYPES.has(charge.type));
+  return scheduled ? 'scheduled' : 'additional';
+}
+
+export function ledgerDeposit(
+  charges: BillingChargeRow[],
+  quoted: number | undefined,
+): { amount: number; timing: 'hold' | 'charge_refund' } {
+  const taken = charges.filter((charge) => !charge.is_voided && DEPOSIT_CHARGE_TYPES.has(charge.type));
+  if (taken.length === 0) return { amount: quoted ?? 0, timing: 'hold' };
+  return { amount: taken.reduce((sum, charge) => sum + Number(charge.amount), 0), timing: 'charge_refund' };
 }
 
 // ── API ───────────────────────────────────────────────────────

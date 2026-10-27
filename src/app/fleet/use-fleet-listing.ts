@@ -99,8 +99,8 @@ export function useFleetListing() {
   const pathname = usePathname();
   const rentalConfig = useRentalSiteConfig();
   const activeModel = modelForPath(pathname);
-  const tabs = RENTAL_TABS.filter((tab) => rentalConfig.models.includes(tab.model));
-  const modelOff = rentalConfig.ready && !rentalConfig.models.includes(activeModel);
+  const tabs = RENTAL_TABS.filter((tab) => rentalConfig.bookableModels.includes(tab.model));
+  const modelOff = rentalConfig.ready && !rentalConfig.bookableModels.includes(activeModel);
   const planId = activeModel === 'subscription' ? Number(searchParams.get('plan')) || null : null;
   const selectedPlan = rentalConfig.plans.find((plan) => plan.id === planId) ?? null;
   const showPlans = activeModel === 'subscription' && !selectedPlan && !modelOff;

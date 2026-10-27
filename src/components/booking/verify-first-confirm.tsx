@@ -21,7 +21,8 @@ import type {
 import SecondaryDriverVerification from '@/components/booking/secondary-driver-verification';
 import { FailedInsurancePanel } from '@/components/booking/failed-insurance-panel';
 import { useState } from 'react';
-import type { BillingChargeRow } from '@/services/billingServices';
+import { dueKind, ledgerDeposit, openCharges, type BillingChargeRow, type DueKind } from '@/services/billingServices';
+import type { DepositTiming } from '@/lib/price-rows';
 import type { TripImage } from '@/services/tripImageServices';
 import { CardConsent } from '@/components/booking/card-consent';
 import { AgreementSignBar } from '@/components/booking/agreement-sign-bar';
@@ -197,6 +198,8 @@ export function VerifyFirstConfirm(props: Props) {
   // instead, and a cancelled booking is never chased.
   const showCardAction =
     !!cardRequestOpen && mode !== 'cancelled' && (outstanding ?? 0) <= 0;
+  const deposit = ledgerDeposit(charges, depositAmount);
+  const due = DUE_COPY[dueKind(charges)];
 
   const days = rentalDays(booking);
   const inv = booking.invoice;
@@ -286,6 +289,7 @@ export function VerifyFirstConfirm(props: Props) {
   const modeCopy = getModeCopy(mode, {
     email: booking.customer.email,
     outstanding,
+    due,
     requireId,
     requireInsurance: insuranceBlocking,
     isReserved,
@@ -335,6 +339,7 @@ export function VerifyFirstConfirm(props: Props) {
           holdExpired={holdExpired}
           email={booking.customer.email}
           outstanding={outstanding}
+          due={due}
           requireId={requireId}
           requireInsurance={insuranceBlocking}
           isReserved={isReserved}
@@ -450,6 +455,7 @@ export function VerifyFirstConfirm(props: Props) {
             {mode === 'payment_due' && charges.length > 0 && (
               <OutstandingChargesCard
                 charges={charges}
+                heading={due.card}
                 paymentPendingHref={paymentPendingHref}
                 booking={booking}
               />
@@ -475,7 +481,7 @@ export function VerifyFirstConfirm(props: Props) {
               <TripPhotos
                 bookingId={bookingId}
                 canUpload={canUploadPhotos}
-                note={depositAmount ? 'Document the car before & after your trip to protect your deposit.' : 'Document the car before & after your trip.'}
+                note={deposit.amount ? 'Document the car before & after your trip to protect your deposit.' : 'Document the car before & after your trip.'}
                 groups={[
                   { title: 'Pre-trip', hint: 'Add before pickup', photos: preTripPhotos, imageType: 'pre_trip' },
                   { title: 'Post-trip', hint: 'Add at drop-off', photos: postTripPhotos, imageType: 'post_trip' },
@@ -611,7 +617,7 @@ export function VerifyFirstConfirm(props: Props) {
                   saveCard={!!saveCard}
                   onChooseSaveCard={onChooseSaveCard}
                   companyName={companyName ?? ''}
-                  depositAmount={depositAmount}
+                  deposit={deposit}
                 />
               ) : null}
 
@@ -683,7 +689,8 @@ export function VerifyFirstConfirm(props: Props) {
                     checked={!!saveCard}
                     onChange={(next) => onChooseSaveCard?.(next)}
                     companyName={companyName ?? ''}
-                    depositAmount={depositAmount}
+                    depositAmount={deposit.amount}
+                    depositMode={deposit.timing}
                     required
                   />
                   <PayCTA
@@ -746,6 +753,18 @@ export function VerifyFirstConfirm(props: Props) {
   );
 }
 
+interface DueCopy {
+  lead: string;
+  tail: string;
+  banner: string;
+  card: string;
+}
+
+const DUE_COPY: Record<DueKind, DueCopy> = {
+  scheduled: { lead: 'You have a payment of', tail: 'due on this booking.', banner: 'Payment due', card: 'Payments due' },
+  additional: { lead: 'You have additional charges of', tail: 'pending on this booking.', banner: 'Additional payment due', card: 'Additional charges' },
+};
+
 const bookingTitle = (num: string) => (
   <>
     <Dyn>Booking</Dyn> #{num}
@@ -757,6 +776,7 @@ function getModeCopy(
   ctx: {
     email: string;
     outstanding: number;
+    due: DueCopy;
     requireId: boolean;
     requireInsurance: boolean;
     isReserved: boolean;
@@ -786,8 +806,8 @@ function getModeCopy(
       title: bookingTitle,
       subtitle: (
         <>
-          <Dyn>You have additional charges of</Dyn> {money(ctx.outstanding)}{' '}
-          <Dyn>pending on this booking.</Dyn>
+          <Dyn>{ctx.due.lead}</Dyn> {money(ctx.outstanding)}{' '}
+          <Dyn>{ctx.due.tail}</Dyn>
         </>
       ),
     };
@@ -841,6 +861,7 @@ function StateBanner({
   holdExpired,
   email,
   outstanding,
+  due,
   requireId,
   requireInsurance,
   isReserved,
@@ -852,6 +873,7 @@ function StateBanner({
   holdExpired: boolean;
   email: string;
   outstanding: number;
+  due: DueCopy;
   requireId: boolean;
   requireInsurance: boolean;
   isReserved: boolean;
@@ -912,7 +934,7 @@ function StateBanner({
         </div>
         <div className="flex-1 min-w-0">
           <p className={cn('text-[14px] font-semibold', isT2 ? 'text-[var(--text)]' : 'text-amber-text')}>
-            <Dyn>Additional payment due</Dyn>
+            <Dyn>{due.banner}</Dyn>
           </p>
           <p className={cn('mt-0.5 text-[12.5px] leading-[1.5]', isT2 ? 'text-[var(--text-muted)]' : 'text-amber-text-2')}>
             {money(outstanding)} <Dyn>needs to be paid to keep this booking active.</Dyn>
@@ -1042,19 +1064,19 @@ function VehicleCard({
 
 function OutstandingChargesCard({
   charges,
+  heading,
   paymentPendingHref,
   booking,
 }: {
   charges: BillingChargeRow[];
+  heading: string;
   paymentPendingHref: string;
   /** Lets the booking's own charge say what it covers — the vehicle, the
    *  dates and the breakdown — rather than a bare "Booking total". */
   booking: BookingDetails;
 }) {
   const isT2 = useIsT2();
-  const pending = charges.filter(
-    (c) => c.status !== 'paid' && c.status !== 'refunded' && !c.is_voided,
-  );
+  const pending = openCharges(charges);
   if (pending.length === 0) return null;
   return (
     <div
@@ -1065,7 +1087,7 @@ function OutstandingChargesCard({
     >
       <div className="flex items-center justify-between">
         <h3 className={cn('text-[15px] font-bold', isT2 ? 'text-[var(--text)]' : 'text-ink')}>
-          <Dyn>Additional charges</Dyn>
+          <Dyn>{heading}</Dyn>
         </h3>
         <a
           href={paymentPendingHref}
@@ -1144,7 +1166,7 @@ function PayGate({
   saveCard,
   onChooseSaveCard,
   companyName,
-  depositAmount,
+  deposit,
 }: {
   needsAgreement: boolean;
   onSignAgreement?: () => void;
@@ -1152,7 +1174,7 @@ function PayGate({
   saveCard: boolean;
   onChooseSaveCard?: (next: boolean) => void;
   companyName: string;
-  depositAmount?: number;
+  deposit: { amount: number; timing: DepositTiming };
 }) {
   const isT2 = useIsT2();
   if (!needsAgreement && !staffAskedForCard) return null;
@@ -1167,7 +1189,8 @@ function PayGate({
           checked={saveCard}
           onChange={(next) => onChooseSaveCard?.(next)}
           companyName={companyName}
-          depositAmount={depositAmount}
+          depositAmount={deposit.amount}
+          depositMode={deposit.timing}
           required
         />
       ) : null}

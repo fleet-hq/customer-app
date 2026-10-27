@@ -10,6 +10,7 @@ import { useCompany } from '@/contexts';
 import { useFleetDiscountsSummary } from '@/hooks/useFleetDiscounts';
 import { pickDefaultLocation } from '@/lib/locations';
 import { rentalDays } from '@/lib/utils';
+import { applyTripQuery } from '@/lib/trip-query';
 
 const WEEK_DAYS = 7;
 
@@ -108,15 +109,15 @@ export function useSearchBar() {
   }
 
   const goSearch = () => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (pickupLocId) params.set('pickupLocId', pickupLocId);
-    else params.delete('pickupLocId');
-    if (diffLocation && dropLocId) params.set('dropoffLocId', dropLocId);
-    else params.delete('dropoffLocId');
-    params.set('pickupDate', pickupDate);
-    params.set('pickupTime', pickupTime);
-    params.set('returnDate', returnDate);
-    params.set('returnTime', returnTime);
+    const params = applyTripQuery(new URLSearchParams(searchParams.toString()), {
+      pickupLocId,
+      dropoffLocId: diffLocation ? dropLocId : null,
+      pickupDate,
+      pickupTime,
+      returnDate,
+      returnTime,
+      model: searchParams.get('model'),
+    });
 
     // Widget context: when rendered inside a partner's iframe with an
     // embed_redirect param, hand off to that URL in the top window so the

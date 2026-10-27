@@ -6,7 +6,8 @@ import { useBookingDetails } from '@/hooks/useBooking';
 import { useBookingBalance } from '@/hooks/useBookingBalance';
 import {
   createBillingCheckoutSession,
-  type BillingPaymentRow,
+  ledgerDeposit,
+  receivedPayments,
   type BillingRefundRow,
   type PaymentLinkState,
 } from '@/services/billingServices';
@@ -68,7 +69,7 @@ export function useBookingPayment(bookingId: string, enabled: boolean) {
   const outstanding = Number(balance?.outstanding_balance ?? 0);
   const amountDue = link ? Number(link.status === 'active' ? link.payable : link.amount) : outstanding;
   const charges = balance?.charges ?? [];
-  const payments: BillingPaymentRow[] = balance?.payments ?? [];
+  const payments = receivedPayments(balance);
   const refunds: BillingRefundRow[] = balance?.refunds ?? [];
   const ledgerHasBookingFee = charges.some((c) => c.type === 'booking_fee');
   const syntheticBookingTotal = Number(booking?.invoice?.total ?? 0);
@@ -81,7 +82,7 @@ export function useBookingPayment(bookingId: string, enabled: boolean) {
     covers: link?.covers ?? '',
     outstanding,
     cardLast4: booking?.cardOnFile?.last4,
-    depositAmount: booking?.invoice.deposit,
+    deposit: ledgerDeposit(charges, booking?.invoice.deposit),
     bookedOn: booking?.bookedOn ?? '',
     staffAskedForCard,
     saveCard,

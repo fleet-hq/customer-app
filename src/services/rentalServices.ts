@@ -126,6 +126,7 @@ export interface RenterRental {
   notice_return_date: string | null;
   earliest_return_date: string;
   ended_at: string | null;
+  closed: boolean;
   plan: { name: string; weekly_price: string; miles_per_week: number } | null;
   charges: RenterCharge[];
   required_documents: string[];

@@ -9,6 +9,7 @@ import {
   getRentalSiteConfig,
   giveRenterNotice,
   type OngoingQuotePayload,
+  type RentalModel,
   type RentalSiteConfig,
 } from '@/services/rentalServices';
 import { useDebounce } from './use-debounce';
@@ -16,7 +17,7 @@ import { useTenant } from '@/lib/tenant-context';
 import { rateCard, type RateCard, type RateView } from '@/lib/rate-card';
 import { released } from '@/lib/release';
 
-export function useRentalSiteConfig(): RentalSiteConfig & { ready: boolean } {
+export function useRentalSiteConfig(): RentalSiteConfig & { ready: boolean; bookableModels: RentalModel[] } {
   const tenant = useTenant();
   const { data, isFetched } = useQuery({
     queryKey: ['rental-site-config', tenant.slug],
@@ -25,10 +26,13 @@ export function useRentalSiteConfig(): RentalSiteConfig & { ready: boolean } {
     retry: false,
   });
   const config = data ?? DAILY_ONLY;
+  const models = released('modelTabs') ? config.models : config.models.filter((model) => model === 'daily');
+  const websiteOngoing = released('websiteOngoing') && config.website_ongoing;
   return {
     ...config,
-    models: released('modelTabs') ? config.models : config.models.filter((model) => model === 'daily'),
-    website_ongoing: released('websiteOngoing') && config.website_ongoing,
+    models,
+    website_ongoing: websiteOngoing,
+    bookableModels: websiteOngoing ? models : models.filter((model) => model === 'daily'),
     ready: isFetched,
   };
 }

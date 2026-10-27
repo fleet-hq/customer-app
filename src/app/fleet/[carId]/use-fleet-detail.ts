@@ -35,7 +35,9 @@ import { useAbiQuote } from '@/hooks/useAbi';
 import type { AbiQuoteAvailable } from '@/services/abiServices';
 import { useDynamicTranslation } from '@/hooks/useDynamicTranslation';
 import { pickDefaultLocation } from '@/lib/locations';
-import { extractApiErrorMessage } from './fleet-detail-shared';
+import { apiFieldErrors, extractApiErrorMessage } from './fleet-detail-shared';
+import { outsideOpeningHours } from '@/lib/time-slots';
+import { useQueryClient } from '@tanstack/react-query';
 import { useRentalSiteConfig } from '@/hooks/useRentalSiteConfig';
 import { rateCard } from '@/lib/rate-card';
 import { trackedPromo } from '@/lib/tracking-tag';
@@ -45,6 +47,7 @@ import type { OngoingOffer, OngoingQuotePayload, RentalModel } from '@/services/
 
 type OngoingModel = Exclude<RentalModel, 'daily'>;
 import { trackVehicleView, trackBeginCheckout } from '@/lib/tracking-events';
+import { applyTripQuery } from '@/lib/trip-query';
 
 export const PLACEHOLDER_IMAGE = '/images/vehicles/car_placeholder.svg';
 
@@ -389,12 +392,12 @@ export function useFleetDetail(carId: string) {
   }, [manualInsurancePackages, selectedManualIds]);
 
   const ongoingOptions = useMemo<OngoingModel[]>(() => {
-    if (!vehicle || !rentalConfig.website_ongoing) return [];
+    if (!vehicle) return [];
     const out: OngoingModel[] = [];
-    if (vehicle.offersGig && vehicle.pricePerWeek > 0 && rentalConfig.models.includes('gig')) out.push('gig');
+    if (vehicle.offersGig && vehicle.pricePerWeek > 0 && rentalConfig.bookableModels.includes('gig')) out.push('gig');
     if (
       vehicle.offersSubscription &&
-      rentalConfig.models.includes('subscription') &&
+      rentalConfig.bookableModels.includes('subscription') &&
       rentalConfig.plans.some((plan) => plan.id === vehicle.subscriptionPlanId)
     ) {
       out.push('subscription');
@@ -475,7 +478,24 @@ export function useFleetDetail(carId: string) {
     selectedExtras,
     appliedDiscount: promoApplied ? promoDiscount : 0,
   });
-  const tripProblem = !weeklyOn && meetsMinDuration ? quoteError : null;
+  const queryClient = useQueryClient();
+  const tripKey = [pickupLocId, dropoffLocId, pickupDate, pickupTime, returnDate, returnTime].join('|');
+  const [tripRejection, setTripRejection] = useState<{ key: string; message: string } | null>(null);
+  const pickupPlace = companyLocations?.find((l) => String(l.id) === String(pickupLocId));
+  const returnPlace = companyLocations?.find((l) => String(l.id) === String(dropoffLocId ?? pickupLocId));
+  const hoursProblem =
+    outsideOpeningHours(pickupPlace, pickupTime) ?? (weeklyOn ? null : outsideOpeningHours(returnPlace, returnTime));
+  const tripProblem =
+    (tripRejection?.key === tripKey ? tripRejection.message : null) ??
+    hoursProblem ??
+    (!weeklyOn && meetsMinDuration ? quoteError : null);
+  const failCheckout = (error: unknown, fallback: string) => {
+    const fields = apiFieldErrors(error);
+    const tripMessage = [fields.pickup_datetime, fields.dropoff_datetime].filter(Boolean).join(' ');
+    if (tripMessage) setTripRejection({ key: tripKey, message: tripMessage });
+    else setCheckoutError(extractApiErrorMessage(error, fallback));
+    void queryClient.invalidateQueries({ queryKey: ['ongoing-quote'] });
+  };
 
   useEffect(() => {
     if (!checkoutError) return;
@@ -734,7 +754,8 @@ export function useFleetDetail(carId: string) {
       startCheckout.isPending ||
       startVerification.isPending ||
       startEmbedPayment.isPending ||
-      (weeklyOn ? !offer || !weeklyConsent || ongoingStale : !meetsMinDuration || !!tripProblem) ||
+      !!tripProblem ||
+      (weeklyOn ? !offer || !weeklyConsent || ongoingStale : !meetsMinDuration) ||
       !cardConsent ||
       (rentalAgreementRequired && !rentalAgreementSigned),
     carId,
@@ -981,11 +1002,7 @@ export function useFleetDetail(carId: string) {
           try { window.sessionStorage.removeItem(persistKey); } catch { /* ignore */ }
           window.location.href = `/booking/${data.booking_id}?token=${encodeURIComponent(data.access_token)}`;
         },
-        onError: (error: unknown) => {
-          setCheckoutError(
-            extractApiErrorMessage(error, 'Could not start verification. Please try again.'),
-          );
-        },
+        onError: (error: unknown) => failCheckout(error, 'Could not start verification. Please try again.'),
       });
       return;
     }
@@ -1007,9 +1024,7 @@ export function useFleetDetail(carId: string) {
           deposit: pricing.deposit,
         });
       } catch (error) {
-        setCheckoutError(
-          extractApiErrorMessage(error, 'We couldn\u2019t start checkout. Please check your details and try again.'),
-        );
+        failCheckout(error, 'We couldn\u2019t start checkout. Please check your details and try again.');
       }
       return;
     }
@@ -1032,9 +1047,7 @@ export function useFleetDetail(carId: string) {
           pendingId: data.pending_id,
         });
       } catch (error) {
-        setCheckoutError(
-          extractApiErrorMessage(error, 'We couldn’t start checkout. Please check your details and try again.'),
-        );
+        failCheckout(error, 'We couldn’t start checkout. Please check your details and try again.');
       }
       return;
     }
@@ -1043,16 +1056,22 @@ export function useFleetDetail(carId: string) {
       const data = await startCheckout.mutateAsync({
         ...commonPayload,
         success_url: `${origin}/booking/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${origin}/fleet/${carId}`,
+        cancel_url: `${origin}/fleet/${carId}?${applyTripQuery(new URLSearchParams(), {
+          pickupLocId,
+          dropoffLocId,
+          pickupDate,
+          pickupTime,
+          returnDate: weeklyOn ? null : returnDate,
+          returnTime: weeklyOn ? null : returnTime,
+          model: weeklyOn ? ongoingModel : null,
+        })}`,
       });
       registerHold(data.pending_id);
       try { window.sessionStorage.removeItem(persistKey); } catch { /* ignore */ }
       suppressRelease();
       window.location.href = data.checkout_url;
     } catch (error) {
-      setCheckoutError(
-        extractApiErrorMessage(error, 'We couldn’t start checkout. Please check your details and try again.'),
-      );
+      failCheckout(error, 'We couldn’t start checkout. Please check your details and try again.');
     }
   };
 

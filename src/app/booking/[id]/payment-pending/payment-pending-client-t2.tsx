@@ -35,6 +35,7 @@ export default function PaymentPendingClientT2({ id }: { id: string }) {
     unpaid,
     settledCharges,
     hasHistory,
+    deposit,
   } = usePaymentPending(id);
 
   if (!tokenReady || isLoading || balanceLoading) {
@@ -141,7 +142,8 @@ export default function PaymentPendingClientT2({ id }: { id: string }) {
                   checked={saveCard}
                   onChange={chooseSaveCard}
                   companyName={tenant.name}
-                  depositAmount={booking?.invoice.deposit}
+                  depositAmount={deposit.amount}
+                  depositMode={deposit.timing}
                   required
                 />
               ) : null}

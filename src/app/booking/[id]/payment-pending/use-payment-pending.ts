@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { useBookingDetails } from '@/hooks/useBooking';
 import { useBookingBalance } from '@/hooks/useBookingBalance';
 import { useCardConsent } from '@/components/booking/use-card-consent';
-import { createBillingCheckoutSession, type BillingPaymentRow, type BillingRefundRow } from '@/services/billingServices';
+import { createBillingCheckoutSession, ledgerDeposit, openCharges, receivedPayments, type BillingRefundRow } from '@/services/billingServices';
 import { setBookingToken } from '@/utils/booking-token';
 import { useTenant } from '@/lib/tenant-context';
 import { useDynamicTranslation } from '@/hooks/useDynamicTranslation';
@@ -70,12 +70,10 @@ export function usePaymentPending(id: string) {
   const totalPaid = Number(balance?.total_paid ?? 0);
 
   const charges = balance?.charges ?? [];
-  const payments: BillingPaymentRow[] = balance?.payments ?? [];
+  const payments = receivedPayments(balance);
   const refunds: BillingRefundRow[] = balance?.refunds ?? [];
 
-  const unpaid = charges.filter(
-    (c) => !c.is_voided && (c.status === 'pending' || c.status === 'partially_paid'),
-  );
+  const unpaid = openCharges(charges);
   const settledCharges = charges.filter(
     (c) => !c.is_voided && (c.status === 'paid' || c.status === 'refunded' || c.status === 'partially_refunded'),
   );
@@ -107,5 +105,6 @@ export function usePaymentPending(id: string) {
     unpaid,
     settledCharges,
     hasHistory,
+    deposit: ledgerDeposit(charges, booking?.invoice.deposit),
   };
 }

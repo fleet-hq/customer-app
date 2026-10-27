@@ -24,6 +24,27 @@ function format12HourLabel(hours: number, minutes: number): string {
   return `${displayHour}:${String(minutes).padStart(2, '0')} ${period}`;
 }
 
+function minutesLabel(minutes: number): string {
+  return format12HourLabel(Math.floor(minutes / 60), minutes % 60);
+}
+
+export interface OpeningHours {
+  name: string;
+  is247: boolean;
+  openingTime: string | null;
+  closingTime: string | null;
+}
+
+export function outsideOpeningHours(location: OpeningHours | undefined, time: string): string | null {
+  if (!location || location.is247) return null;
+  const open = parseTimeToMinutes(location.openingTime);
+  const close = parseTimeToMinutes(location.closingTime);
+  const at = parseTimeToMinutes(time);
+  if (open == null || close == null || at == null || close <= open) return null;
+  if (at >= open && at <= close) return null;
+  return `${location.name} is open ${minutesLabel(open)}–${minutesLabel(close)}. Pick a time in those hours.`;
+}
+
 export function buildLocationTimeSlots(hours: LocationHours, intervalMinutes = 30): TimeSlot[] {
   const startMin = parseTimeToMinutes(hours.start) ?? 0;
   const endMin = parseTimeToMinutes(hours.end) ?? 24 * 60;

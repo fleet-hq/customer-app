@@ -47,6 +47,7 @@ function useSkin() {
 function renewalLine(rental: RenterRental): string | null {
   const renewal = rental.next_renewal;
   if (rental.ended_at) return `Ended ${dayLabel(rental.ended_at)}`;
+  if (rental.closed) return 'No further payments will be taken';
   if (renewal.state === 'paused') return 'Billing is paused';
   if (renewal.state === 'on_hold') return 'On hold until the balance is paid';
   if (renewal.state === 'ending' && renewal.at) return `Your rental ends on ${dayLabel(renewal.at)}`;
@@ -151,14 +152,14 @@ export function RenterRentalPanel({
         <span className={skin.quiet}>
           <Dyn>Card on file</Dyn>: <span className={skin.strong}>{rental.card_on_file?.label ?? <Dyn>None</Dyn>}</span>
         </span>
-        {!rental.ended_at ? (
+        {!rental.closed ? (
           <button type="button" onClick={onUpdateCard} className={cn('font-semibold', skin.link)}>
             <Dyn>{rental.card_on_file ? 'Update card' : 'Add a card'}</Dyn>
           </button>
         ) : null}
       </div>
 
-      {!rental.ended_at ? (
+      {!rental.closed ? (
         <div className={cn('mt-4 border-t pt-4', skin.line)}>
           {rental.notice_return_date ? (
             <p className={cn('text-[13px]', skin.strong)}>

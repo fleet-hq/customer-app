@@ -50,6 +50,7 @@ export default function PaymentPendingPage({ params }: { params: Promise<{ id: s
     unpaid,
     settledCharges,
     hasHistory,
+    deposit,
   } = pp;
 
   if (!tokenReady || isLoading || balanceLoading) {
@@ -173,7 +174,8 @@ export default function PaymentPendingPage({ params }: { params: Promise<{ id: s
                   checked={saveCard}
                   onChange={chooseSaveCard}
                   companyName={tenant.name}
-                  depositAmount={booking?.invoice.deposit}
+                  depositAmount={deposit.amount}
+                  depositMode={deposit.timing}
                   required
                 />
               ) : null}

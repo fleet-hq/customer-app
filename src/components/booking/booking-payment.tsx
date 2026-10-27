@@ -40,7 +40,8 @@ export function PaymentLinkCard({ bookingId, enabled }: { bookingId: string; ena
       checked={pay.saveCard}
       onChange={pay.chooseSaveCard}
       companyName={tenant.name}
-      depositAmount={pay.depositAmount}
+      depositAmount={pay.deposit.amount}
+      depositMode={pay.deposit.timing}
       required={false}
     />
   ) : null;
