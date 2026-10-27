@@ -85,6 +85,8 @@ export function useFleetDetail(carId: string) {
     deposit: number;
   }>(null);
   const [nmiSubmitting, setNmiSubmitting] = useState(false);
+  const reserveLock = useRef(false);
+  const [reserving, setReserving] = useState(false);
   const [nmiCardError, setNmiCardError] = useState<string | null>(null);
   const { registerHold, suppressRelease, releaseNow } = useCheckoutHoldRelease(carId);
   // Single-provider policy: the tenant admin enables exactly one
@@ -728,6 +730,7 @@ export function useFleetDetail(carId: string) {
       setConsent: setWeeklyConsent,
     },
     reserveBlocked:
+      reserving ||
       startCheckout.isPending ||
       startVerification.isPending ||
       startEmbedPayment.isPending ||
@@ -858,6 +861,18 @@ export function useFleetDetail(carId: string) {
   };
 
   const reserve = async () => {
+    if (reserveLock.current) return;
+    reserveLock.current = true;
+    setReserving(true);
+    try {
+      await runReserve();
+    } finally {
+      reserveLock.current = false;
+      setReserving(false);
+    }
+  };
+
+  const runReserve = async () => {
     const e = validate();
     setErrors(e);
     if (Object.keys(e).length > 0 || !cardConsent) return;
