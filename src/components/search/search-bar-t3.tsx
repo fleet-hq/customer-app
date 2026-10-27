@@ -2,6 +2,7 @@
 
 import { Dyn } from '@/components/i18n/Dyn';
 import { useSearchBar } from './use-search-bar';
+import { useTenantToday } from '@/hooks/use-tenant-today';
 
 /** Template-3 booking form — the raw template's own markup (boxed
  *  fields on the dark hero, a checkbox for a different return
@@ -9,6 +10,7 @@ import { useSearchBar } from './use-search-bar';
  *  the shared useSearchBar hook, so all three templates search
  *  identically and only the presentation differs. */
 export function SearchBarT3({ variant = 'hero' }: { variant?: 'hero' | 'inline' }) {
+  const today = useTenantToday();
   const {
     rootRef,
     pickupLocations,
@@ -26,7 +28,6 @@ export function SearchBarT3({ variant = 'hero' }: { variant?: 'hero' | 'inline' 
     setReturnTime,
     diffLocation,
     setDiffLocation,
-    minTime,
     maxTime,
     handlePickupDate,
     showDisc,
@@ -101,7 +102,7 @@ export function SearchBarT3({ variant = 'hero' }: { variant?: 'hero' | 'inline' 
                 id="t3-pd"
                 required
                 value={pickupDate}
-                min={minTime ? undefined : undefined}
+                min={today}
                 onChange={(e) => handlePickupDate(e.target.value)}
               />
             </span>
@@ -126,7 +127,7 @@ export function SearchBarT3({ variant = 'hero' }: { variant?: 'hero' | 'inline' 
                 id="t3-rd"
                 required
                 value={returnDate}
-                min={pickupDate || undefined}
+                min={pickupDate || today}
                 onChange={(e) => setReturnDate(e.target.value)}
               />
             </span>
