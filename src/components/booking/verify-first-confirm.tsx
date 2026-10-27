@@ -378,10 +378,12 @@ export function VerifyFirstConfirm(props: Props) {
                     </h3>
                     <p className={cn('mt-1 text-[12.5px]', isT2 ? 'text-[var(--text-muted)]' : 'text-muted')}>
                       <Dyn>{mode === 'pending_verification'
-                        ? 'Both steps must be verified before you can pay and confirm.'
+                        ? requiredCount > 1
+                          ? 'Both steps must be verified before you can pay and confirm.'
+                          : 'This step must be verified before you can pay and confirm.'
                         : doneCount === requiredCount
                           ? "You're fully verified for this rental."
-                          : 'ID and insurance verification for this rental.'}</Dyn>
+                          : `${verificationScopeLabel(requireId, requireInsurance)} for this rental.`}</Dyn>
                     </p>
                   </div>
                   <p
@@ -822,6 +824,11 @@ function getModeCopy(
       </>
     ),
   };
+}
+
+function verificationScopeLabel(requireId: boolean, requireInsurance: boolean): string {
+  if (requireId && requireInsurance) return 'ID and insurance verification';
+  return requireId ? 'ID verification' : 'Insurance verification';
 }
 
 function verificationTaskLabel(requireId: boolean, requireInsurance: boolean): string {
