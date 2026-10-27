@@ -85,22 +85,13 @@ export default function ModifyTripPage({ params }: { params: Promise<{ id: strin
     error,
     handleConfirm,
     priceDiff,
-    modificationFee,
     newTotal,
     currentTotal,
     notAllowed,
     nb,
     newDays,
     unitLabel,
-    nbBase,
-    nbFleetDiscount,
-    nbLocation,
-    nbFees,
-    nbInsurance,
-    nbTax,
-    extensionInsurance,
-    insuranceRefund,
-    insuranceExcluded,
+    priceRows,
     originalTotal,
     priceNotice,
   } = tm;
@@ -201,48 +192,9 @@ export default function ModifyTripPage({ params }: { params: Promise<{ id: strin
 
           {changed && nb ? (
             <div className="space-y-[10px]">
-              {priceDiff >= 0 && nbFees === 0 ? (
-                <>
-                  <p className="text-[11px] font-medium uppercase tracking-[0.04em] text-faint"><Dyn>Extension charges</Dyn></p>
-                  <Row
-                    label={`${t('Additional rental')}${newDays != null ? ` (${newDays} ${unitLabel}${newDays === 1 ? '' : 's'})` : ''}`}
-                    value={money(nbBase)}
-                  />
-                  {nbTax > 0 && <Row label={t('Tax')} value={money(nbTax)} />}
-                  {(extensionInsurance || nbInsurance) > 0 && (
-                    <Row label={t('Insurance (additional days)')} value={money(extensionInsurance || nbInsurance)} />
-                  )}
-                </>
-              ) : (
-                <>
-                  <Row label={t('Rental total')} value={money(nbBase)} />
-                  {nbFleetDiscount > 0 && <Row label={t('Fleet discount')} value={`-${money(nbFleetDiscount)}`} />}
-                  {nbLocation > 0 && <Row label={t('Location charges')} value={money(nbLocation)} />}
-                  {nbFees > 0 && <Row label={t('Booking fees')} value={money(nbFees)} />}
-                  {nbInsurance > 0 && (
-                    <Row
-                      label={t('Insurance')}
-                      value={money(nbInsurance)}
-                      note={extensionInsurance > 0 ? t('Premium is recalculated by your insurance provider for the new dates; you pay the difference between the original and the new premium.') : undefined}
-                    />
-                  )}
-                  {nbTax > 0 && <Row label={t('Tax')} value={money(nbTax)} />}
-                </>
-              )}
-
-              {priceDiff < 0 && (
-                <>
-                  {insuranceRefund > 0 && (
-                    <Row
-                      label={t('Insurance (refundable)')}
-                      value={`+${money(insuranceRefund)}`}
-                      note={t("Premium is recalculated by your insurance provider for the new shorter dates; you're refunded the difference.")}
-                    />
-                  )}
-                  {insuranceExcluded > 0 && <Row label={t('Insurance (non-refundable)')} value={`-${money(insuranceExcluded)}`} />}
-                </>
-              )}
-              {modificationFee > 0 && <Row label={t('Modification fee')} value={`-${money(modificationFee)}`} />}
+              {priceRows.map((row) => (
+                <Row key={row.label} {...row} />
+              ))}
 
               <div className="my-1 h-px bg-card-border" />
               <Row label={t('Previous total')} value={money(originalTotal)} muted />
@@ -264,7 +216,6 @@ export default function ModifyTripPage({ params }: { params: Promise<{ id: strin
                     <span className="ml-2 text-[11.5px] text-faint">
                       {money(newTotal)}
                       {newDays != null ? ` · ${newDays} ${unitLabel}${newDays === 1 ? '' : 's'}` : ''}
-                      {modificationFee > 0 ? ` · incl. ${money(modificationFee)} fee` : ''}
                     </span>
                   )}
                 </div>

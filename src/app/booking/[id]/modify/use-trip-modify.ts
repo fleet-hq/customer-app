@@ -10,6 +10,9 @@ import { toUtcIso, utcIsoToFormValues } from '@/utils/datetime';
 import { buildUnavailabilityIndex } from '@/lib/unavailable-slots';
 import { useTenant } from '@/lib/tenant-context';
 import { useDynamicTranslation } from '@/hooks/useDynamicTranslation';
+import { money } from '@/lib/utils';
+
+export type PriceRow = { label: string; value: string; note?: string };
 import { describePriceChange } from '@/lib/price-change-notice';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
@@ -87,11 +90,11 @@ export function useTripModify(id: string) {
     'Pick-up date & time',
     '(locked — trip has started)',
     'Return date & time',
-    'Additional rental',
     'Tax',
-    'Insurance (additional days)',
     'Rental total',
     'Fleet discount',
+    'Promo discount',
+    'Extras',
     'Location charges',
     'Booking fees',
     'Insurance',
@@ -232,6 +235,40 @@ export function useTripModify(id: string) {
   const insuranceRefund = num(preview?.insurance_refund);
   const insuranceExcluded = num(preview?.insurance_excluded);
   const originalTotal = preview?.original_total != null ? num(preview.original_total) : currentTotal;
+  const nbPromo = nb ? num(nb.promo_discount) : 0;
+  const nbExtras = nb ? num(nb.extras_price) : 0;
+  const daysSuffix = newDays != null ? ` (${newDays} ${unitLabel}${newDays === 1 ? '' : 's'})` : '';
+  const priceRows: PriceRow[] = nb
+    ? [
+        { label: `${t('Rental total')}${daysSuffix}`, value: money(nbBase) },
+        nbFleetDiscount > 0 && { label: t('Fleet discount'), value: `-${money(nbFleetDiscount)}` },
+        nbPromo > 0 && { label: t('Promo discount'), value: `-${money(nbPromo)}` },
+        nbExtras > 0 && { label: t('Extras'), value: money(nbExtras) },
+        nbLocation > 0 && { label: t('Location charges'), value: money(nbLocation) },
+        nbFees > 0 && { label: t('Booking fees'), value: money(nbFees) },
+        nbInsurance > 0 && {
+          label: t('Insurance'),
+          value: money(nbInsurance),
+          note:
+            extensionInsurance > 0
+              ? t('Premium is recalculated by your insurance provider for the new dates; you pay the difference between the original and the new premium.')
+              : undefined,
+        },
+        nbTax > 0 && { label: t('Tax'), value: money(nbTax) },
+        priceDiff < 0 &&
+          insuranceRefund > 0 && {
+            label: t('Insurance (refundable)'),
+            value: `+${money(insuranceRefund)}`,
+            note: t("Premium is recalculated by your insurance provider for the new shorter dates; you're refunded the difference."),
+          },
+        priceDiff < 0 && insuranceExcluded > 0 && { label: t('Insurance (non-refundable)'), value: `-${money(insuranceExcluded)}` },
+        modificationFee > 0 &&
+          priceDiff !== 0 && {
+            label: t('Modification fee'),
+            value: priceDiff < 0 ? `-${money(modificationFee)}` : money(modificationFee),
+          },
+      ].filter((row): row is PriceRow => Boolean(row))
+    : [];
   const priceNotice = changed ? describePriceChange(preview) : null;
 
   return {
@@ -268,15 +305,7 @@ export function useTripModify(id: string) {
     nb,
     newDays,
     unitLabel,
-    nbBase,
-    nbFleetDiscount,
-    nbLocation,
-    nbFees,
-    nbInsurance,
-    nbTax,
-    extensionInsurance,
-    insuranceRefund,
-    insuranceExcluded,
+    priceRows,
     originalTotal,
     priceNotice,
   };
