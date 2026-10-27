@@ -8,6 +8,7 @@ import { setBookingToken, getBookingTokenHeaders } from '@/utils/booking-token';
 import { paths } from '@/lib/paths';
 import { useTenant } from '@/lib/tenant-context';
 import { useDynamicTranslation } from '@/hooks/useDynamicTranslation';
+import { extractApiErrorMessage } from '@/lib/api-errors';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -96,8 +97,8 @@ export function useBookingCancel(id: string) {
         { headers: getBookingTokenHeaders() }
       );
       setCancelled(true);
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || err?.response?.data?.reason || 'Failed to cancel booking.');
+    } catch (err) {
+      setError(extractApiErrorMessage(err, 'Failed to cancel booking.'));
     } finally {
       setCancelling(false);
     }

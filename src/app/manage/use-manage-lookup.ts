@@ -7,7 +7,8 @@ import { paths } from '@/lib/paths';
 import { setBookingToken } from '@/utils/booking-token';
 import { lookupBooking, requestSignInLink, type BookingLookupResponse } from '@/services/bookingServices';
 import { useDynamicTranslation } from '@/hooks/useDynamicTranslation';
-import { extractBackendErrorMessage } from '@/lib/error-sanitizer';
+import { extractApiErrorMessage } from '@/lib/api-errors';
+
 
 export interface ManageLookupFormErrors {
   booking_id?: string;
@@ -69,7 +70,7 @@ export function useManageLookup() {
   }
 
   function lookupErrors(err: unknown): ManageLookupFormErrors {
-    return { general: extractBackendErrorMessage(err, 'No booking found. Please check your details and try again.') };
+    return { general: extractApiErrorMessage(err, 'No booking found. Please check your details and try again.') };
   }
 
   useEffect(() => {

@@ -142,6 +142,7 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
     galleryImages,
     discount,
     total,
+    totalSummary,
     isInsuranceDisabled,
     toggleInsurance,
     handleToggleAbi,
@@ -192,11 +193,11 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
           <img src={galleryImages[0]} alt={vehicle.name} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: '0.86rem', fontWeight: 600 }}>{vehicle.name}</div>
-            <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>{days} <Dyn>{days === 1 ? 'day' : 'days'}</Dyn></div>
+            <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}><Dyn>{totalSummary.span}</Dyn></div>
           </div>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontWeight: 700 }}>{money(total)}</div>
-            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}><Dyn>Total</Dyn></div>
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}><Dyn>{totalSummary.label}</Dyn></div>
           </div>
         </div>
 

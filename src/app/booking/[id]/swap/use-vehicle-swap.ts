@@ -10,6 +10,7 @@ import { setBookingToken, getBookingTokenHeaders } from '@/utils/booking-token';
 import type { Vehicle } from '@/types/vehicle';
 import { useTenant } from '@/lib/tenant-context';
 import { useDynamicTranslation } from '@/hooks/useDynamicTranslation';
+import { extractApiErrorMessage } from '@/lib/api-errors';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 const PAGE_SIZE = 9;
@@ -171,12 +172,8 @@ export function useVehicleSwap(id: string) {
       } else {
         router.push(`/booking/${id}?token=${urlToken || ''}`);
       }
-    } catch (err: any) {
-      setError(
-        err?.response?.data?.detail ||
-          err?.response?.data?.reason ||
-          'Failed to swap vehicle.',
-      );
+    } catch (err) {
+      setError(extractApiErrorMessage(err, 'Failed to swap vehicle.'));
       setConfirming(false);
     }
   };

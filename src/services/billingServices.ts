@@ -25,6 +25,7 @@ export interface BillingChargeRow {
     | 'voided';
   is_voided: boolean;
   is_period?: boolean;
+  type_label?: string;
   description: string;
   created_at: string;
 }

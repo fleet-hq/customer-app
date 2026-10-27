@@ -4,7 +4,8 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import type { VehicleExtra } from '@/types/vehicle';
 import { getBookingQuote, type BookingQuote, type QuotePayload } from '@/services/bookingServices';
 import { useDebounce } from './use-debounce';
-import { extractBackendErrorMessage } from '@/lib/error-sanitizer';
+import { extractApiErrorMessage } from '@/lib/api-errors';
+
 
 export type RateUnit = 'day' | 'hour';
 
@@ -152,7 +153,7 @@ export function useBookingInvoice({
     staleTime: 30_000,
     retry: false,
   });
-  const quoteError = error && !pending && !isFetching ? extractBackendErrorMessage(error, "These dates can't be booked.") : null;
+  const quoteError = error && !pending && !isFetching ? extractApiErrorMessage(error, "These dates can't be booked.") : null;
   const quote = quoteError ? undefined : lastQuote;
 
   const pricing = useMemo<BookingPricing>(() => {

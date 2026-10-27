@@ -1,3 +1,7 @@
+import { money as formatMoney } from '@/lib/utils';
+import type { BookingDetails } from '@/services/bookingServices';
+import type { AgreementData } from '@/services/agreementServices';
+
 export const NA = 'N/A';
 
 export function num(value: unknown): number {
@@ -6,7 +10,26 @@ export function num(value: unknown): number {
 }
 
 export function money(value: unknown): string {
-  return `$${num(value).toFixed(2)}`;
+  return formatMoney(num(value));
+}
+
+export function agreementInvoice(booking: BookingDetails): AgreementData['invoice'] {
+  const inv = booking.invoice;
+  const hourly = inv.items[0]?.unit === 'hour' ? inv.items[0] : null;
+  const coverage = booking.insuranceCoverage;
+  const covers = coverage
+    ? [coverage.cdw && 'CDW', coverage.rcli && 'RCLI', coverage.sli && 'SLI', coverage.pai && 'PAI'].filter(Boolean).join(', ')
+    : '';
+  const positive = (value: number) => (value > 0 ? money(value) : undefined);
+  return {
+    rentalTotal: hourly ? `${money(inv.rentalTotal)} (${hourly.quantity} hrs × ${money(hourly.pricePerDay)}/hr)` : money(inv.rentalTotal),
+    fees: positive(inv.fees),
+    discount: inv.discount > 0 ? `-${money(inv.discount)}` : undefined,
+    insurance: coverage ? `${money(coverage.premiumAmount)}${covers ? ` (${covers})` : ''}` : undefined,
+    tax: positive(inv.tax),
+    total: money(inv.total),
+    deposit: positive(inv.deposit),
+  };
 }
 
 /** Mileage allowance as the agreement states it. Decimal fields arrive

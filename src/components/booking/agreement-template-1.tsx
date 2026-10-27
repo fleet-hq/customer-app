@@ -4,6 +4,7 @@ import { SignaturePad } from '@/components/ui/signature-pad';
 import { Dyn } from '@/components/i18n/Dyn';
 import { DynHtml } from '@/components/i18n/DynHtml';
 import type { AgreementData } from '@/services/agreementServices';
+import { money } from '@/lib/utils';
 import {
   DASH,
   dash,
@@ -172,7 +173,7 @@ export function AgreementTemplate1({ data, onSignatureChange }: RentalAgreementP
     ['Policy Details', dash(d.insurance.policyDetails)],
   ];
   if (d.insurance.premiumAmount) {
-    insuranceRows.push(['Premium', `$${d.insurance.premiumAmount.toFixed(2)}`]);
+    insuranceRows.push(['Premium', money(d.insurance.premiumAmount)]);
   }
   if (d.insurance.status && d.insurance.status !== 'N/A') {
     insuranceRows.push(['Status', d.insurance.status]);

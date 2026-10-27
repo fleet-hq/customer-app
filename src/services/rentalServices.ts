@@ -112,8 +112,11 @@ export interface RenterCharge {
   receipt_url: string | null;
 }
 
+export type BillingCycle = 'weekly' | 'biweekly';
+
 export interface RenterRental {
   rental_model: Exclude<RentalModel, 'daily'>;
+  billing_cycle?: BillingCycle;
   renew_weekday_name: string | null;
   billing_state: string;
   collection_method: string;

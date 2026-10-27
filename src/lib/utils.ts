@@ -14,8 +14,10 @@ export function slugify(text: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
+const MONEY = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
 export function money(n: number): string {
-  return '$' + n.toFixed(2);
+  return `${n < 0 ? '-' : ''}$${MONEY.format(Math.abs(n))}`;
 }
 
 export function formatLongDate(iso: string): string {

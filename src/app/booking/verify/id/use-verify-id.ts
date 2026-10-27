@@ -7,6 +7,7 @@ import { useCreateIdentityVerification } from '@/hooks/useVerification';
 import { setBookingToken } from '@/utils/booking-token';
 import { useTenant } from '@/lib/tenant-context';
 import { useDynamicTranslation } from '@/hooks/useDynamicTranslation';
+import { extractApiErrorMessage } from '@/lib/api-errors';
 
 /** All ID-verification data, state, and handlers — shared verbatim by
  *  both templates' verify-id pages so this compliance-critical
@@ -70,10 +71,7 @@ export function useVerifyId() {
           }
         },
         onError: (err: unknown) => {
-          const message =
-            (err as { response?: { data?: { errors?: { non_field_errors?: string[] } } } })?.response?.data?.errors
-              ?.non_field_errors?.[0] || 'Failed to create verification session. Please try again.';
-          setError(message);
+          setError(extractApiErrorMessage(err, 'Failed to create verification session. Please try again.'));
         },
       },
     );

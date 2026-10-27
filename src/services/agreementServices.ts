@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { getDomainParams } from '@/utils/company';
-import { milesLabel, overageLabel } from '@/lib/agreement-format';
+import { milesLabel, money, overageLabel } from '@/lib/agreement-format';
 import { getBookingToken, getBookingTokenHeaders } from '@/utils/booking-token';
 import { formatDate, formatDateTime } from '@/lib/utils';
 import type { AvailableExtra } from '@/services/bookingServices';
@@ -136,7 +136,7 @@ export function toAgreementExtras(
 ): NonNullable<AgreementData['extras']> {
   return extras.map((e) => ({
     name: e.name,
-    price: `$${e.price.toFixed(2)}/${e.period === 'per_day' ? 'day' : 'trip'}`,
+    price: `${money(e.price)}/${e.period === 'per_day' ? 'day' : 'trip'}`,
     purchased: e.purchased,
     quantity: e.quantity,
   }));
@@ -185,22 +185,22 @@ export interface AgreementSnapshot {
 function snapshotInvoice(
   inv: NonNullable<AgreementSnapshot['invoice']>,
 ): AgreementData['invoice'] {
-  const money = (v?: string | null) => (v != null ? `$${Number(v).toFixed(2)}` : undefined);
+  const amount = (v?: string | null) => (v != null ? money(v) : undefined);
   return {
-    rentalTotal: money(inv.rental_total) ?? '$0.00',
-    fees: money(inv.fees),
-    discount: inv.discount != null ? `-$${Number(inv.discount).toFixed(2)}` : undefined,
-    insurance: money(inv.insurance),
-    tax: money(inv.tax),
-    total: money(inv.total) ?? '$0.00',
-    deposit: money(inv.deposit),
+    rentalTotal: money(inv.rental_total),
+    fees: amount(inv.fees),
+    discount: inv.discount != null ? `-${money(inv.discount)}` : undefined,
+    insurance: amount(inv.insurance),
+    tax: amount(inv.tax),
+    total: money(inv.total),
+    deposit: amount(inv.deposit),
   };
 }
 
 function formatSnapshotExtraPrice(price: string | null, period: string | null): string {
   if (price == null) return '—';
   const unit = period === 'per_day' ? 'day' : 'trip';
-  return `$${Number(price).toFixed(2)}/${unit}`;
+  return `${money(price)}/${unit}`;
 }
 
 /** The card a booking keeps, in the shape the agreement renders.

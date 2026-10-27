@@ -92,15 +92,15 @@ export function Header({
 
   return (
     <header className="no-print sticky top-0 z-50 w-full border-b border-hairline bg-white/92 backdrop-blur-md backdrop-saturate-180">
-      <div className="mx-auto flex max-w-[1200px] items-center justify-between gap-6 px-6 py-[11px]">
-        <div className="flex items-center gap-[34px]">
-          <Link href={paths.home} className="flex flex-shrink-0 items-center">
+      <div className="mx-auto flex max-w-[1200px] items-center justify-between gap-3 px-4 py-[11px] sm:gap-6 sm:px-6">
+        <div className="flex min-w-0 items-center gap-[34px]">
+          <Link href={paths.home} className="flex min-w-0 items-center">
             {tenant.brand.logo ? (
               <Image src={tenant.brand.logo} alt={tenant.name} width={412} height={412} className="h-11 w-auto max-w-[200px] object-contain sm:h-12" priority unoptimized />
             ) : (
               // No uploaded logo → render the tenant name as a wordmark
               // instead of a bundled placeholder image.
-              <span className="text-[17px] font-semibold tracking-[-0.01em] text-ink">{tenant.name}</span>
+              <span className="truncate text-[15px] font-semibold tracking-[-0.01em] text-ink sm:text-[17px]">{tenant.name}</span>
             )}
           </Link>
           <nav className="hidden items-center gap-6 min-[840px]:flex">
@@ -154,11 +154,11 @@ export function Header({
           </nav>
         </div>
 
-        <div className="flex items-center justify-end gap-[14px]">
+        <div className="flex flex-shrink-0 items-center justify-end gap-2 sm:gap-[14px]">
           <LanguageSwitcher />
           <Link
             href={paths.manage}
-            className="whitespace-nowrap rounded-[7px] border border-primary bg-primary px-[18px] py-[9px] text-xs font-semibold text-white"
+            className="whitespace-nowrap rounded-[7px] border border-primary bg-primary px-3 py-[9px] text-xs font-semibold text-white sm:px-[18px]"
           >
             <Dyn>Manage Bookings</Dyn>
           </Link>

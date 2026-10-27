@@ -166,6 +166,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
     galleryImages,
     discount,
     total,
+    totalSummary,
     isInsuranceDisabled,
     toggleInsurance,
     handleToggleAbi,
@@ -212,12 +213,12 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
             />
             <div className="min-w-0">
               <div className="truncate text-[13px] font-semibold text-secondary">{vehicle.name}</div>
-              <div className="text-[11px] text-muted">{days} <Dyn>{days === 1 ? 'day' : 'days'}</Dyn></div>
+              <div className="text-[11px] text-muted"><Dyn>{totalSummary.span}</Dyn></div>
             </div>
           </div>
           <div className="text-right">
             <div className="text-[15px] font-bold text-secondary">{money(total)}</div>
-            <div className="text-[10px] text-muted"><Dyn>Total</Dyn></div>
+            <div className="text-[10px] text-muted"><Dyn>{totalSummary.label}</Dyn></div>
           </div>
         </div>
 

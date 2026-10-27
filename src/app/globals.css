@@ -150,6 +150,16 @@ textarea::placeholder {
   .print-keep-together {
     break-inside: avoid;
   }
+  body:has(> .print-invoice) > :not(.print-invoice) {
+    display: none !important;
+  }
+  body > .print-invoice {
+    display: block !important;
+  }
+}
+
+body > .print-invoice {
+  display: none;
 }
 
 body.fleethq-embedded .min-h-screen {

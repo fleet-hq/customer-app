@@ -145,7 +145,7 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
   const second = galleryImages[1];
   const third = galleryImages[2];
 
-  const specs: [string, string][] = [
+  const specs: [string, string | null][] = [
     ['Seats', vehicle.seats ? String(vehicle.seats) : ''],
     ['Transmission', vehicle.transmission],
     ['Fuel', vehicle.fuelType],

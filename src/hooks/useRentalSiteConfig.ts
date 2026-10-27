@@ -19,11 +19,11 @@ import { released } from '@/lib/release';
 
 export function useRentalSiteConfig(): RentalSiteConfig & { ready: boolean; bookableModels: RentalModel[] } {
   const tenant = useTenant();
-  const { data, isFetched } = useQuery({
+  const { data, isSuccess } = useQuery({
     queryKey: ['rental-site-config', tenant.slug],
     queryFn: () => getRentalSiteConfig(tenant.domain),
     staleTime: 60_000,
-    retry: false,
+    retry: 2,
   });
   const config = data ?? DAILY_ONLY;
   const models = released('modelTabs') ? config.models : config.models.filter((model) => model === 'daily');
@@ -33,7 +33,7 @@ export function useRentalSiteConfig(): RentalSiteConfig & { ready: boolean; book
     models,
     website_ongoing: websiteOngoing,
     bookableModels: websiteOngoing ? models : models.filter((model) => model === 'daily'),
-    ready: isFetched,
+    ready: isSuccess,
   };
 }
 

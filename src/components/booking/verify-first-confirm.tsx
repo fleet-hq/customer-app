@@ -21,6 +21,10 @@ import type {
 import SecondaryDriverVerification from '@/components/booking/secondary-driver-verification';
 import { FailedInsurancePanel } from '@/components/booking/failed-insurance-panel';
 import { useState } from 'react';
+import { chargeBreakdown } from '@/components/booking/charge-breakdown';
+import { useRenterRental } from '@/hooks/useRentalSiteConfig';
+import type { BillingCycle, RenterRental } from '@/services/rentalServices';
+import { PrintableInvoice } from '@/components/booking/printable-invoice';
 import { dueKind, ledgerDeposit, openCharges, type BillingChargeRow, type DueKind } from '@/services/billingServices';
 import type { DepositTiming } from '@/lib/price-rows';
 import type { TripImage } from '@/services/tripImageServices';
@@ -42,6 +46,15 @@ function rentalDays(booking: BookingDetails): number {
   if (Number.isNaN(start) || Number.isNaN(end)) return 1;
   const hours = Math.max(1, Math.ceil((end - start) / 3600000));
   return Math.max(1, Math.ceil(hours / 24));
+}
+
+const CYCLE_LABEL: Record<BillingCycle, string> = { weekly: 'weekly', biweekly: 'every two weeks' };
+
+function ongoingSpan(start: string, rental: RenterRental | undefined, tz?: string): string {
+  if (rental?.ended_at) return `${start} → returned ${shortDate(rental.ended_at, tz)}`;
+  if (rental?.closed) return `${start} → closed`;
+  if (rental?.notice_return_date) return `${start} → returning ${shortDate(`${rental.notice_return_date}T12:00:00`)}`;
+  return `${start} → no fixed return · ${CYCLE_LABEL[rental?.billing_cycle ?? 'weekly']}`;
 }
 
 function shortDate(iso: string, tz?: string): string {
@@ -199,6 +212,7 @@ export function VerifyFirstConfirm(props: Props) {
   const showCardAction =
     !!cardRequestOpen && mode !== 'cancelled' && (outstanding ?? 0) <= 0;
   const deposit = ledgerDeposit(charges, depositAmount);
+  const { data: rental } = useRenterRental(bookingId, booking.rentalModel !== 'daily');
   const due = DUE_COPY[dueKind(charges)];
 
   const days = rentalDays(booking);
@@ -299,6 +313,14 @@ export function VerifyFirstConfirm(props: Props) {
 
   return (
     <div className={cn(isT2 ? 'bg-[var(--paper)] text-[var(--text)]' : 'bg-white text-ink')}>
+      <PrintableInvoice
+        booking={booking}
+        companyName={companyName ?? ''}
+        charges={charges}
+        payments={paymentLink.payments}
+        refunds={paymentLink.refunds}
+        outstanding={outstanding ?? 0}
+      />
       <div className="mx-auto max-w-[1180px] px-4 pt-5 pb-16 sm:px-6">
         <BackLink href={backHref}><Dyn>{modeCopy.backLabel}</Dyn></BackLink>
 
@@ -361,7 +383,7 @@ export function VerifyFirstConfirm(props: Props) {
               dateRange={
                 booking.rentalModel === 'daily'
                   ? `${startShort} → ${endShort} · ${days} day${days === 1 ? '' : 's'}`
-                  : `${startShort} → no fixed return · weekly`
+                  : ongoingSpan(startShort, rental, booking.timezone)
               }
             />
 
@@ -1098,42 +1120,30 @@ function OutstandingChargesCard({
       </div>
       <ul className="mt-3 space-y-2 text-[13px]">
         {pending.map((c) => {
-          // The booking's own charge is the one a renter cannot check: a
-          // single total with no statement of what it covers. Name the
-          // vehicle and dates, and show the same lines the invoice does.
-          const isBookingFee = c.type === 'booking_fee';
-          const inv = booking.invoice;
-          const lines: [string, number][] = [];
-          if (isBookingFee) {
-            if (inv.rentalTotal > 0) lines.push(['Rental', inv.rentalTotal]);
-            if (inv.fees > 0) lines.push(['Fees', inv.fees]);
-            if (inv.discount > 0) lines.push(['Discount', -inv.discount]);
-            if (inv.tax > 0) lines.push(['Tax', inv.tax]);
-            if (inv.deposit > 0) lines.push(['Security deposit', inv.deposit]);
-          }
+          const breakdown = chargeBreakdown(c, booking);
           return (
             <li key={c.id}>
               <div className="flex items-center justify-between gap-3">
                 <span className={isT2 ? 'text-[var(--text)]' : 'text-ink'}>
-                  {isBookingFee ? booking.vehicle.name : c.description || c.type}
+                  <Dyn>{breakdown.title}</Dyn>
                 </span>
                 <span className={cn('whitespace-nowrap font-medium', isT2 ? 'text-[var(--text)]' : 'text-ink')}>
                   {money(Number(c.amount || 0))}
                 </span>
               </div>
-              {isBookingFee ? (
+              {breakdown.sub ? (
                 <p className={cn('mt-0.5 text-[12px]', isT2 ? 'text-[var(--text-muted)]' : 'text-muted')}>
-                  {booking.pickUp.date} – {booking.dropOff.date}
+                  {breakdown.sub}
                 </p>
               ) : null}
-              {lines.length > 0 ? (
+              {breakdown.lines.length > 0 ? (
                 <div
                   className={cn(
                     'mt-2 space-y-1 border-t pt-2',
                     isT2 ? 'border-[var(--line)]' : 'border-card-border',
                   )}
                 >
-                  {lines.map(([label, value]) => (
+                  {breakdown.lines.map(([label, value]) => (
                     <div key={label} className="flex items-baseline justify-between gap-3">
                       <span className={cn('text-[11.5px]', isT2 ? 'text-[var(--text-muted)]' : 'text-faint')}>
                         <Dyn>{label}</Dyn>

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { DEFAULT_TRIP } from '@/lib/mock-data';
+import { DEFAULT_TRIP, defaultReturnDate } from '@/lib/mock-data';
 import {
   useFleet,
   useInsuranceOptions,
@@ -35,7 +35,7 @@ import { useAbiQuote } from '@/hooks/useAbi';
 import type { AbiQuoteAvailable } from '@/services/abiServices';
 import { useDynamicTranslation } from '@/hooks/useDynamicTranslation';
 import { pickDefaultLocation } from '@/lib/locations';
-import { apiFieldErrors, extractApiErrorMessage } from './fleet-detail-shared';
+import { apiFieldErrors, extractApiErrorMessage } from '@/lib/api-errors';
 import { outsideOpeningHours } from '@/lib/time-slots';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRentalSiteConfig } from '@/hooks/useRentalSiteConfig';
@@ -183,7 +183,10 @@ export function useFleetDetail(carId: string) {
   const [dropoffLocId, setDropoffLocId] = useState<string | null>(urlDropoffLoc);
   const [pickupDate, setPickupDate] = useState(urlPickupDate ?? DEFAULT_TRIP.pickupDate);
   const [pickupTime, setPickupTime] = useState(urlPickupTime ?? DEFAULT_TRIP.pickupTime);
-  const [returnDate, setReturnDate] = useState(urlReturnDate ?? DEFAULT_TRIP.returnDate);
+  const [returnDate, setReturnDate] = useState(() => {
+    if (urlReturnDate && (!urlPickupDate || urlReturnDate >= urlPickupDate)) return urlReturnDate;
+    return urlPickupDate ? defaultReturnDate(urlPickupDate) : DEFAULT_TRIP.returnDate;
+  });
   const [returnTime, setReturnTime] = useState(urlReturnTime ?? DEFAULT_TRIP.returnTime);
 
   // Persist form fields to sessionStorage so a reload (or a widget parent
@@ -489,8 +492,10 @@ export function useFleetDetail(carId: string) {
   const returnPlace = companyLocations?.find((l) => String(l.id) === String(dropoffLocId ?? pickupLocId));
   const hoursProblem =
     outsideOpeningHours(pickupPlace, pickupTime) ?? (weeklyOn ? null : outsideOpeningHours(returnPlace, returnTime));
+  const pickupInPast = !!fleetDateArgs && Date.parse(fleetDateArgs.pickupDatetime) <= Date.now();
   const tripProblem =
     (tripRejection?.key === tripKey ? tripRejection.message : null) ??
+    (pickupInPast ? 'Pick a pick-up time in the future.' : null) ??
     hoursProblem ??
     (!weeklyOn && meetsMinDuration ? quoteError : null);
   const failCheckout = (error: unknown, fallback: string) => {
@@ -578,10 +583,7 @@ export function useFleetDetail(carId: string) {
         setPromoError(result.error || `“${c}” is not a valid code`);
       }
     } catch (err: unknown) {
-      const message =
-        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
-        `“${c}” is not a valid code`;
-      setPromoError(message);
+      setPromoError(extractApiErrorMessage(err, `“${c}” is not a valid code`));
     }
   };
 
@@ -784,6 +786,9 @@ export function useFleetDetail(carId: string) {
 
   const discount = pricing.discount;
   const total = weeklyOn ? Number(offer?.first.total ?? 0) + Number(offer?.deposit ?? 0) : pricing.total + abiPremium;
+  const totalSummary = weeklyOn
+    ? { span: 'Weekly · no fixed return', label: 'Due today' }
+    : { span: `${days} ${days === 1 ? 'day' : 'days'}`, label: 'Total' };
   const cardDeposit = weeklyOn && offer
     ? { amount: Number(offer.deposit), timing: weeklyDepositTiming(offer.deposit_method) }
     : { amount: pricing.deposit, timing: pricing.depositMode };
@@ -1137,6 +1142,7 @@ export function useFleetDetail(carId: string) {
     galleryImages,
     discount,
     total,
+    totalSummary,
     cardDeposit,
     isInsuranceDisabled,
     clearOwnInsurance,

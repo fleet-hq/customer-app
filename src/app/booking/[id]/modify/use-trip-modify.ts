@@ -14,6 +14,7 @@ import { money } from '@/lib/utils';
 
 export type PriceRow = { label: string; value: string; note?: string };
 import { describePriceChange } from '@/lib/price-change-notice';
+import { extractApiErrorMessage } from '@/lib/api-errors';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -199,8 +200,8 @@ export function useTripModify(id: string) {
       } else {
         router.push(`/booking/${id}?token=${token || ''}`);
       }
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || 'Failed to modify trip.');
+    } catch (err) {
+      setError(extractApiErrorMessage(err, 'Failed to modify trip.'));
       setSaving(false);
     }
   };

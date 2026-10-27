@@ -6,7 +6,7 @@ import { Dyn } from '@/components/i18n/Dyn';
 import { cn, money } from '@/lib/utils';
 import { useIsT2 } from '@/lib/use-is-t2';
 import { useGiveRenterNotice, useRenterRental } from '@/hooks/useRentalSiteConfig';
-import { extractApiErrorMessage } from '@/app/fleet/[carId]/fleet-detail-shared';
+import { extractApiErrorMessage } from '@/lib/api-errors';
 import type { RenterPeriod, RenterRental } from '@/services/rentalServices';
 import { DatePicker } from '@/components/ui/date-picker';
 import { useBookingPayment } from '@/hooks/use-booking-payment';
@@ -86,7 +86,7 @@ export function RenterRentalPanel({
     <section className={cn('border p-5', skin.card)}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h3 className={cn('text-[16px] font-bold', skin.strong)}>
-          <Dyn>{rental.plan ? `${rental.plan.name} subscription` : 'Weekly rental'}</Dyn>
+          <Dyn>{rental.plan?.name ?? 'Weekly rental'}</Dyn>
         </h3>
         {renewal ? <span className={cn('text-[13px]', skin.quiet)}><Dyn>{renewal}</Dyn></span> : null}
       </div>

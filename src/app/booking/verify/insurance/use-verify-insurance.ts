@@ -7,6 +7,7 @@ import { useCreateInsuranceVerification } from '@/hooks/useVerification';
 import { setBookingToken } from '@/utils/booking-token';
 import { useTenant } from '@/lib/tenant-context';
 import { useDynamicTranslation } from '@/hooks/useDynamicTranslation';
+import { extractApiErrorMessage } from '@/lib/api-errors';
 
 /** All insurance-verification data, state, and handlers — shared
  *  verbatim by both templates' verify-insurance pages so this
@@ -67,25 +68,7 @@ export function useVerifyInsurance() {
       {
         onSuccess: () => setSent(true),
         onError: (err: unknown) => {
-          const errData =
-            (err as { response?: { data?: Record<string, unknown> } })?.response?.data?.errors ??
-            (err as { response?: { data?: Record<string, unknown> } })?.response?.data;
-          let message = 'Failed to create insurance verification. Please try again.';
-          if (errData && typeof errData === 'object') {
-            const data = errData as Record<string, unknown>;
-            if (Array.isArray(data.non_field_errors) && data.non_field_errors[0]) {
-              message = String(data.non_field_errors[0]);
-            } else if (data.detail) {
-              message = typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail);
-            } else {
-              const firstKey = Object.keys(data)[0];
-              if (firstKey) {
-                const val = data[firstKey];
-                message = Array.isArray(val) ? String(val[0]) : String(val);
-              }
-            }
-          }
-          setError(message);
+          setError(extractApiErrorMessage(err, 'Failed to create insurance verification. Please try again.'));
         },
       },
     );

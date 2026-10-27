@@ -15,7 +15,7 @@ export interface RateCard {
   extras: string | null;
   weekly: WeeklyOffer | null;
   headline: { price: number; per: 'day' | 'week' };
-  mileage: string;
+  mileage: string | null;
 }
 
 export interface RateView {
@@ -32,7 +32,7 @@ export function planMileage(plan: Pick<PublicPlan, 'miles_per_week'>): string {
 }
 
 function vehicleMileage(vehicle: RateVehicle): string {
-  return vehicle.milesPerDay ? `${vehicle.milesPerDay} mi/day` : 'Unlimited';
+  return Number(vehicle.milesPerDay) > 0 ? `${Number(vehicle.milesPerDay).toLocaleString('en-US')} mi/day` : 'Unlimited';
 }
 
 export function rateCard(vehicle: RateVehicle, config: RentalSiteConfig, view: RateView = DAILY_VIEW): RateCard {
@@ -40,7 +40,7 @@ export function rateCard(vehicle: RateVehicle, config: RentalSiteConfig, view: R
     return { week: null, hourFrom: null, extras: null, weekly: null, headline: { price: Number(view.plan.weekly_price), per: 'week' }, mileage: planMileage(view.plan) };
   }
   if (view.model === 'gig' && vehicle.pricePerWeek > 0) {
-    return { week: null, hourFrom: null, extras: null, weekly: null, headline: { price: vehicle.pricePerWeek, per: 'week' }, mileage: vehicleMileage(vehicle) };
+    return { week: null, hourFrom: null, extras: null, weekly: null, headline: { price: vehicle.pricePerWeek, per: 'week' }, mileage: null };
   }
   const ongoingOnly = vehicle.weeklyScope === 'ongoing';
   const weeklyBookable = !ongoingOnly || (config.models.includes('gig') && vehicle.offersGig);

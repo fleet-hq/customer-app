@@ -17,6 +17,7 @@ import {
   type ManualVerificationKind,
   type ManualVerificationSubmission,
 } from '@/services/manualVerificationServices';
+import { extractApiErrorMessage } from '@/lib/api-errors';
 
 const KIND_FOR_DOCUMENT = Object.fromEntries(
   Object.entries(DOCUMENT_TYPES_FOR_KIND).flatMap(([kind, types]) =>
@@ -82,8 +83,8 @@ export function BookingDocuments({
         { file, documentType },
       ]);
       onUploaded();
-    } catch {
-      setError('We could not upload that file. Please try again.');
+    } catch (err) {
+      setError(extractApiErrorMessage(err, 'We could not upload that file. Please try again.'));
     } finally {
       setUploading(false);
       if (inputRef.current) inputRef.current.value = '';

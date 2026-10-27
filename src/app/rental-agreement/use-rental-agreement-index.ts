@@ -13,7 +13,7 @@ import {
 import { useBookingDetails } from '@/hooks/useBooking';
 import { submitBookingSignature, toAgreementExtras, type AgreementData } from '@/services/agreementServices';
 import { setBookingToken } from '@/utils/booking-token';
-import { milesLabel, overageLabel } from '@/lib/agreement-format';
+import { agreementInvoice, milesLabel, overageLabel } from '@/lib/agreement-format';
 
 /** All /rental-agreement (index, no id) data, state, and handlers —
  *  shared verbatim by both templates. Mechanical extraction of what
@@ -77,6 +77,7 @@ export function useRentalAgreementIndex() {
       status: 'pending',
       signedAt: null,
       signatureImage: null,
+      bookingReference: bookingData.bookingRef,
       company: {
         name: companySettings?.name || 'N/A',
         address: companySettings?.address || 'N/A',
@@ -137,29 +138,7 @@ export function useRentalAgreementIndex() {
         minDriverAge: bookingData.vehicle.minDriverAge ?? null,
         maxDriverAge: bookingData.vehicle.maxDriverAge ?? null,
       },
-      invoice: {
-        rentalTotal:
-          bookingData.invoice.items[0]?.unit === 'hour'
-            ? `$${bookingData.invoice.rentalTotal.toFixed(2)} (${bookingData.invoice.items[0].quantity} hrs × $${bookingData.invoice.items[0].pricePerDay.toFixed(2)}/hr)`
-            : `$${bookingData.invoice.rentalTotal.toFixed(2)}`,
-        fees: bookingData.invoice.fees > 0 ? `$${bookingData.invoice.fees.toFixed(2)}` : undefined,
-        discount:
-          bookingData.invoice.discount > 0 ? `-$${bookingData.invoice.discount.toFixed(2)}` : undefined,
-        insurance: bookingData.insuranceCoverage
-          ? `$${bookingData.insuranceCoverage.premiumAmount.toFixed(2)} (${[
-              bookingData.insuranceCoverage.cdw && 'CDW',
-              bookingData.insuranceCoverage.rcli && 'RCLI',
-              bookingData.insuranceCoverage.sli && 'SLI',
-              bookingData.insuranceCoverage.pai && 'PAI',
-            ]
-              .filter(Boolean)
-              .join(', ')})`
-          : undefined,
-        tax: bookingData.invoice.tax > 0 ? `$${bookingData.invoice.tax.toFixed(2)}` : undefined,
-        total: `$${bookingData.invoice.total.toFixed(2)}`,
-        deposit:
-          bookingData.invoice.deposit > 0 ? `$${bookingData.invoice.deposit.toFixed(2)}` : undefined,
-      },
+      invoice: agreementInvoice(bookingData),
       clauses: agreementTemplate?.clauses || [],
       template: {
         title: agreementTemplate?.title || 'Vehicle Rental Agreement',

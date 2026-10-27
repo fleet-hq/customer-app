@@ -16,7 +16,7 @@ import {
   type AgreementData,
 } from '@/services/agreementServices';
 import { useTenant } from '@/lib/tenant-context';
-import { milesLabel, overageLabel } from '@/lib/agreement-format';
+import { agreementInvoice, milesLabel, overageLabel } from '@/lib/agreement-format';
 import type { BookingDetails } from '@/services/bookingServices';
 import { useRenterRental } from '@/hooks/useRentalSiteConfig';
 
@@ -55,6 +55,7 @@ export function useAgreementDocument(
       signedAt: apiAgreement?.signedAt ?? null,
       signatureImage: apiAgreement?.signatureImage ?? null,
       timezone: bookingData.timezone ?? null,
+      bookingReference: bookingData.bookingRef,
       company: {
         name: company?.name || tenant.name,
         address: company?.address || 'N/A',
@@ -118,15 +119,7 @@ export function useAgreementDocument(
       // current one, so the renter sees it in the document they sign.
       cardOnFile:
         signedSnapshot?.cardOnFile ?? mapCardOnFile(bookingData.cardOnFile),
-      invoice: signedSnapshot?.invoice ?? {
-        rentalTotal: `$${bookingData.invoice.rentalTotal.toFixed(2)}`,
-        fees: bookingData.invoice.fees > 0 ? `$${bookingData.invoice.fees.toFixed(2)}` : undefined,
-        discount: bookingData.invoice.discount > 0 ? `-$${bookingData.invoice.discount.toFixed(2)}` : undefined,
-        insurance: ins ? `$${ins.premiumAmount.toFixed(2)}` : undefined,
-        tax: bookingData.invoice.tax > 0 ? `$${bookingData.invoice.tax.toFixed(2)}` : undefined,
-        total: `$${bookingData.invoice.total.toFixed(2)}`,
-        deposit: bookingData.invoice.deposit > 0 ? `$${bookingData.invoice.deposit.toFixed(2)}` : undefined,
-      },
+      invoice: signedSnapshot?.invoice ?? agreementInvoice(bookingData),
       extras: signedSnapshot
         ? signedSnapshot.extras
         : toAgreementExtras(bookingData.availableExtras ?? []),
@@ -144,7 +137,9 @@ export function useAgreementDocument(
           : null,
       template: {
         title: template?.title || 'Vehicle Rental Agreement',
-        description: template?.description || 'Please review and sign this rental agreement before pickup.',
+        description: apiAgreement?.signatureImage
+          ? 'You signed this agreement. A copy is kept with your booking.'
+          : template?.description || 'Please review and sign this rental agreement before pickup.',
       },
     };
   }, [isBound, bookingData, apiAgreement, bookingDrivers, company, template, tenant.name, bonzahAddendum, rental]);
