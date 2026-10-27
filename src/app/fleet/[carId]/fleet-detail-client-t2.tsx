@@ -181,8 +181,8 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
             <p className={styles.detailPlate}><Dyn>Plate</Dyn> {vehicle.licensePlate}</p>
           </div>
           <div className={styles.detailRate}>
-            <b>{money(vehicle.pricePerDay)}</b>
-            <span><Dyn>per day</Dyn></span>
+            <b>{money(rates.headline.price)}</b>
+            <span><Dyn>{`per ${rates.headline.per}`}</Dyn></span>
             {rates.extras ? <span>{rates.extras}</span> : null}
             {rates.weekly ? <span><Dyn>{rates.weekly.label}</Dyn></span> : null}
           </div>
@@ -240,7 +240,7 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
                 { label: 'Transmission', value: vehicle.transmission },
                 { label: 'Fuel', value: vehicle.fuelType },
                 { label: 'Year', value: vehicle.year ? String(vehicle.year) : '' },
-                { label: 'Mileage', value: vehicle.milesPerDay ? `${vehicle.milesPerDay} mi/day` : 'Unlimited' },
+                { label: 'Mileage', value: rates.mileage },
               ]
                 .filter((s) => s.value)
                 .map(({ label, value }) => (

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Dyn } from '@/components/i18n/Dyn';
 import { cn, money } from '@/lib/utils';
 import { useIsT2 } from '@/lib/use-is-t2';
+import { planMileage } from '@/lib/rate-card';
 import type { RentalTab } from '@/lib/rental-tabs';
 import type { PublicPlan, RentalModel } from '@/services/rentalServices';
 
@@ -77,7 +78,7 @@ export function RentalModelBar({ state }: { state: RentalTabsState }) {
 function planTerms(plan: PublicPlan): string[] {
   return [
     `${money(Number(plan.weekly_price))}/week`,
-    plan.miles_per_week ? `${plan.miles_per_week.toLocaleString()} miles/week` : 'Unlimited miles',
+    planMileage(plan),
     plan.min_term_weeks ? `Minimum ${plan.min_term_weeks} weeks` : null,
     Number(plan.setup_fee) > 0 ? `${money(Number(plan.setup_fee))} setup fee` : null,
   ].filter((term): term is string => !!term);

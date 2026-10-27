@@ -8,6 +8,8 @@ import { trackVehicleSelect } from '@/lib/tracking-events';
 import { money } from '@/lib/utils';
 import type { Vehicle } from '@/types/vehicle';
 import { useRateCard } from '@/hooks/useRentalSiteConfig';
+import { cardPricing } from '@/lib/card-pricing';
+import type { RateView } from '@/lib/rate-card';
 
 interface CarCardT3Props {
   vehicle: Vehicle;
@@ -20,6 +22,7 @@ interface CarCardT3Props {
   /** Trip total, shown by the listing in place of the per-day rate. */
   totalPrice?: number;
   days?: number;
+  view?: RateView;
 }
 
 /** The raw template's card: photo panel with an availability tag, then
@@ -35,11 +38,12 @@ export function CarCardT3({
   variant = 'reserve',
   totalPrice,
   days,
+  view,
 }: CarCardT3Props) {
   const checkoutPath = paths.checkout(vehicle.slug || vehicle.id);
   const href = bookingQuery ? `${checkoutPath}?${bookingQuery}` : checkoutPath;
-  const perDay = Number(vehicle.pricePerDay) || 0;
-  const card = useRateCard(vehicle);
+  const card = useRateCard(vehicle, view);
+  const pricing = cardPricing(vehicle, card);
 
   const specs = [
     vehicle.seats ? `${vehicle.seats} seats` : '',
@@ -82,22 +86,22 @@ export function CarCardT3({
           </div>
         ) : null}
         <div className="ft">
-          {variant === 'view' && totalPrice != null && totalPrice > 0 ? (
+          {variant === 'view' && pricing.mode !== 'weekly' && totalPrice != null && totalPrice > 0 ? (
             <div className="tot">
               <b>{money(totalPrice)}</b>
               <small>
                 <Dyn>total</Dyn>
                 {days ? ` · ${days} ` : ''}
                 {days ? <Dyn>{days === 1 ? 'day' : 'days'}</Dyn> : null}
-                {perDay > 0 ? ` · ${money(perDay)} / ` : ''}
-                {perDay > 0 ? <Dyn>day</Dyn> : null}
+                {pricing.unitPrice > 0 ? ` · ${money(pricing.unitPrice)} / ` : ''}
+                {pricing.unitPrice > 0 ? <Dyn>{pricing.unit}</Dyn> : null}
               </small>
             </div>
-          ) : perDay > 0 ? (
+          ) : pricing.unitPrice > 0 ? (
             <div className="price">
-              {money(perDay)}
+              {money(pricing.unitPrice)}
               <small>
-                <Dyn>/ day</Dyn>
+                <Dyn>{`/ ${pricing.unit}`}</Dyn>
               </small>
             </div>
           ) : (

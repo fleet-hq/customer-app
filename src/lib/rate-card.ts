@@ -1,6 +1,6 @@
 import { released } from '@/lib/release';
 import { money } from '@/lib/utils';
-import type { RentalSiteConfig } from '@/services/rentalServices';
+import type { PublicPlan, RentalModel, RentalSiteConfig } from '@/services/rentalServices';
 import type { Vehicle } from '@/types/vehicle';
 
 export interface WeeklyOffer {
@@ -14,11 +14,34 @@ export interface RateCard {
   hourFrom: number | null;
   extras: string | null;
   weekly: WeeklyOffer | null;
+  headline: { price: number; per: 'day' | 'week' };
+  mileage: string;
 }
 
-type RateVehicle = Pick<Vehicle, 'pricePerHour' | 'pricePerWeek' | 'weeklyScope' | 'offersGig'>;
+export interface RateView {
+  model: RentalModel;
+  plan?: PublicPlan | null;
+}
 
-export function rateCard(vehicle: RateVehicle, config: RentalSiteConfig): RateCard {
+const DAILY_VIEW: RateView = { model: 'daily' };
+
+type RateVehicle = Pick<Vehicle, 'pricePerDay' | 'pricePerHour' | 'pricePerWeek' | 'weeklyScope' | 'offersGig' | 'milesPerDay'>;
+
+export function planMileage(plan: Pick<PublicPlan, 'miles_per_week'>): string {
+  return plan.miles_per_week ? `${plan.miles_per_week.toLocaleString()} miles/week` : 'Unlimited miles';
+}
+
+function vehicleMileage(vehicle: RateVehicle): string {
+  return vehicle.milesPerDay ? `${vehicle.milesPerDay} mi/day` : 'Unlimited';
+}
+
+export function rateCard(vehicle: RateVehicle, config: RentalSiteConfig, view: RateView = DAILY_VIEW): RateCard {
+  if (view.model === 'subscription' && view.plan) {
+    return { week: null, hourFrom: null, extras: null, weekly: null, headline: { price: Number(view.plan.weekly_price), per: 'week' }, mileage: planMileage(view.plan) };
+  }
+  if (view.model === 'gig' && vehicle.pricePerWeek > 0) {
+    return { week: null, hourFrom: null, extras: null, weekly: null, headline: { price: vehicle.pricePerWeek, per: 'week' }, mileage: vehicleMileage(vehicle) };
+  }
   const ongoingOnly = vehicle.weeklyScope === 'ongoing';
   const weeklyBookable = !ongoingOnly || (config.models.includes('gig') && vehicle.offersGig);
   const week = released('weeklyRates') && vehicle.pricePerWeek > 0 && weeklyBookable ? vehicle.pricePerWeek : null;
@@ -37,5 +60,7 @@ export function rateCard(vehicle: RateVehicle, config: RentalSiteConfig): RateCa
           label: ongoingOnly && !config.website_ongoing ? 'Weekly rentals — call or message us' : 'Book weekly',
         }
       : null,
+    headline: { price: Number(vehicle.pricePerDay) || 0, per: 'day' },
+    mileage: vehicleMileage(vehicle),
   };
 }

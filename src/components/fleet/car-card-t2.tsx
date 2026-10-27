@@ -9,6 +9,8 @@ import { Dyn } from '@/components/i18n/Dyn';
 import { trackVehicleSelect } from '@/lib/tracking-events';
 import styles from '@/styles/template-2.module.css';
 import { useRateCard } from '@/hooks/useRentalSiteConfig';
+import { cardPricing } from '@/lib/card-pricing';
+import type { RateView } from '@/lib/rate-card';
 
 interface CarCardT2Props {
   vehicle: Vehicle;
@@ -17,38 +19,15 @@ interface CarCardT2Props {
   hours?: number;
   discountPct?: number;
   unavailable?: boolean;
+  view?: RateView;
 }
 
-const HOURLY_MAX_HOURS = 23;
-
-export function CarCardT2({ vehicle, bookingQuery, hours, discountPct, unavailable }: CarCardT2Props) {
+export function CarCardT2({ vehicle, bookingQuery, hours, discountPct, unavailable, view }: CarCardT2Props) {
   const checkoutPath = paths.checkout(vehicle.slug || vehicle.id);
   const href = bookingQuery ? `${checkoutPath}?${bookingQuery}` : checkoutPath;
 
-  const perDay = Number(vehicle.pricePerDay) || 0;
-  const perHour = Number(vehicle.pricePerHour) || 0;
-  const card = useRateCard(vehicle);
-
-  let mode: 'idle' | 'hourly' | 'daily' = 'idle';
-  let unitLabel = '/day';
-  let baseUnitPrice = perDay;
-
-  if (hours && hours > 0) {
-    if (hours <= HOURLY_MAX_HOURS && perHour > 0) {
-      mode = 'hourly';
-      unitLabel = '/hr';
-      baseUnitPrice = perHour;
-    } else {
-      mode = 'daily';
-      unitLabel = '/day';
-      baseUnitPrice = perDay;
-    }
-  }
-
-  const pct = Number(discountPct) || 0;
-  const hasDiscount = pct > 0 && pct < 100;
-  const unitPrice = hasDiscount ? baseUnitPrice * (1 - pct / 100) : baseUnitPrice;
-  const displayLabel = mode === 'idle' ? '/day' : unitLabel;
+  const card = useRateCard(vehicle, view);
+  const pricing = cardPricing(vehicle, card, hours, discountPct);
 
   return (
     <Link
@@ -69,8 +48,8 @@ export function CarCardT2({ vehicle, bookingQuery, hours, discountPct, unavailab
           <span className={styles.carTag}>
             <Dyn>Unavailable</Dyn>
           </span>
-        ) : hasDiscount ? (
-          <span className={styles.carTag}>{Math.round(pct)}% OFF</span>
+        ) : pricing.discounted ? (
+          <span className={styles.carTag}>{Math.round(Number(discountPct))}% OFF</span>
         ) : card.weekly?.badge ? (
           <span className={styles.carTag}>
             <Dyn>{card.weekly.badge}</Dyn>
@@ -97,9 +76,9 @@ export function CarCardT2({ vehicle, bookingQuery, hours, discountPct, unavailab
         ) : null}
         <div className={styles.carFoot}>
           <span className={styles.carPrice}>
-            {hasDiscount ? <s>{money(baseUnitPrice)}</s> : null}
-            <b>{money(unitPrice)}</b>
-            <span>{displayLabel}</span>
+            {pricing.discounted ? <s>{money(pricing.basePrice)}</s> : null}
+            <b>{money(pricing.unitPrice)}</b>
+            <span>{`/${pricing.unit}`}</span>
           </span>
           <span className={styles.carReserve}>
             <Dyn>{unavailable ? 'Unavailable' : 'Reserve'}</Dyn>

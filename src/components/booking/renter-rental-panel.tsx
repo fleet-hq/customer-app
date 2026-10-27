@@ -52,7 +52,8 @@ function renewalLine(rental: RenterRental): string | null {
   if (renewal.state !== 'scheduled' || !renewal.at) return null;
   const amount = renewal.amount ?? rental.recurring_amount;
   const verb = rental.collection_method === 'automatic' ? "We'll charge" : 'Next payment';
-  return `${verb} ${amount ? money(Number(amount)) : ''} on ${dayLabel(renewal.at)}`.replace('  ', ' ');
+  const line = `${verb} ${amount ? money(Number(amount)) : ''} on ${dayLabel(renewal.at)}`.replace('  ', ' ');
+  return renewal.after_notice ? `${line}, only if the car hasn't been returned by then` : line;
 }
 
 export function RenterRentalPanel({

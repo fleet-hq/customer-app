@@ -13,7 +13,7 @@ import {
 } from '@/services/rentalServices';
 import { useDebounce } from './use-debounce';
 import { useTenant } from '@/lib/tenant-context';
-import { rateCard, type RateCard } from '@/lib/rate-card';
+import { rateCard, type RateCard, type RateView } from '@/lib/rate-card';
 import { released } from '@/lib/release';
 
 export function useRentalSiteConfig(): RentalSiteConfig & { ready: boolean } {
@@ -33,8 +33,8 @@ export function useRentalSiteConfig(): RentalSiteConfig & { ready: boolean } {
   };
 }
 
-export function useRateCard(vehicle: Parameters<typeof rateCard>[0]): RateCard {
-  return rateCard(vehicle, useRentalSiteConfig());
+export function useRateCard(vehicle: Parameters<typeof rateCard>[0], view?: RateView): RateCard {
+  return rateCard(vehicle, useRentalSiteConfig(), view);
 }
 
 export function useOngoingQuote(payload: OngoingQuotePayload | null) {

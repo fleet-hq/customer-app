@@ -38,6 +38,7 @@ export default function FleetClientT3() {
     vehicles,
     bookingQuery,
     selectedHours,
+    rateView,
     unavailableIds,
     filters,
     setFilters,
@@ -237,6 +238,7 @@ export default function FleetClientT3() {
                   variant="view"
                   totalPrice={days > 0 ? Number(vehicle.pricePerDay) * days : undefined}
                   days={days}
+                  view={rateView}
                 />
               ))}
             </div>

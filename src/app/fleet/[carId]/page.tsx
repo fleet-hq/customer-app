@@ -238,8 +238,8 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-[19px] font-bold text-secondary">{money(vehicle.pricePerDay)}</div>
-                <div className="text-[11px] text-muted"><Dyn>per day</Dyn></div>
+                <div className="text-[19px] font-bold text-secondary">{money(rates.headline.price)}</div>
+                <div className="text-[11px] text-muted"><Dyn>{`per ${rates.headline.per}`}</Dyn></div>
                 {rates.extras && <div className="mt-[4px] text-[11.5px] text-muted">{rates.extras}</div>}
                 {rates.weekly && (
                   <div className="mt-[2px] text-[11.5px] font-semibold text-primary"><Dyn>{rates.weekly.label}</Dyn></div>
@@ -296,7 +296,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                 { key: 'transmission', label: 'Transmission', value: vehicle.transmission },
                 { key: 'fuel', label: 'Fuel', value: vehicle.fuelType },
                 { key: 'year', label: 'Year', value: vehicle.year ? String(vehicle.year) : '' },
-                { key: 'mileage', label: 'Mileage', value: vehicle.milesPerDay ? `${vehicle.milesPerDay} mi/day` : 'Unlimited' },
+                { key: 'mileage', label: 'Mileage', value: rates.mileage },
               ]
                 .filter((s) => s.value)
                 .map(({ key, label, value }) => (

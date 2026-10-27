@@ -37,6 +37,7 @@ export default function FleetClient() {
     clientFilterCount,
     bookingQuery,
     selectedHours,
+    rateView,
     unavailableIds,
     hasAvailabilityWindow,
     totalPages,
@@ -152,6 +153,7 @@ export default function FleetClient() {
                         bookingQuery={bookingQuery}
                         hours={selectedHours}
                         discountPct={discountPct}
+                        view={rateView}
                       />
                     </div>
                     {unavailable ? (

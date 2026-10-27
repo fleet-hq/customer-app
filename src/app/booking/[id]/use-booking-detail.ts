@@ -438,6 +438,7 @@ export function useBookingDetail(id: string) {
     requireId,
     requireInsurance,
     showInsuranceStep,
+    requiredDocuments: rental?.required_documents,
     allRequiredChecksDone,
     consentChecksDone,
     needsAgreement,

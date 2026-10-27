@@ -116,7 +116,7 @@ export interface RenterRental {
   renew_weekday_name: string | null;
   billing_state: string;
   collection_method: string;
-  next_renewal: { state: string; at?: string; amount?: string | null };
+  next_renewal: { state: string; at?: string; amount?: string | null; after_notice?: boolean };
   recurring_amount: string | null;
   periods: RenterPeriod[];
   card_on_file: { label: string } | null;

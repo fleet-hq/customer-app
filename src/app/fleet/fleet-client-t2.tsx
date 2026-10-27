@@ -26,6 +26,7 @@ export default function FleetClientT2() {
     vehicles,
     bookingQuery,
     selectedHours,
+    rateView,
     unavailableIds,
     filters,
     setFilters,
@@ -148,6 +149,7 @@ export default function FleetClientT2() {
                   hours={selectedHours}
                   discountPct={applicableDiscountPct(v.discounts, selectedHours)}
                   unavailable={unavailableIds.has(v.id) || isAvailabilityLoading}
+                  view={rateView}
                 />
               ))}
             </div>

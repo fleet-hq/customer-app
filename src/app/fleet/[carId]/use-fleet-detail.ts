@@ -1088,7 +1088,7 @@ export function useFleetDetail(carId: string) {
 
   return {
     status: 'ready' as const,
-    rates: rateCard(vehicle, rentalConfig),
+    rates: rateCard(vehicle, rentalConfig, weeklyOn && ongoingModel ? { model: ongoingModel, plan: rentalConfig.plans.find((plan) => plan.id === planId) } : undefined),
     ...common,
     vehicle,
     plans,

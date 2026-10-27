@@ -12,7 +12,7 @@ import { activeTier } from '@/lib/discount-tiers';
 import { useDynamicTranslation } from '@/hooks/useDynamicTranslation';
 import { trackFleetList } from '@/lib/tracking-events';
 import { useRentalSiteConfig } from '@/hooks/useRentalSiteConfig';
-import { rateCard } from '@/lib/rate-card';
+import { rateCard, type RateView } from '@/lib/rate-card';
 import { RENTAL_TABS, modelForPath } from '@/lib/rental-tabs';
 
 export const SORTS = ['Recommended', 'Price: low to high', 'Price: high to low'] as const;
@@ -104,6 +104,7 @@ export function useFleetListing() {
   const planId = activeModel === 'subscription' ? Number(searchParams.get('plan')) || null : null;
   const selectedPlan = rentalConfig.plans.find((plan) => plan.id === planId) ?? null;
   const showPlans = activeModel === 'subscription' && !selectedPlan && !modelOff;
+  const rateView: RateView | undefined = activeModel === 'daily' ? undefined : { model: activeModel, plan: selectedPlan };
   const modelFilter =
     tabs.length > 1 && !modelOff
       ? { rental_model: activeModel, ...(selectedPlan ? { subscription_plan: selectedPlan.id } : {}) }
@@ -273,6 +274,7 @@ export function useFleetListing() {
     clientFilterCount,
     bookingQuery,
     selectedHours,
+    rateView,
     unavailableIds,
     /** Availability is only resolved for a chosen pickup/drop-off window.
      *  Without one, nothing is known about a vehicle, so a card must not

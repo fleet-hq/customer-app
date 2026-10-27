@@ -150,7 +150,7 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
     ['Transmission', vehicle.transmission],
     ['Fuel', vehicle.fuelType],
     ['Year', vehicle.year ? String(vehicle.year) : ''],
-    ['Mileage', vehicle.milesPerDay ? `${vehicle.milesPerDay} mi/day` : 'Unlimited'],
+    ['Mileage', rates.mileage],
     ['Type', vehicle.vehicleType],
   ];
 
@@ -222,9 +222,9 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
                 </div>
               </div>
               <div className="pr">
-                <b>{money(Number(vehicle.pricePerDay) || 0)}</b>
+                <b>{money(rates.headline.price)}</b>
                 <span>
-                  <Dyn>per day</Dyn>
+                  <Dyn>{`per ${rates.headline.per}`}</Dyn>
                 </span>
                 {rates.extras ? <span>{rates.extras}</span> : null}
                 {rates.weekly ? (

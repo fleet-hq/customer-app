@@ -7,6 +7,8 @@ import type { Vehicle } from '@/types/vehicle';
 import { Dyn } from '@/components/i18n/Dyn';
 import { trackVehicleSelect } from '@/lib/tracking-events';
 import { useRateCard } from '@/hooks/useRentalSiteConfig';
+import { cardPricing } from '@/lib/card-pricing';
+import type { RateView } from '@/lib/rate-card';
 
 interface CarCardProps {
   vehicle: Vehicle;
@@ -23,56 +25,19 @@ interface CarCardProps {
    *  as the headline. Parent is responsible for picking the applicable
    *  tier — this matches the backend's per-booking logic. */
   discountPct?: number;
+  view?: RateView;
 }
 
-const HOURLY_MAX_HOURS = 23;
-
-export function CarCard({ vehicle, badge, oldPrice, bookingQuery, hours, discountPct }: CarCardProps) {
+export function CarCard({ vehicle, badge, oldPrice, bookingQuery, hours, discountPct, view }: CarCardProps) {
   const checkoutPath = paths.checkout(vehicle.slug);
   const href = bookingQuery ? `${checkoutPath}?${bookingQuery}` : checkoutPath;
 
-  const perDay = Number(vehicle.pricePerDay) || 0;
-  const perHour = Number(vehicle.pricePerHour) || 0;
-  const card = useRateCard(vehicle);
+  const card = useRateCard(vehicle, view);
   const tag = badge ?? card.weekly?.badge ?? null;
-
-  let mode: 'idle' | 'hourly' | 'daily' = 'idle';
-  let unitLabel = '/day';
-  let baseUnitPrice = perDay;
-  let unitsCount = 0;
-
-  if (hours && hours > 0) {
-    if (hours <= HOURLY_MAX_HOURS && perHour > 0) {
-      mode = 'hourly';
-      unitLabel = '/hr';
-      baseUnitPrice = perHour;
-      unitsCount = Math.max(1, Math.ceil(hours));
-    } else {
-      mode = 'daily';
-      unitLabel = '/day';
-      baseUnitPrice = perDay;
-      unitsCount = Math.max(1, Math.ceil(hours / 24));
-    }
-  }
-
-  const pct = Number(discountPct) || 0;
-  const hasDiscount = mode !== 'idle' && pct > 0 && pct < 100;
-  const unitPrice = hasDiscount ? baseUnitPrice * (1 - pct / 100) : baseUnitPrice;
-  const totalForRange = unitPrice * unitsCount;
-  const strikeUnitPrice = hasDiscount
-    ? baseUnitPrice
-    : oldPrice != null
-    ? oldPrice
-    : null;
-
-  const unitNoun =
-    mode === 'hourly'
-      ? unitsCount === 1
-        ? 'hr'
-        : 'hrs'
-      : unitsCount === 1
-      ? 'day'
-      : 'days';
+  const pricing = cardPricing(vehicle, card, hours, discountPct);
+  const ranged = pricing.mode === 'hourly' || pricing.mode === 'daily';
+  const strikeUnitPrice = pricing.discounted ? pricing.basePrice : oldPrice ?? null;
+  const unitNoun = `${pricing.unit}${pricing.units === 1 ? '' : 's'}`;
 
   return (
     <Link
@@ -131,16 +96,16 @@ export function CarCard({ vehicle, badge, oldPrice, bookingQuery, hours, discoun
         <div className="mt-auto pt-[12px]">
           <div className="h-px w-full bg-card-border" />
 
-          {mode !== 'idle' ? (
+          {ranged ? (
             <div className="pt-[12px]">
               <div className="text-[12px] text-muted">
-                <span className="text-[16px] font-bold text-secondary">{money(totalForRange)}</span>{' '}
-                <Dyn>total</Dyn> · {unitsCount} {unitNoun}
+                <span className="text-[16px] font-bold text-secondary">{money(pricing.total)}</span>{' '}
+                <Dyn>total</Dyn> · {pricing.units} {unitNoun}
               </div>
               <div className="mt-[6px] flex items-baseline justify-between gap-[6px]">
                 <div className="flex items-baseline gap-[6px]">
-                  <span className="text-[15px] font-semibold text-secondary">{money(unitPrice)}</span>
-                  <span className="text-[11.5px] text-faint"><Dyn>{unitLabel}</Dyn></span>
+                  <span className="text-[15px] font-semibold text-secondary">{money(pricing.unitPrice)}</span>
+                  <span className="text-[11.5px] text-faint"><Dyn>{`/${pricing.unit}`}</Dyn></span>
                   {strikeUnitPrice != null && (
                     <span className="text-[12px] text-faint line-through">{money(strikeUnitPrice)}</span>
                   )}
@@ -151,8 +116,8 @@ export function CarCard({ vehicle, badge, oldPrice, bookingQuery, hours, discoun
           ) : (
             <div className="flex items-baseline justify-between gap-[6px] pt-[12px]">
               <div className="flex items-baseline gap-[6px]">
-                <span className="text-[18px] font-bold text-secondary">{money(perDay)}</span>
-                <span className="text-[11.5px] text-faint"><Dyn>/day</Dyn></span>
+                <span className="text-[18px] font-bold text-secondary">{money(pricing.unitPrice)}</span>
+                <span className="text-[11.5px] text-faint"><Dyn>{`/${pricing.unit}`}</Dyn></span>
                 {oldPrice != null && (
                   <span className="text-[12px] text-faint line-through">{money(oldPrice)}</span>
                 )}

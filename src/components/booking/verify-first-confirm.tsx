@@ -9,7 +9,6 @@ import { BookingDocuments } from './booking-documents';
 import { PaymentHistory, PaymentLinkCard } from './booking-payment';
 import { SecondaryButton } from './secondary-button';
 import { useBookingPayment } from '@/hooks/use-booking-payment';
-import { useRenterRental } from '@/hooks/useRentalSiteConfig';
 import { useIsT2 } from '@/lib/use-is-t2';
 import { insuranceCoverageLines } from '@/lib/insurance-lines';
 import { paths } from '@/lib/paths';
@@ -129,6 +128,7 @@ interface Props {
   /** Documents the renter has uploaded. Kept apart from verification —
    *  see BookingDocuments. */
   documentSubmissions: ManualVerificationSubmission[];
+  requiredDocuments?: string[];
   onDocumentUploaded: () => void;
 }
 
@@ -140,6 +140,7 @@ export function VerifyFirstConfirm(props: Props) {
     mode,
     isReserved,
     documentSubmissions,
+    requiredDocuments,
     onDocumentUploaded,
     outstanding,
     charges,
@@ -187,7 +188,6 @@ export function VerifyFirstConfirm(props: Props) {
     postTripPhotos,
     canUploadPhotos,
   } = props;
-  const { data: rental } = useRenterRental(bookingId, booking.rentalModel !== 'daily');
   const paymentLink = useBookingPayment(bookingId, true);
 
   // Staff asked for a card, so the emailed link has to land on something
@@ -211,6 +211,8 @@ export function VerifyFirstConfirm(props: Props) {
 
   const requiredCount =
     (requireId ? 1 : 0) + (requireInsurance ? 1 : 0);
+  const checksLabel = verificationTaskLabel(requireId, requireInsurance, 'ID and insurance verification');
+  const requiredChecksLabel = checksLabel.charAt(0).toUpperCase() + checksLabel.slice(1);
   const doneCount =
     (requireId && idVerified ? 1 : 0) + (requireInsurance && insuranceVerified ? 1 : 0);
 
@@ -383,7 +385,7 @@ export function VerifyFirstConfirm(props: Props) {
                           : 'This step must be verified before you can pay and confirm.'
                         : doneCount === requiredCount
                           ? "You're fully verified for this rental."
-                          : `${verificationScopeLabel(requireId, requireInsurance)} for this rental.`}</Dyn>
+                          : `${requiredChecksLabel} for this rental.`}</Dyn>
                     </p>
                   </div>
                   <p
@@ -465,7 +467,7 @@ export function VerifyFirstConfirm(props: Props) {
             <BookingDocuments
               submissions={documentSubmissions}
               onUploaded={onDocumentUploaded}
-              requiredDocuments={rental?.required_documents}
+              requiredDocuments={requiredDocuments}
             />
 
 
@@ -826,13 +828,8 @@ function getModeCopy(
   };
 }
 
-function verificationScopeLabel(requireId: boolean, requireInsurance: boolean): string {
-  if (requireId && requireInsurance) return 'ID and insurance verification';
-  return requireId ? 'ID verification' : 'Insurance verification';
-}
-
-function verificationTaskLabel(requireId: boolean, requireInsurance: boolean): string {
-  if (requireId && requireInsurance) return 'both verifications';
+function verificationTaskLabel(requireId: boolean, requireInsurance: boolean, both = 'both verifications'): string {
+  if (requireId && requireInsurance) return both;
   if (requireId) return 'ID verification';
   if (requireInsurance) return 'insurance verification';
   return '';
