@@ -53,6 +53,8 @@ export const PLACEHOLDER_IMAGE = '/images/vehicles/car_placeholder.svg';
 
 export type Fields = { firstName: string; lastName: string; email: string; phone: string; license: string };
 
+const EMAIL_PATTERN = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
 /** All fleet-detail/booking-checkout data, state, and handlers —
  *  shared verbatim by both templates' fleet detail pages so this
  *  revenue-critical logic lives in exactly one place. Templates differ
@@ -411,6 +413,7 @@ export function useFleetDetail(carId: string) {
   const [weeklyConsent, setWeeklyConsent] = useState(false);
   const planId = ongoingModel === 'subscription' ? vehicle?.subscriptionPlanId ?? null : null;
 
+  const renterEmail = EMAIL_PATTERN.test(fields.email.trim()) ? fields.email.trim() : undefined;
   const ongoingPayload = useMemo<OngoingQuotePayload | null>(() => {
     if (!ongoingModel || !quotePayload) return null;
     return {
@@ -420,8 +423,9 @@ export function useFleetDetail(carId: string) {
       pickup_datetime: quotePayload.pickup_datetime,
       pickup_location_id: quotePayload.pickup_location_id,
       extras: quotePayload.extras,
+      email: renterEmail,
     };
-  }, [ongoingModel, planId, quotePayload]);
+  }, [ongoingModel, planId, quotePayload, renterEmail]);
   const { quote: ongoingQuote, stale: ongoingStale } = useOngoingQuote(ongoingPayload);
   const futureBooked = !!ongoingQuote && !ongoingQuote.available && ongoingQuote.code === 'future_booking';
   const hideWeekly = futureBooked && dailyAllowed;
@@ -853,7 +857,7 @@ export function useFleetDetail(carId: string) {
     const f = fields;
     let msg = '';
     if (key === 'email') {
-      if (f.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.email)) msg = 'Please enter a valid email address.';
+      if (f.email && !EMAIL_PATTERN.test(f.email)) msg = 'Please enter a valid email address.';
     } else if (key === 'phone') {
       if (f.phone && f.phone.replace(/\D/g, '').length < 7) msg = 'Phone number must have at least 7 digits.';
     }
@@ -875,7 +879,7 @@ export function useFleetDetail(carId: string) {
     if (!f.firstName.trim()) e.firstName = 'First name is required';
     if (!f.lastName.trim()) e.lastName = 'Last name is required';
     if (!f.email) e.email = 'Email address is required';
-    else if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.email)) e.email = 'Enter a valid email address';
+    else if (!EMAIL_PATTERN.test(f.email)) e.email = 'Enter a valid email address';
     if (!f.phone) e.phone = 'Phone number is required';
     else if (f.phone.replace(/\D/g, '').length < 7) e.phone = 'Enter a valid phone number';
     return e;

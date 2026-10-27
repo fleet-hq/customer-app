@@ -45,6 +45,7 @@ export interface OngoingQuotePayload {
   pickup_datetime: string;
   pickup_location_id: number;
   extras?: { id: number; quantity: number }[];
+  email?: string;
 }
 
 export interface PeriodPrice {
