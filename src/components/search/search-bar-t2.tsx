@@ -1,6 +1,6 @@
 'use client';
 
-import { todayISO } from '@/lib/time-slots';
+import { useTenantToday } from '@/hooks/use-tenant-today';
 import { DateTimeField } from './date-time-field';
 import { Dyn } from '@/components/i18n/Dyn';
 import { MapPin, ChevronDown } from '@/components/ui/icons';
@@ -19,6 +19,7 @@ interface SearchBarT2Props {
  *  the template-1 card. All state and the submit/embed behaviour come
  *  from the shared useSearchBar hook, so both templates stay in step. */
 export function SearchBarT2({ variant = 'hero' }: SearchBarT2Props) {
+  const today = useTenantToday();
   const {
     rootRef,
     pickupLocations,
@@ -138,7 +139,7 @@ export function SearchBarT2({ variant = 'hero' }: SearchBarT2Props) {
               time={pickupTime}
               onDate={handlePickupDate}
               onTime={setPickupTime}
-              minDate={todayISO()}
+              minDate={today}
               minTime={minTime}
               maxTime={maxTime}
             />
@@ -155,7 +156,7 @@ export function SearchBarT2({ variant = 'hero' }: SearchBarT2Props) {
               time={returnTime}
               onDate={setReturnDate}
               onTime={setReturnTime}
-              minDate={pickupDate || todayISO()}
+              minDate={pickupDate || today}
               highlightDate={pickupDate}
             />
           </div>

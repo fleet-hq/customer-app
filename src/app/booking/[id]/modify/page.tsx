@@ -6,7 +6,7 @@ import { PageLoading } from '@/components/ui/page-loading';
 import { Field } from '@/components/ui/field';
 import { DateTimeField } from '@/components/search/date-time-field';
 import { Calendar, Info } from '@/components/ui/icons';
-import { todayISO } from '@/lib/time-slots';
+import { useTenantToday } from '@/hooks/use-tenant-today';
 import { paths } from '@/lib/paths';
 import { money } from '@/lib/utils';
 import { slotsBlockedOn } from '@/lib/unavailable-slots';
@@ -28,6 +28,7 @@ function Row({ label, value, muted, note }: { label: string; value: string; mute
 }
 
 export default function ModifyTripPage({ params }: { params: Promise<{ id: string }> }) {
+  const today = useTenantToday();
   const { id } = use(params);
   const tm = useTripModify(id);
 
@@ -116,7 +117,7 @@ export default function ModifyTripPage({ params }: { params: Promise<{ id: strin
                     time={pickupTime}
                     onDate={isOngoing ? () => {} : handlePickupDate}
                     onTime={isOngoing ? () => {} : setPickupTime}
-                    minDate={todayISO()}
+                    minDate={today}
                     unavailableDates={unavailableDates}
                     disabledSlots={slotsBlockedOn(unavailabilityIndex, pickupDate, 'pickup')}
                     label="Pick-up"
@@ -130,7 +131,7 @@ export default function ModifyTripPage({ params }: { params: Promise<{ id: strin
                     time={returnTime}
                     onDate={setReturnDate}
                     onTime={setReturnTime}
-                    minDate={pickupDate || todayISO()}
+                    minDate={pickupDate || today}
                     highlightDate={pickupDate}
                     unavailableDates={unavailableDates}
                     disabledSlots={slotsBlockedOn(unavailabilityIndex, returnDate, 'dropoff')}

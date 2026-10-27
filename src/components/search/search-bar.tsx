@@ -1,6 +1,6 @@
 'use client';
 
-import { todayISO } from '@/lib/time-slots';
+import { useTenantToday } from '@/hooks/use-tenant-today';
 import { cn } from '@/lib/utils';
 import { useSearchBar } from './use-search-bar';
 import { ArrowRight, Check, ChevronDown, MapPin, Search, Swap } from '@/components/ui/icons';
@@ -19,6 +19,7 @@ interface SearchBarProps {
 }
 
 export function SearchBar({ variant = 'hero', bareContainer = false }: SearchBarProps) {
+  const today = useTenantToday();
   const { t } = useDynamicTranslation(['Swap locations', "You've unlocked our best weekly rate."]);
   const {
     rootRef,
@@ -146,7 +147,7 @@ export function SearchBar({ variant = 'hero', bareContainer = false }: SearchBar
                 onTime={setPickupTime}
                 minTime={minTime}
                 maxTime={maxTime}
-                minDate={todayISO()}
+                minDate={today}
                 label="Pick-up"
                 compact
               />
@@ -161,7 +162,7 @@ export function SearchBar({ variant = 'hero', bareContainer = false }: SearchBar
                 onTime={setReturnTime}
                 minTime={minTime}
                 maxTime={maxTime}
-                minDate={pickupDate || todayISO()}
+                minDate={pickupDate || today}
                 highlightDate={pickupDate}
                 label="Return"
                 compact
@@ -241,7 +242,7 @@ export function SearchBar({ variant = 'hero', bareContainer = false }: SearchBar
               onTime={setPickupTime}
                 minTime={minTime}
                 maxTime={maxTime}
-              minDate={todayISO()}
+              minDate={today}
               label="Pick-up"
             />
           </div>
@@ -255,7 +256,7 @@ export function SearchBar({ variant = 'hero', bareContainer = false }: SearchBar
               onTime={setReturnTime}
                 minTime={minTime}
                 maxTime={maxTime}
-              minDate={pickupDate || todayISO()}
+              minDate={pickupDate || today}
               highlightDate={pickupDate}
               label="Return"
             />

@@ -6,6 +6,7 @@ import { useClickOutside } from '@/lib/use-click-outside';
 import { computeAnchoredPanelPosition } from '@/lib/anchored-position';
 import { useLocale } from '@/lib/i18n/locale-context';
 import { useTenant } from '@/lib/tenant-context';
+import { useTenantToday } from '@/hooks/use-tenant-today';
 
 export interface DatePickerProps {
   value: string;
@@ -59,7 +60,8 @@ export function DatePicker({
   const isT2 = useTenant().websiteTemplate !== 'template_1';
   const unavailableSet = useMemo(() => new Set(unavailableDates ?? []), [unavailableDates]);
   const [isOpen, setIsOpen] = useState(false);
-  const [viewDate, setViewDate] = useState<Date>(() => (value ? new Date(value + 'T00:00:00') : new Date()));
+  const todayIso = useTenantToday();
+  const [viewDate, setViewDate] = useState<Date>(() => new Date(`${value || todayIso}T00:00:00`));
   const [dropdownStyle, setDropdownStyle] = useState<CSSProperties>({ position: 'fixed' });
   const [originClass, setOriginClass] = useState('origin-top');
 
@@ -82,7 +84,7 @@ export function DatePicker({
   const close = useCallback(() => setIsOpen(false), []);
   useClickOutside(containerRef, close, isOpen);
 
-  const today = useMemo(() => new Date(), []);
+  const today = useMemo(() => new Date(`${todayIso}T00:00:00`), [todayIso]);
 
   const { year, month, leadingBlanks, days } = useMemo(() => {
     const y = viewDate.getFullYear();

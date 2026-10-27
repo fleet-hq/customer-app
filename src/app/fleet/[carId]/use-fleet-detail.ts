@@ -24,7 +24,6 @@ import { useDefaultLocation } from '@/contexts';
 import { checkFleetAvailability, checkoutBody, validatePromoCode } from '@/services/bookingServices';
 import type { InsuranceOption, QuotePayload } from '@/services/bookingServices';
 import { toUtcIso } from '@/utils/datetime';
-import { todayISO } from '@/lib/time-slots';
 import { rentalDays } from '@/lib/utils';
 import { buildUnavailabilityIndex, slotsBlockedOn, firstBlockInSpan } from '@/lib/unavailable-slots';
 import { formatInTimeZone } from 'date-fns-tz';
@@ -1178,7 +1177,6 @@ export function useFleetDetail(carId: string) {
     pricing,
     extraInvoiceItems,
     insuranceLabel,
-    todayISO,
     slotsBlockedOn,
   };
 }

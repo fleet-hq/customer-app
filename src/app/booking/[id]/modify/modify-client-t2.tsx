@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import { BackLink } from '@/components/ui/back-link';
 import { Field } from '@/components/ui/field';
 import { DateTimeField } from '@/components/search/date-time-field';
-import { todayISO } from '@/lib/time-slots';
+import { useTenantToday } from '@/hooks/use-tenant-today';
 import { paths } from '@/lib/paths';
 import { money } from '@/lib/utils';
 import { slotsBlockedOn } from '@/lib/unavailable-slots';
@@ -25,6 +25,7 @@ function T2Row({ label, value, muted, note }: { label: ReactNode; value: string;
 }
 
 export default function ModifyTripClientT2({ id }: { id: string }) {
+  const today = useTenantToday();
   const tm = useTripModify(id);
 
   if (tm.status === 'loading') {
@@ -98,7 +99,7 @@ export default function ModifyTripClientT2({ id }: { id: string }) {
                   time={pickupTime}
                   onDate={isOngoing ? () => {} : handlePickupDate}
                   onTime={isOngoing ? () => {} : setPickupTime}
-                  minDate={todayISO()}
+                  minDate={today}
                   unavailableDates={unavailableDates}
                   disabledSlots={slotsBlockedOn(unavailabilityIndex, pickupDate, 'pickup')}
                   label="Pick-up"
@@ -112,7 +113,7 @@ export default function ModifyTripClientT2({ id }: { id: string }) {
                   time={returnTime}
                   onDate={setReturnDate}
                   onTime={setReturnTime}
-                  minDate={pickupDate || todayISO()}
+                  minDate={pickupDate || today}
                   highlightDate={pickupDate}
                   unavailableDates={unavailableDates}
                   disabledSlots={slotsBlockedOn(unavailabilityIndex, returnDate, 'dropoff')}

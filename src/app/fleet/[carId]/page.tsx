@@ -16,7 +16,7 @@ import { EmbedPaymentPanel } from '@/components/checkout/embed-payment-panel';
 import ProtectionSection from '@/components/checkout/protection-section';
 import { RentalAgreementSignModal } from '@/components/booking/rental-agreement-sign-modal';
 import { toUtcIso } from '@/utils/datetime';
-import { todayISO } from '@/lib/time-slots';
+import { useTenantToday } from '@/hooks/use-tenant-today';
 import { cn, money } from '@/lib/utils';
 import { slotsBlockedOn, firstBlockInSpan } from '@/lib/unavailable-slots';
 import { formatInTimeZone } from 'date-fns-tz';
@@ -39,6 +39,7 @@ import { CardConsent } from '@/components/booking/card-consent';
 import { AgreementSignBar } from '@/components/booking/agreement-sign-bar';
 
 export default function Page({ params }: { params: Promise<{ carId: string }> }) {
+  const today = useTenantToday();
   const { carId } = use(params);
   // carId is the route param — either the vehicle's slug (normal case) or,
   // for older/manually-built links, its numeric id. The backend accepts
@@ -889,7 +890,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                     time={pickupTime}
                     onDate={handlePickupDate}
                     onTime={setPickupTime}
-                    minDate={todayISO()}
+                    minDate={today}
                     minTime={minTime}
                     maxTime={maxTime}
                     unavailableDates={unavailableDates}
@@ -906,7 +907,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                     time={returnTime}
                     onDate={setReturnDate}
                     onTime={setReturnTime}
-                    minDate={pickupDate || todayISO()}
+                    minDate={pickupDate || today}
                     minTime={dropoffMinTime}
                     maxTime={dropoffMaxTime}
                     highlightDate={pickupDate}
