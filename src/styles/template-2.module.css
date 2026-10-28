@@ -1171,6 +1171,10 @@
 .postBody :global(li) { margin-bottom: 0.5rem; }
 .postBody :global(a) { color: var(--brass); text-decoration: underline; }
 .postBody :global(img) { border-radius: var(--skin-radius, 3px); margin-block: 1.5rem; max-width: 100%; height: auto; }
+.postBody :global(table) { display: block; width: 100%; overflow-x: auto; border-collapse: collapse; margin: 0 0 1.5rem; border: 1px solid var(--line); font-size: 0.92rem; line-height: 1.55; }
+.postBody :global(th), .postBody :global(td) { min-width: 9rem; padding: 0.7rem 0.9rem; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+.postBody :global(th) { font-weight: 600; background: var(--paper); }
+.postBody :global(tr:last-child td) { border-bottom: none; }
 
 /* ---------- BOOKING LIFECYCLE — LEDGER / BALANCE PAGES ---------- */
 .pageTop { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1rem; }

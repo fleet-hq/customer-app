@@ -1,6 +1,7 @@
 import { headers } from 'next/headers';
 
 import { getCurrentTenant } from '@/lib/get-tenant';
+import { getTenantBlogs } from '@/lib/get-blogs';
 import { paths } from '@/lib/paths';
 
 export const dynamic = 'force-dynamic';
@@ -66,6 +67,16 @@ export async function GET() {
     lines.push('## Common questions', '');
     for (const item of faqs) {
       if (item.question && item.answer) lines.push(`- ${item.question} ${item.answer}`);
+    }
+    lines.push('');
+  }
+
+  const posts = await getTenantBlogs();
+  if (posts.length) {
+    lines.push('## Optional', '');
+    for (const post of posts) {
+      const blurb = post.excerpt;
+      lines.push(`- [${post.title}](${origin}${paths.blogPost(post.slug)})${blurb ? `: ${blurb}` : ''}`);
     }
     lines.push('');
   }

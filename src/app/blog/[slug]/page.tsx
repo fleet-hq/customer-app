@@ -63,11 +63,19 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
     template_2: BlogPostT2,
     template_3: BlogPostT2,
   });
-  if (Editorial) return <Editorial tenant={tenant} post={post} more={more} />;
+  const schema = <JsonLd data={articleSchema(tenant, post, `/blog/${slug}`)} />;
+  if (Editorial) {
+    return (
+      <>
+        {schema}
+        <Editorial tenant={tenant} post={post} more={more} />
+      </>
+    );
+  }
 
   return (
     <div className="bg-white text-ink">
-      <JsonLd data={articleSchema(tenant, post, `/blog/${slug}`)} />
+      {schema}
       <section className="relative overflow-hidden border-b border-hairline bg-subtle">
         <div
           className="pointer-events-none absolute inset-0 opacity-60"
@@ -85,6 +93,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                 {post.category}
               </span>
             ) : null}
+            {post.authorName ? <span className="text-faint">By {post.authorName}</span> : null}
             {date ? <span className="text-faint">{date}</span> : null}
             {post.readMinutes ? (
               <span className="inline-flex items-center gap-[5px] text-faint">

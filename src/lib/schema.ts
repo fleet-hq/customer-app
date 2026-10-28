@@ -6,6 +6,7 @@ import type {
   ServicesBlock,
 } from '@/services/companyContentServices';
 import type { Tenant } from './tenant';
+import { BLOG_TRAIL, blogFaqs } from './blog';
 import { absoluteUrl, siteOrigin } from './seo';
 
 type Node = Record<string, unknown>;
@@ -236,10 +237,18 @@ function vehicleNode(tenant: Tenant, v: FleetVehicle): Node {
 interface BlogPostLike {
   slug: string;
   title: string;
+  category?: string;
+  authorName?: string;
   excerpt?: string;
   metaDescription?: string;
   coverImage?: string | null;
   publishedAt?: string | null;
+  updatedAt?: string | null;
+  body?: string;
+}
+
+function authorNode(tenant: Tenant, post: BlogPostLike): Node {
+  return post.authorName ? { '@type': 'Person', name: post.authorName } : organizationNode(tenant);
 }
 
 export function blogIndexSchema(tenant: Tenant, posts: BlogPostLike[], trail: ContentLink[]): Node {
@@ -260,6 +269,7 @@ export function blogIndexSchema(tenant: Tenant, posts: BlogPostLike[], trail: Co
             url: absoluteUrl(tenant, `/blog/${p.slug}`),
             image: p.coverImage ? absoluteUrl(tenant, p.coverImage) : undefined,
             datePublished: p.publishedAt || undefined,
+            author: authorNode(tenant, p),
           }),
         ),
       }),
@@ -268,20 +278,24 @@ export function blogIndexSchema(tenant: Tenant, posts: BlogPostLike[], trail: Co
 }
 
 export function articleSchema(tenant: Tenant, post: BlogPostLike, path: string): Node {
-  return {
-    '@context': CONTEXT,
-    ...prune({
-      '@type': 'Article',
+  const graph: Node[] = [
+    prune({
+      '@type': 'BlogPosting',
       headline: post.title,
       description: post.metaDescription || post.excerpt,
       image: post.coverImage ? absoluteUrl(tenant, post.coverImage) : undefined,
+      articleSection: post.category,
       datePublished: post.publishedAt || undefined,
-      dateModified: post.publishedAt || undefined,
-      author: organizationNode(tenant),
+      dateModified: post.updatedAt || post.publishedAt || undefined,
+      author: authorNode(tenant, post),
       publisher: organizationNode(tenant),
       mainEntityOfPage: absoluteUrl(tenant, path),
     }),
-  };
+    trailNode(tenant, [...BLOG_TRAIL, { label: post.title, href: path }]),
+  ];
+  const faqs = validFaqs(blogFaqs(post.body ?? ''));
+  if (faqs.length) graph.push(faqNode(faqs));
+  return { '@context': CONTEXT, '@graph': graph };
 }
 
 export function fleetSchema(

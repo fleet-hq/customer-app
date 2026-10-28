@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 
 import { getCurrentTenant, TenantNotFoundError } from '@/lib/get-tenant';
 import { getTenantBlogs } from '@/lib/get-blogs';
+import { BLOG_TRAIL } from '@/lib/blog';
 import { pageMetadata } from '@/lib/seo';
 import { blogIndexSchema } from '@/lib/schema';
 import { JsonLd } from '@/components/seo/json-ld';
@@ -11,11 +12,6 @@ import { BrandCta } from '@/components/sections/shared/brand-cta';
 import { paths } from '@/lib/paths';
 import { BlogIndexT2 } from './blog-index-t2';
 import { pickTemplateView } from '@/lib/template-view';
-
-const BLOG_TRAIL = [
-  { label: 'Home', href: '/' },
-  { label: 'Blog', href: '/blog' },
-];
 
 export async function generateMetadata(): Promise<Metadata> {
   try {
@@ -50,11 +46,19 @@ export default async function BlogIndexPage() {
     template_2: BlogIndexT2,
     template_3: BlogIndexT2,
   });
-  if (Editorial) return <Editorial tenant={tenant} posts={posts} />;
+  const schema = posts.length > 0 ? <JsonLd data={blogIndexSchema(tenant, posts, BLOG_TRAIL)} /> : null;
+  if (Editorial) {
+    return (
+      <>
+        {schema}
+        <Editorial tenant={tenant} posts={posts} />
+      </>
+    );
+  }
 
   return (
     <div className="bg-white text-ink">
-      {posts.length > 0 ? <JsonLd data={blogIndexSchema(tenant, posts, BLOG_TRAIL)} /> : null}
+      {schema}
       <section className="relative overflow-hidden border-b border-hairline bg-subtle">
         <div
           className="pointer-events-none absolute inset-0 opacity-60"

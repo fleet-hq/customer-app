@@ -28,6 +28,7 @@ export function BlogPostT2({ tenant, post, more }: BlogPostT2Props) {
         </Link>
         <div className={styles.postMeta}>
           {post.category ? <span>{post.category}</span> : null}
+          {post.authorName ? <span>By {post.authorName}</span> : null}
           {date ? <span>{date}</span> : null}
           {post.readMinutes ? (
             <span>

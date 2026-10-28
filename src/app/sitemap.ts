@@ -2,6 +2,7 @@ import type { MetadataRoute } from 'next';
 import { headers } from 'next/headers';
 
 import { getCurrentTenant } from '@/lib/get-tenant';
+import { getTenantBlogs } from '@/lib/get-blogs';
 import { paths } from '@/lib/paths';
 
 // Resolved per request: the tenant, and therefore the page list, depends
@@ -58,6 +59,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'monthly',
       priority: 0.7,
     });
+  }
+
+  const posts = await getTenantBlogs();
+  if (posts.length) {
+    entries.push({
+      url: `${origin}${paths.blog}`,
+      lastModified,
+      changeFrequency: 'weekly',
+      priority: 0.6,
+    });
+    for (const post of posts) {
+      const stamp = post.updatedAt || post.publishedAt;
+      entries.push({
+        url: `${origin}${paths.blogPost(post.slug)}`,
+        lastModified: stamp ? new Date(stamp) : lastModified,
+        changeFrequency: 'monthly',
+        priority: 0.6,
+      });
+    }
   }
 
   return entries;
