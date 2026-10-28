@@ -247,7 +247,6 @@ export interface InquiryFormConfig {
   fields?: Partial<Record<InquiryFieldKey, InquiryFieldOverride>>;
   title?: string;
   intro?: string[];
-  promo_note?: string;
   vehicle_options?: string[];
   pickup_options?: string[];
   dropoff_options?: string[];

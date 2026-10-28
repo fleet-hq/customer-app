@@ -14,16 +14,21 @@ export interface InquiryPayload {
   pickup_at?: string | null;
   dropoff_at?: string | null;
   heard_about?: string;
-  promo_code?: string;
   message?: string;
+}
+
+export interface InquiryOffer {
+  code: string;
+  note: string;
 }
 
 export async function submitInquiry(
   payload: InquiryPayload,
   domain?: string | null,
-): Promise<void> {
-  await axios.post(`${API_URL}/api/companies/public/inquiries/`, payload, {
+): Promise<InquiryOffer | null> {
+  const res = await axios.post<{ offer?: InquiryOffer | null }>(`${API_URL}/api/companies/public/inquiries/`, payload, {
     params: getDomainParams(domain),
     headers: { 'Content-Type': 'application/json' },
   });
+  return res.data.offer ?? null;
 }

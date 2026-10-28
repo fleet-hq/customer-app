@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import type { InquiryFormConfig } from '@/services/companyContentServices';
-import { submitInquiry } from '@/services/inquiryServices';
+import { submitInquiry, type InquiryOffer } from '@/services/inquiryServices';
 import { trackLead } from '@/lib/tracking-events';
 import { Select } from '@/components/ui/select';
 import { Dialog } from '@/components/ui/dialog';
@@ -75,10 +75,10 @@ export function InquiryForm({
   const [message, setMessage] = useState('');
   const [status, setStatus] = useState<'idle' | 'submitting' | 'error'>('idle');
   const [showPromo, setShowPromo] = useState(false);
+  const [offer, setOffer] = useState<InquiryOffer | null>(null);
 
   const pickupIsOther = OTHER_RE.test(pickup);
   const dropoffIsOther = OTHER_RE.test(dropoff);
-  const promoCode = config.promo_note ? extractPromoCode(config.promo_note) : '';
 
   const combineIso = (date: string, time: string): string | null => {
     if (!date) return null;
@@ -97,7 +97,7 @@ export function InquiryForm({
 
     setStatus('submitting');
     try {
-      await submitInquiry(
+      const revealed = await submitInquiry(
         {
           name: name.trim(),
           phone: phone.trim(),
@@ -108,11 +108,11 @@ export function InquiryForm({
           pickup_at: combineIso(pickupDate, pickupTime),
           dropoff_at: combineIso(dropoffDate, dropoffTime),
           heard_about: heardAbout,
-          promo_code: promoCode,
           message: message.trim(),
         },
         domain,
       );
+      setOffer(revealed);
       setStatus('idle');
       setShowPromo(true);
       trackLead('inquiry');
@@ -306,17 +306,17 @@ export function InquiryForm({
             We&apos;ll be in touch shortly. Here&apos;s a little something for booking directly with {tenantName}.
           </p>
 
-          {promoCode ? (
+          {offer?.code ? (
             <div className="mx-auto mt-[22px] flex w-fit items-center rounded-[12px] border border-dashed border-primary bg-primary-soft px-[24px] py-[14px]">
               <span className="font-manrope text-[22px] font-bold tracking-[0.1em] text-primary">
-                {promoCode}
+                {offer.code}
               </span>
             </div>
           ) : null}
 
-          {config.promo_note ? (
+          {offer?.note ? (
             <p className="mx-auto mt-[14px] max-w-[300px] text-[14px] leading-[1.55] text-label">
-              {config.promo_note}
+              {offer.note}
             </p>
           ) : null}
 
@@ -331,9 +331,4 @@ export function InquiryForm({
       </Dialog>
     </>
   );
-}
-
-function extractPromoCode(note: string): string {
-  const m = note.match(/\b([A-Z][A-Z0-9]{3,})\b/);
-  return m ? m[1] : '';
 }
