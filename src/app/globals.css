@@ -5,6 +5,7 @@
     'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --font-manrope: var(--font-manrope-src), ui-sans-serif, system-ui, sans-serif;
   --font-caveat: var(--font-caveat-src), 'Homemade Apple', 'Dancing Script', cursive;
+  --font-poppins: var(--font-poppins-src), ui-sans-serif, system-ui, sans-serif;
   --tracking-tight-2: -0.02em;
 
   --color-primary: #ed2324;

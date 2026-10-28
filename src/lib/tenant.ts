@@ -20,6 +20,7 @@ import type {
   ServiceAreasSection,
   ServicesSection,
   InquiryFormConfig,
+  LeadPopupSection,
   FleetPageSection,
   BlogIndexSection,
   SiteSeoConfig,
@@ -57,6 +58,7 @@ export interface TenantSections {
   seo: SiteSeoConfig | null;
   service_areas: ServiceAreasSection | null;
   pages: Record<string, ContentPage> | null;
+  leadPopup: LeadPopupSection | null;
   /** Footer "Explore" links. Tenants with extra content pages set these
    *  so the footer lists them; unset keeps the standard links. */
   footerLinks: ContentLink[] | null;
@@ -266,6 +268,7 @@ export function tenantFromApi(detail: ApiCompanyDetail, locations: ApiLocation[]
       seo: sections.seo ?? null,
       service_areas: sections.service_areas ?? null,
       pages: sections.pages ?? null,
+      leadPopup: sections.lead_popup ?? null,
       footerLinks: sections.footer_links ?? null,
     },
     tracking: {

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { cookies, headers } from 'next/headers';
-import { Inter, Manrope, Caveat } from 'next/font/google';
+import { Inter, Manrope, Caveat, Poppins } from 'next/font/google';
 import './globals.css';
 import { getCurrentTenant, TenantNotFoundError } from '@/lib/get-tenant';
 import { TenantProvider } from '@/lib/tenant-context';
@@ -14,6 +14,7 @@ import { StripeProvider } from '@/components/stripe-provider';
 import { SetupInProgress } from '@/components/setup-in-progress';
 import { RenterActivityPing } from '@/components/analytics/RenterActivityPing';
 import { SiteTracking } from '@/components/tracking/site-tracking';
+import { LeadPopup } from '@/components/sections/lead-popup/lead-popup';
 import { JsonLd } from '@/components/seo/json-ld';
 import { organizationSchema } from '@/lib/schema';
 
@@ -29,6 +30,14 @@ const manrope = Manrope({
   weight: ['400', '500', '600', '700', '800'],
   variable: '--font-manrope-src',
   display: 'swap',
+});
+
+const poppins = Poppins({
+  subsets: ['latin'],
+  weight: ['600'],
+  variable: '--font-poppins-src',
+  display: 'swap',
+  preload: false,
 });
 
 const caveat = Caveat({
@@ -65,7 +74,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     if (err instanceof TenantNotFoundError) {
       const host = (await headers()).get('host') ?? err.host;
       return (
-        <html lang="en-US" className={`${inter.variable} ${manrope.variable} ${caveat.variable}`}>
+        <html lang="en-US" className={`${inter.variable} ${manrope.variable} ${caveat.variable} ${poppins.variable}`}>
           <body>
             <SetupInProgress host={host} />
           </body>
@@ -87,7 +96,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   } as React.CSSProperties;
 
   return (
-    <html lang={locale === 'es' ? 'es' : 'en-US'} data-tenant={tenant.slug} style={brandVars} className={`${inter.variable} ${manrope.variable} ${caveat.variable}`}>
+    <html lang={locale === 'es' ? 'es' : 'en-US'} data-tenant={tenant.slug} style={brandVars} className={`${inter.variable} ${manrope.variable} ${caveat.variable} ${poppins.variable}`}>
       <body>
         <JsonLd data={organizationSchema(tenant)} />
         <SiteTracking tracking={tenant.tracking} />
@@ -101,6 +110,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               "useTenant must be used within a TenantProvider". */}
           <TenantProvider tenant={tenant}>
             <RenterActivityPing companyId={tenant.id} domain={tenant.domain} />
+            {tenant.sections.leadPopup?.enabled ? (
+              <LeadPopup config={tenant.sections.leadPopup} domain={tenant.domain} />
+            ) : null}
             <CompanyProvider>
               <StripeProvider>
                 <LayoutChrome>

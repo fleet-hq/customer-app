@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { InquiryFormConfig } from '@/services/companyContentServices';
 import { submitInquiry } from '@/services/inquiryServices';
+import { trackLead } from '@/lib/tracking-events';
 import { Select } from '@/components/ui/select';
 import { Dialog } from '@/components/ui/dialog';
 import { DateTimeField } from '@/components/search/date-time-field';
@@ -114,6 +115,7 @@ export function InquiryForm({
       );
       setStatus('idle');
       setShowPromo(true);
+      trackLead('inquiry');
     } catch {
       setStatus('error');
     }

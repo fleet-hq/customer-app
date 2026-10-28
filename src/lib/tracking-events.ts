@@ -221,3 +221,11 @@ export function trackPurchase(params: {
 
   meta('Purchase', { currency, ...(value !== undefined ? { value } : {}) }, eventId);
 }
+
+export type LeadForm = 'inquiry' | 'popup';
+
+export function trackLead(form: LeadForm): void {
+  const eventId = newEventId(`generate_lead-${form}`);
+  push({ event: 'generate_lead', event_id: eventId, lead_form: form });
+  meta('Lead', { content_name: form }, eventId);
+}

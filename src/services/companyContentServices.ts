@@ -384,6 +384,49 @@ export interface SiteSeoConfig {
   founders?: string[];
 }
 
+export interface LeadPopupColors {
+  surface?: string;
+  heading?: string;
+  body?: string;
+  accent?: string;
+  accent_text?: string;
+  border?: string;
+}
+
+export interface LeadPopupSection {
+  enabled?: boolean;
+  delay_seconds?: number;
+  dismiss_days?: number;
+  image_url?: string;
+  image_alt?: string;
+  logo_url?: string;
+  tagline?: string;
+  heading_font?: 'poppins' | 'manrope' | 'inter';
+  colors?: LeadPopupColors;
+  eyebrow?: string;
+  headline?: string;
+  body?: string;
+  name_label?: string;
+  name_placeholder?: string;
+  phone_label?: string;
+  phone_placeholder?: string;
+  email_label?: string;
+  email_placeholder?: string;
+  prompt?: string;
+  button_label?: string;
+  small_print?: string;
+  privacy_href?: string;
+  success_eyebrow?: string;
+  success_headline?: string;
+  success_body?: string;
+  success_followup?: string;
+  copy_label?: string;
+  trip_form_label?: string;
+  trip_form_href?: string;
+  fleet_label?: string;
+  footer?: string;
+}
+
 export interface ContentSections {
   hero?: HeroSection | null;
   promo?: PromoSection | null;
@@ -414,6 +457,7 @@ export interface ContentSections {
   /** Footer "Explore" column. Lets tenants with extra content pages
    *  surface them without the footer hardcoding a link list. */
   footer_links?: ContentLink[] | null;
+  lead_popup?: LeadPopupSection | null;
 }
 
 export interface CompanyContent {
