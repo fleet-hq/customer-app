@@ -15,7 +15,14 @@ import {
   type LeadPopupField,
   type LeadPopupResult,
 } from '@/services/leadPopupServices';
-import { readStoredLeadUtm, rememberLeadUtm, readPopupState, writePopupState, popupDue } from './lead-popup-state';
+import {
+  keepVisitAlive,
+  popupDue,
+  readPopupState,
+  readStoredLeadUtm,
+  rememberLeadUtm,
+  writePopupState,
+} from './lead-popup-state';
 
 const HIDDEN_ON = ['/booking', '/bookings', '/manage', '/pay', '/rental-agreement', '/sign-in', '/register'];
 
@@ -81,13 +88,20 @@ export function LeadPopup({ config, domain }: { config: LeadPopupSection; domain
   }, []);
 
   useEffect(() => {
-    if (open || hiddenOn(pathname) || !popupDue(readPopupState(), config.dismiss_days ?? 7)) return;
+    if (open) return;
+    const state = readPopupState();
+    const policy = { eachVisit: config.show_each_visit === true, days: config.dismiss_days ?? 7 };
+    if (!popupDue(state, policy)) {
+      keepVisitAlive(state);
+      return;
+    }
+    if (hiddenOn(pathname)) return;
     for (const src of [config.image_url, config.logo_url]) {
       if (src) new window.Image().src = src;
     }
     const timer = window.setTimeout(() => setOpen(true), (config.delay_seconds ?? 3) * 1000);
     return () => window.clearTimeout(timer);
-  }, [pathname, open, config.delay_seconds, config.dismiss_days, config.image_url, config.logo_url]);
+  }, [pathname, open, config.delay_seconds, config.dismiss_days, config.show_each_visit, config.image_url, config.logo_url]);
 
   const close = useCallback(() => {
     setOpen(false);

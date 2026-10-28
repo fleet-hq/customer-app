@@ -396,6 +396,7 @@ export interface LeadPopupSection {
   enabled?: boolean;
   delay_seconds?: number;
   dismiss_days?: number;
+  show_each_visit?: boolean;
   image_url?: string;
   image_alt?: string;
   logo_url?: string;
