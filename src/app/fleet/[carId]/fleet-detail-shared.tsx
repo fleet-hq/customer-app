@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { Check, ChevronDown, Close, MapPin, ShieldCheck } from '@/components/ui/icons';
 import { Dialog } from '@/components/ui/dialog';
 import type { InsuranceOption } from '@/services/bookingServices';
@@ -8,6 +9,8 @@ import { cn, money } from '@/lib/utils';
 import { Dyn } from '@/components/i18n/Dyn';
 import { useDynamicTranslation } from '@/hooks/useDynamicTranslation';
 import { useTenant } from '@/lib/tenant-context';
+import { paths } from '@/lib/paths';
+import { telHref } from '@/lib/seo';
 
 // Presentational pieces shared verbatim by both templates' fleet
 // detail pages — reused as-is inside a template-2-tokened container
@@ -427,5 +430,46 @@ export function InsuranceDetailModal({
           </button>
         </div>
     </Dialog>
+  );
+}
+
+export function NotBookableOnline({
+  heading,
+  body,
+  contacts,
+  action,
+}: {
+  heading?: string;
+  body?: string;
+  contacts?: string;
+  action: string;
+}) {
+  const tenant = useTenant();
+  const { phone, email } = tenant.footer.contact;
+  const tel = telHref(phone);
+  return (
+    <>
+      <div className={heading}>
+        <h3>
+          <Dyn>Not available to book online</Dyn>
+        </h3>
+      </div>
+      <p className={body}>
+        <Dyn>Contact us to rent this car.</Dyn>
+      </p>
+      {phone || email ? (
+        <div className={contacts}>
+          {phone ? <p>{tel ? <a href={tel}>{phone}</a> : phone}</p> : null}
+          {email ? (
+            <p>
+              <a href={`mailto:${email}`}>{email}</a>
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+      <Link href={paths.contact} className={action}>
+        <Dyn>Contact us</Dyn>
+      </Link>
+    </>
   );
 }

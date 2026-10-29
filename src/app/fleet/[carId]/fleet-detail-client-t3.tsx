@@ -11,7 +11,7 @@ import { RentalAgreementSignModal } from '@/components/booking/rental-agreement-
 import { EmbedPaymentPanel } from '@/components/checkout/embed-payment-panel';
 import { paths } from '@/lib/paths';
 import { money } from '@/lib/utils';
-import { formatTripStamp } from './fleet-detail-shared';
+import { formatTripStamp, NotBookableOnline } from './fleet-detail-shared';
 import { useFleetDetail } from './use-fleet-detail';
 
 /** Template-3 car detail.
@@ -112,6 +112,7 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
     setTripOpen,
     reserve,
     reserveBlocked,
+    notBookableOnline,
     meetsMinDuration,
     tripProblem,
     minDuration,
@@ -286,6 +287,7 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
               </div>
             ) : null}
 
+            {notBookableOnline ? null : (<>
             {!weekly.on ? <div className="blk" id="protection">
               <h2 ref={protectionRef}>
                 <i />
@@ -445,9 +447,15 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
                 />
               </div>
             ) : null}
+            </>)}
           </div>
 
           <aside className="sum">
+            {notBookableOnline ? (
+              <section>
+                <NotBookableOnline body="note" contacts="note dark" action="btn reserve" />
+              </section>
+            ) : (<>
             <section>
               <h3>
                 <Dyn>Your trip</Dyn>
@@ -695,6 +703,7 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
                 </li>
               </ul>
             </section>
+            </>)}
           </aside>
         </div>
       </div>

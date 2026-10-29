@@ -68,7 +68,6 @@ export default function BookingDetailClientT2({ id }: { id: string }) {
     insuranceFailed,
     insuranceDetails,
     showInsuranceStep,
-    requiredDocuments,
     requireId,
     requireInsurance,
     idPending,
@@ -134,7 +133,6 @@ export default function BookingDetailClientT2({ id }: { id: string }) {
         insuranceFailureDetails={insuranceFailed ? insuranceDetails : null}
         requireId={requireId}
         requireInsurance={showInsuranceStep}
-        requiredDocuments={requiredDocuments}
         insuranceBlocking={requireInsurance}
         idPending={idPending}
         idError={idError}

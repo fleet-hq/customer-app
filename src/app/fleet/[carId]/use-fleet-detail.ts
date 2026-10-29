@@ -40,6 +40,7 @@ import { outsideOpeningHours } from '@/lib/time-slots';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRentalSiteConfig } from '@/hooks/useRentalSiteConfig';
 import { rateCard } from '@/lib/rate-card';
+import { onlineModels } from '@/lib/rental-offers';
 import { trackedPromo } from '@/lib/tracking-tag';
 import { weeklyDepositTiming } from '@/lib/price-rows';
 import { useOngoingQuote } from '@/hooks/useRentalSiteConfig';
@@ -397,22 +398,15 @@ export function useFleetDetail(carId: string) {
     return list.filter((p) => selectedManualIds.has(p.id));
   }, [manualInsurancePackages, selectedManualIds]);
 
-  const ongoingOptions = useMemo<OngoingModel[]>(() => {
-    if (!vehicle) return [];
-    const out: OngoingModel[] = [];
-    if (vehicle.offersGig && vehicle.pricePerWeek > 0 && rentalConfig.bookableModels.includes('gig')) out.push('gig');
-    if (
-      vehicle.offersSubscription &&
-      rentalConfig.bookableModels.includes('subscription') &&
-      rentalConfig.plans.some((plan) => plan.id === vehicle.subscriptionPlanId)
-    ) {
-      out.push('subscription');
-    }
-    return out;
-  }, [vehicle, rentalConfig]);
+  const carModels = useMemo(() => (vehicle ? onlineModels(vehicle, rentalConfig) : []), [vehicle, rentalConfig]);
+  const ongoingOptions = useMemo(
+    () => carModels.filter((model): model is OngoingModel => model !== 'daily'),
+    [carModels],
+  );
   const urlModel = searchParams.get('model') as OngoingModel | null;
   const ongoingModel = ongoingOptions.find((m) => m === urlModel) ?? ongoingOptions[0] ?? null;
-  const dailyAllowed = !vehicle || (vehicle.offersDaily && rentalConfig.models.includes('daily'));
+  const dailyAllowed = !vehicle || carModels.includes('daily');
+  const notBookableOnline = !!vehicle && rentalConfig.ready && carModels.length === 0;
   const [weeklyChosen, setWeekly] = useState(urlModel === 'gig' || urlModel === 'subscription');
   const [weeklyConsent, setWeeklyConsent] = useState(false);
   const planId = ongoingModel === 'subscription' ? vehicle?.subscriptionPlanId ?? null : null;
@@ -758,7 +752,9 @@ export function useFleetDetail(carId: string) {
       consent: weeklyConsent,
       setConsent: setWeeklyConsent,
     },
+    notBookableOnline,
     reserveBlocked:
+      notBookableOnline ||
       reserving ||
       startCheckout.isPending ||
       startVerification.isPending ||

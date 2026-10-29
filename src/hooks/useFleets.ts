@@ -1,13 +1,17 @@
 'use client';
 
+import { useCallback } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import {
   listFleets,
   getFleetById,
   checkBulkAvailability,
   getFleetUnavailableRanges,
+  type ListFleetsResponse,
 } from '@/services/fleetServices';
 import { useTenant } from '@/lib/tenant-context';
+import { bookableOnline } from '@/lib/rental-offers';
+import { useRentalSiteConfig } from './useRentalSiteConfig';
 
 export const useFleets = (
   page: number = 1,
@@ -17,9 +21,18 @@ export const useFleets = (
   enabled: boolean = true,
 ) => {
   const tenant = useTenant();
+  const rentalConfig = useRentalSiteConfig();
+  const select = useCallback(
+    (data: ListFleetsResponse) => {
+      const results = data.results.filter((vehicle) => bookableOnline(vehicle, rentalConfig));
+      return { ...data, results, unbookable: data.results.length - results.length };
+    },
+    [rentalConfig],
+  );
   return useQuery({
     queryKey: ['fleets', tenant.slug, { page, name, pageSize, ...filters }],
     queryFn: () => listFleets({ page, name, page_size: pageSize, ...filters }, tenant.domain),
+    select,
     enabled,
   });
 };

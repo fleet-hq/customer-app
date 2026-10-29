@@ -26,6 +26,7 @@ import {
   LocationDropdown,
   InsuranceDetailModal,
   INSURANCE_DETAILS,
+  NotBookableOnline,
 } from './fleet-detail-shared';
 import styles from '@/styles/template-2.module.css';
 import { CardConsent } from '@/components/booking/card-consent';
@@ -133,6 +134,7 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
     meetsMinDuration,
     tripProblem,
     reserveBlocked,
+    notBookableOnline,
     tenant,
     vehicle,
     plans,
@@ -190,7 +192,7 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
           </div>
         </div>
 
-        <div className={styles.mobileSummary}>
+        {notBookableOnline ? null : <div className={styles.mobileSummary}>
           <img src={galleryImages[0]} alt={vehicle.name} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: '0.86rem', fontWeight: 600 }}>{vehicle.name}</div>
@@ -200,7 +202,7 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
             <div style={{ fontWeight: 700 }}>{money(total)}</div>
             <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}><Dyn>{totalSummary.label}</Dyn></div>
           </div>
-        </div>
+        </div>}
 
         <div className={styles.detailGrid}>
           <div>
@@ -262,6 +264,7 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
               </div>
             ) : null}
 
+            {notBookableOnline ? null : (<>
             {!weekly.on ? <div className={styles.detailSection}>
               <ProtectionSection
                 headingRef={protectionRef}
@@ -370,9 +373,18 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
                 </div>
               ) : null}
             </div>
+            </>)}
           </div>
 
           <div className={styles.priceCard}>
+            {notBookableOnline ? (
+              <NotBookableOnline
+                heading={styles.priceHeadRow}
+                body={styles.trustRow}
+                contacts={styles.trustRow}
+                action={`${styles.btn} ${styles.btnBrass} ${styles.reserveBtn}`}
+              />
+            ) : (<>
             <div
               className={styles.tripRow}
               onClick={() => setTripOpen(true)}
@@ -598,6 +610,7 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
                 </div>
               ))}
             </div>
+            </>)}
           </div>
         </div>
       </div>

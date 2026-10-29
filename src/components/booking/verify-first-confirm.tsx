@@ -141,7 +141,6 @@ interface Props {
   /** Documents the renter has uploaded. Kept apart from verification —
    *  see BookingDocuments. */
   documentSubmissions: ManualVerificationSubmission[];
-  requiredDocuments?: string[];
   onDocumentUploaded: () => void;
 }
 
@@ -153,7 +152,6 @@ export function VerifyFirstConfirm(props: Props) {
     mode,
     isReserved,
     documentSubmissions,
-    requiredDocuments,
     onDocumentUploaded,
     outstanding,
     charges,
@@ -494,7 +492,6 @@ export function VerifyFirstConfirm(props: Props) {
             <BookingDocuments
               submissions={documentSubmissions}
               onUploaded={onDocumentUploaded}
-              requiredDocuments={requiredDocuments}
             />
 
 

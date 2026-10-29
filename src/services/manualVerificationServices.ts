@@ -25,10 +25,8 @@ export interface ManualVerificationSubmission {
 
 export const DOCUMENT_TYPES_FOR_KIND: Record<ManualVerificationKind, ManualDocumentType[]> = {
   id: ['licence', 'selfie'],
-  insurance: ['insurance_document', 'rideshare_profile'],
+  insurance: ['insurance_document'],
 };
-
-export const ON_REQUEST_DOCUMENT_TYPES: ManualDocumentType[] = ['rideshare_profile'];
 
 export const DOCUMENT_TYPE_LABELS: Record<ManualDocumentType, string> = {
   licence: "Driver's licence",

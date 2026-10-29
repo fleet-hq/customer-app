@@ -243,7 +243,7 @@ export function useFleetListing() {
   };
 
   const clientFiltered = isFiltered || clientFilterCount > 0;
-  const shown = clientFiltered ? vehicles.length : count;
+  const shown = clientFiltered ? vehicles.length : count - (data?.unbookable ?? 0);
   const shownLabel = `${t('Showing')} ${shown} ${shown === 1 ? t('car') : t('cars')}`;
   const countLabel = showPlans || modelOff
     ? ''

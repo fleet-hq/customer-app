@@ -1,5 +1,6 @@
 import { released } from '@/lib/release';
 import { money } from '@/lib/utils';
+import { offeredModels } from '@/lib/rental-offers';
 import type { PublicPlan, RentalModel, RentalSiteConfig } from '@/services/rentalServices';
 import type { Vehicle } from '@/types/vehicle';
 
@@ -25,7 +26,7 @@ export interface RateView {
 
 const DAILY_VIEW: RateView = { model: 'daily' };
 
-type RateVehicle = Pick<Vehicle, 'pricePerDay' | 'pricePerHour' | 'pricePerWeek' | 'weeklyScope' | 'offersGig' | 'milesPerDay'>;
+type RateVehicle = Pick<Vehicle, 'pricePerDay' | 'pricePerHour' | 'pricePerWeek' | 'weeklyScope' | 'offers' | 'milesPerDay'>;
 
 export function planMileage(plan: Pick<PublicPlan, 'miles_per_week'>): string {
   return plan.miles_per_week ? `${plan.miles_per_week.toLocaleString()} miles/week` : 'Unlimited miles';
@@ -43,7 +44,8 @@ export function rateCard(vehicle: RateVehicle, config: RentalSiteConfig, view: R
     return { week: null, hourFrom: null, extras: null, weekly: null, headline: { price: vehicle.pricePerWeek, per: 'week' }, mileage: null };
   }
   const ongoingOnly = vehicle.weeklyScope === 'ongoing';
-  const weeklyBookable = !ongoingOnly || (config.models.includes('gig') && vehicle.offersGig);
+  const offered = offeredModels(vehicle, config);
+  const weeklyBookable = offered.includes('gig') || (!ongoingOnly && offered.includes('daily'));
   const week = released('weeklyRates') && vehicle.pricePerWeek > 0 && weeklyBookable ? vehicle.pricePerWeek : null;
   const hourFrom = vehicle.pricePerHour > 0 ? vehicle.pricePerHour : null;
   const extras = [week ? `${money(week)}/week` : null, hourFrom ? `from ${money(hourFrom)}/hr` : null]

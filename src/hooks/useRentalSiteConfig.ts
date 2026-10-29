@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
@@ -25,16 +26,18 @@ export function useRentalSiteConfig(): RentalSiteConfig & { ready: boolean; book
     staleTime: 60_000,
     retry: 2,
   });
-  const config = data ?? DAILY_ONLY;
-  const models = released('modelTabs') ? config.models : config.models.filter((model) => model === 'daily');
-  const websiteOngoing = released('websiteOngoing') && config.website_ongoing;
-  return {
-    ...config,
-    models,
-    website_ongoing: websiteOngoing,
-    bookableModels: websiteOngoing ? models : models.filter((model) => model === 'daily'),
-    ready: isSuccess,
-  };
+  return useMemo(() => {
+    const config = data ?? DAILY_ONLY;
+    const models = released('modelTabs') ? config.models : config.models.filter((model) => model === 'daily');
+    const websiteOngoing = released('websiteOngoing') && config.website_ongoing;
+    return {
+      ...config,
+      models,
+      website_ongoing: websiteOngoing,
+      bookableModels: websiteOngoing ? models : models.filter((model) => model === 'daily'),
+      ready: isSuccess,
+    };
+  }, [data, isSuccess]);
 }
 
 export function useRateCard(vehicle: Parameters<typeof rateCard>[0], view?: RateView): RateCard {

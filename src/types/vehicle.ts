@@ -71,6 +71,12 @@ export interface ApiBookingRule {
   subscription_plan?: number | null;
 }
 
+export interface RentalOffers {
+  daily: boolean;
+  gig: boolean;
+  subscription: boolean;
+}
+
 export interface ApiFleetClass {
   id: number;
   name: string;
@@ -100,6 +106,7 @@ export interface ApiVehicle {
   // Nested objects from detail endpoint
   booking_price?: ApiBookingPrice;
   booking_rule?: ApiBookingRule;
+  offers?: RentalOffers;
   // Flat fields from list endpoint (if included)
   price_per_day?: number;
 }
@@ -131,9 +138,7 @@ export interface Vehicle {
   pricePerHour: number;
   pricePerWeek: number;
   weeklyScope: WeeklyScope;
-  offersDaily: boolean;
-  offersGig: boolean;
-  offersSubscription: boolean;
+  offers: RentalOffers;
   subscriptionPlanId: number | null;
   autoCapEnabled: boolean;
   minHours: number;
@@ -212,9 +217,11 @@ export function transformApiVehicle(apiVehicle: ApiVehicle): Vehicle {
     pricePerHour,
     pricePerWeek: Number(apiVehicle.booking_price?.price_per_week ?? 0) || 0,
     weeklyScope: apiVehicle.booking_price?.weekly_scope === 'all' ? 'all' : 'ongoing',
-    offersDaily: apiVehicle.booking_rule?.offers_daily !== false,
-    offersGig: !!apiVehicle.booking_rule?.offers_gig,
-    offersSubscription: !!apiVehicle.booking_rule?.offers_subscription,
+    offers: apiVehicle.offers ?? {
+      daily: apiVehicle.booking_rule?.offers_daily !== false,
+      gig: !!apiVehicle.booking_rule?.offers_gig,
+      subscription: !!apiVehicle.booking_rule?.offers_subscription,
+    },
     subscriptionPlanId: apiVehicle.booking_rule?.subscription_plan ?? null,
     autoCapEnabled,
     minHours,

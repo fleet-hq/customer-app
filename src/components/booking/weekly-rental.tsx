@@ -160,11 +160,6 @@ export function WeeklyRentalSummary({ weekly, variant = 'tokens' }: { weekly: We
       ))}
       {terms.length > 0 ? <p className={cn('text-[12px]', skin.quiet)}><Dyn>{terms.join(' · ')}</Dyn></p> : null}
       <p className={cn('text-[12px]', skin.quiet)}><Dyn>{insurance}</Dyn></p>
-      {offer.required_documents.length > 0 ? (
-        <p className={cn('text-[12px]', skin.quiet)}>
-          <Dyn>{`After booking we'll ask you to upload ${offer.required_documents.join(' and ')}.`}</Dyn>
-        </p>
-      ) : null}
       <label className={cn('mt-1 flex cursor-pointer items-start gap-2.5 rounded-[10px] border px-3 py-2.5', skin.line)}>
         <input
           type="checkbox"

@@ -31,6 +31,7 @@ import {
   LocationDropdown,
   InsuranceDetailModal,
   INSURANCE_DETAILS,
+  NotBookableOnline,
 } from './fleet-detail-shared';
 import FleetDetailClientT2 from './fleet-detail-client-t2';
 import FleetDetailClientT3 from './fleet-detail-client-t3';
@@ -158,6 +159,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
     meetsMinDuration,
     tripProblem,
     reserveBlocked,
+    notBookableOnline,
     tenant: tenantData,
     vehicle,
     plans,
@@ -206,7 +208,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
           <BackLink href={paths.fleet}><Dyn>Back to fleet</Dyn></BackLink>
         </div>
 
-        <div className="mb-4 flex items-center justify-between gap-3 rounded-[12px] border border-card-border bg-subtle p-3 lg:hidden">
+        {notBookableOnline ? null : <div className="mb-4 flex items-center justify-between gap-3 rounded-[12px] border border-card-border bg-subtle p-3 lg:hidden">
           <div className="flex min-w-0 items-center gap-3">
             <div
               className="h-[48px] w-[64px] flex-shrink-0 rounded-[8px] bg-cover bg-center"
@@ -221,7 +223,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
             <div className="text-[15px] font-bold text-secondary">{money(total)}</div>
             <div className="text-[10px] text-muted"><Dyn>{totalSummary.label}</Dyn></div>
           </div>
-        </div>
+        </div>}
 
         <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_350px]">
           {/* min-w-0 lets this grid child shrink below its content's
@@ -326,6 +328,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               </>
             )}
 
+            {notBookableOnline ? null : (<>
             {!weekly.on && <ProtectionSection
               headingRef={protectionRef}
               bonzahPlans={plans}
@@ -459,10 +462,19 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               />
               </div>
             ) : null}
+            </>)}
 
           </div>
 
           <div className="rounded-2xl border border-card-border bg-subtle p-4 sm:p-[22px] lg:sticky lg:top-[88px]">
+            {notBookableOnline ? (
+              <NotBookableOnline
+                heading="text-sm font-semibold text-ink"
+                body="mt-[6px] text-[12.5px] leading-[1.5] text-muted"
+                contacts="mt-3 flex flex-col gap-1 text-[13px] font-medium text-ink"
+                action="mt-[14px] block w-full cursor-pointer rounded-[10px] bg-primary py-[13px] text-center text-sm font-bold text-white transition-colors hover:bg-primary-hover"
+              />
+            ) : (<>
             <div className="mb-3 text-sm font-semibold text-ink"><Dyn>Your trip</Dyn></div>
             <div className="flex flex-col gap-2">
               <div
@@ -762,6 +774,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                 </div>
               ))}
             </div>
+            </>)}
           </div>
         </div>
       </div>
