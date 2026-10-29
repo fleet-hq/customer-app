@@ -7,7 +7,7 @@ export interface CycleWords {
   rentalTitle: string;
   span: string;
   rentalLine: (weeklyRate: number | null) => string;
-  renews: (weekday: string) => string;
+  renews: (weekday: string, day?: number | null) => string;
   recurringNote: string;
 }
 
@@ -30,8 +30,17 @@ const CYCLES: Record<BillingCycle, CycleWords> = {
     renews: (weekday) => `Then every other ${weekday}`,
     recurringNote: 'every two weeks, until you return the car',
   },
+  monthly: {
+    badge: 'Monthly',
+    firstPeriod: 'Month 1',
+    rentalTitle: 'Monthly rental',
+    span: 'monthly',
+    rentalLine: () => 'Monthly rate',
+    renews: (_weekday, day) => (day ? `Then on day ${day} of each month` : 'Then monthly'),
+    recurringNote: 'each month, until you return the car',
+  },
 };
 
 export function cycleWords(cycle: string | null | undefined): CycleWords {
-  return CYCLES[cycle === 'biweekly' ? 'biweekly' : 'weekly'];
+  return CYCLES[(cycle as BillingCycle) in CYCLES ? (cycle as BillingCycle) : 'weekly'];
 }

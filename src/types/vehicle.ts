@@ -7,14 +7,12 @@ export interface ApiVehicleImage {
   is_thumbnail: boolean;
 }
 
-export type WeeklyScope = 'all' | 'ongoing';
-
 export interface ApiBookingPrice {
   id?: number;
   price_per_day?: number | null;
   price_per_hour?: number | null;
   price_per_week?: number | null;
-  weekly_scope?: WeeklyScope;
+  subscription_price_per_week?: number | null;
   auto_cap_enabled?: boolean;
   min_hours?: number | null;
   discounts?: {
@@ -137,7 +135,7 @@ export interface Vehicle {
   pricePerDay: number;
   pricePerHour: number;
   pricePerWeek: number;
-  weeklyScope: WeeklyScope;
+  subscriptionPricePerWeek: number | null;
   offers: RentalOffers;
   subscriptionPlanId: number | null;
   autoCapEnabled: boolean;
@@ -216,7 +214,7 @@ export function transformApiVehicle(apiVehicle: ApiVehicle): Vehicle {
     pricePerDay,
     pricePerHour,
     pricePerWeek: Number(apiVehicle.booking_price?.price_per_week ?? 0) || 0,
-    weeklyScope: apiVehicle.booking_price?.weekly_scope === 'all' ? 'all' : 'ongoing',
+    subscriptionPricePerWeek: Number(apiVehicle.booking_price?.subscription_price_per_week ?? 0) || null,
     offers: apiVehicle.offers ?? {
       daily: apiVehicle.booking_rule?.offers_daily !== false,
       gig: !!apiVehicle.booking_rule?.offers_gig,

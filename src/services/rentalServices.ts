@@ -8,7 +8,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export type RentalModel = 'daily' | 'gig' | 'subscription';
 
-export type BillingCycle = 'weekly' | 'biweekly';
+export type BillingCycle = 'weekly' | 'biweekly' | 'monthly';
 
 export interface PublicPlan {
   id: number;
