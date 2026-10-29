@@ -7,6 +7,8 @@ export interface ApiVehicleImage {
   is_thumbnail: boolean;
 }
 
+const DAILY_ONLY_OFFERS: RentalOffers = { daily: true, gig: false, subscription: false };
+
 export interface ApiBookingPrice {
   id?: number;
   price_per_day?: number | null;
@@ -63,9 +65,6 @@ export interface ApiBookingRule {
   extras?: ApiFleetExtra[];
   tax_profile?: number | null;
   use_default_tax_profile?: boolean;
-  offers_daily?: boolean;
-  offers_gig?: boolean;
-  offers_subscription?: boolean;
   subscription_plan?: number | null;
 }
 
@@ -215,11 +214,7 @@ export function transformApiVehicle(apiVehicle: ApiVehicle): Vehicle {
     pricePerHour,
     pricePerWeek: Number(apiVehicle.booking_price?.price_per_week ?? 0) || 0,
     subscriptionPricePerWeek: Number(apiVehicle.booking_price?.subscription_price_per_week ?? 0) || null,
-    offers: apiVehicle.offers ?? {
-      daily: apiVehicle.booking_rule?.offers_daily !== false,
-      gig: !!apiVehicle.booking_rule?.offers_gig,
-      subscription: !!apiVehicle.booking_rule?.offers_subscription,
-    },
+    offers: apiVehicle.offers ?? DAILY_ONLY_OFFERS,
     subscriptionPlanId: apiVehicle.booking_rule?.subscription_plan ?? null,
     autoCapEnabled,
     minHours,

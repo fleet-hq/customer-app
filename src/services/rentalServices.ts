@@ -71,6 +71,7 @@ export type OngoingQuote =
       first: PeriodPrice;
       recurring: PeriodPrice;
       renew_weekday_name: string;
+      renew_day: number;
       weekly_rate: string | null;
       deposit: string;
       deposit_method: 'hold' | 'charge_refund' | string;
@@ -118,6 +119,7 @@ export interface RenterRental {
   rental_model: Exclude<RentalModel, 'daily'>;
   billing_cycle?: BillingCycle;
   renew_weekday_name: string | null;
+  renew_day: number;
   billing_state: string;
   collection_method: string;
   next_renewal: { state: string; at?: string; amount?: string | null };

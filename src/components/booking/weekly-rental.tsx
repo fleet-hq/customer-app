@@ -133,7 +133,7 @@ export function WeeklyRentalSummary({ weekly, variant = 'tokens' }: { weekly: We
     { label: 'Deposit', value: depositSummary(deposit, weeklyDepositTiming(offer.deposit_method)) },
     { label: 'Due today', value: money(Number(offer.first.total) + deposit) },
     {
-      label: weekly.cycle.renews(offer.renew_weekday_name),
+      label: weekly.cycle.renews(offer),
       value: money(Number(offer.recurring.total)),
       note: weekly.cycle.recurringNote,
     },

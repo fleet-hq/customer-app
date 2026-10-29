@@ -1,13 +1,18 @@
 import { money } from '@/lib/utils';
 import type { BillingCycle } from '@/services/rentalServices';
 
+export interface Renewal {
+  renew_weekday_name?: string | null;
+  renew_day?: number | null;
+}
+
 export interface CycleWords {
   badge: string;
   firstPeriod: string;
   rentalTitle: string;
   span: string;
   rentalLine: (weeklyRate: number | null) => string;
-  renews: (weekday: string, day?: number | null) => string;
+  renews: (renewal: Renewal) => string;
   recurringNote: string;
 }
 
@@ -18,7 +23,7 @@ const CYCLES: Record<BillingCycle, CycleWords> = {
     rentalTitle: 'Weekly rental',
     span: 'weekly',
     rentalLine: () => 'Weekly rate',
-    renews: (weekday) => `Then every ${weekday}`,
+    renews: ({ renew_weekday_name }) => `Then every ${renew_weekday_name ?? ''}`,
     recurringNote: 'until you return the car',
   },
   biweekly: {
@@ -27,7 +32,7 @@ const CYCLES: Record<BillingCycle, CycleWords> = {
     rentalTitle: 'Rental billed every two weeks',
     span: 'every two weeks',
     rentalLine: (weeklyRate) => (weeklyRate ? `2 weeks × ${money(weeklyRate)}` : 'Two-week rate'),
-    renews: (weekday) => `Then every other ${weekday}`,
+    renews: ({ renew_weekday_name }) => `Then every other ${renew_weekday_name ?? ''}`,
     recurringNote: 'every two weeks, until you return the car',
   },
   monthly: {
@@ -36,11 +41,13 @@ const CYCLES: Record<BillingCycle, CycleWords> = {
     rentalTitle: 'Monthly rental',
     span: 'monthly',
     rentalLine: () => 'Monthly rate',
-    renews: (_weekday, day) => (day ? `Then on day ${day} of each month` : 'Then monthly'),
+    renews: ({ renew_day }) => (renew_day ? `Then on day ${renew_day} of each month` : 'Then monthly'),
     recurringNote: 'each month, until you return the car',
   },
 };
 
+const isBillingCycle = (cycle: string | null | undefined): cycle is BillingCycle => !!cycle && Object.hasOwn(CYCLES, cycle);
+
 export function cycleWords(cycle: string | null | undefined): CycleWords {
-  return CYCLES[(cycle as BillingCycle) in CYCLES ? (cycle as BillingCycle) : 'weekly'];
+  return CYCLES[isBillingCycle(cycle) ? cycle : 'weekly'];
 }
