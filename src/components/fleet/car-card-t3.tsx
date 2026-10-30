@@ -66,25 +66,27 @@ export function CarCardT3({
           {vehicle.vehicleType ? <div className="cls">{vehicle.vehicleType}</div> : null}
           <h3>{vehicle.name}</h3>
         </div>
-        {specs.length > 0 ? (
-          <div className="specs">
-            {specs.map((spec) => (
-              <span key={spec}>
-                <Dyn>{spec}</Dyn>
-              </span>
-            ))}
-          </div>
-        ) : null}
-        {card.extras ? (
-          <div className="specs">
-            <span>{card.extras}</span>
-            {card.weekly ? (
-              <span>
-                <Dyn>{card.weekly.label}</Dyn>
-              </span>
-            ) : null}
-          </div>
-        ) : null}
+        <div className="spx">
+          {specs.length > 0 ? (
+            <div className="specs">
+              {specs.map((spec) => (
+                <span key={spec}>
+                  <Dyn>{spec}</Dyn>
+                </span>
+              ))}
+            </div>
+          ) : null}
+          {card.extras ? (
+            <div className="specs">
+              <span>{card.extras}</span>
+              {card.weekly ? (
+                <span>
+                  <Dyn>{card.weekly.label}</Dyn>
+                </span>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
         <div className="ft">
           {variant === 'view' && pricing.mode !== 'weekly' && totalPrice != null && totalPrice > 0 ? (
             <div className="tot">

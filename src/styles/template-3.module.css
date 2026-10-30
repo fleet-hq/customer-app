@@ -3518,3 +3518,36 @@
   padding-top: 12px;
   font-weight: 600;
 }
+
+.t3 :global(.car .spx) {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+@supports (grid-template-rows: subgrid) {
+  .t3 :global(.car) {
+    grid-row: span 4;
+    display: grid;
+    grid-template-rows: subgrid;
+    row-gap: 0;
+  }
+  .t3 :global(.car .bd) {
+    grid-row: span 3;
+    display: grid;
+    grid-template-rows: subgrid;
+    row-gap: 10px;
+  }
+  .t3 :global(.car .ft) {
+    margin-top: 0;
+    align-self: stretch;
+    align-items: stretch;
+    width: 100%;
+  }
+  .t3 :global(.car .ft .tot) {
+    align-self: start;
+  }
+  .t3 :global(.car .ft .view) {
+    align-self: end;
+  }
+}
