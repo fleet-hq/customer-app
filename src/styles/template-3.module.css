@@ -1890,10 +1890,15 @@
   border: 1px dashed var(--t3-line);
   padding: 56px 24px;
   text-align: center;
-  display: none;
+  display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 14px;
+}
+.t3 :global(.empty.plain) {
+  border: 0;
+  color: var(--t3-grey);
 }
 .t3 :global(.empty.on) {
   display: flex;

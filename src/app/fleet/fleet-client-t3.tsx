@@ -232,9 +232,9 @@ export default function FleetClientT3() {
           {rentalTabs.showPlans ? (
             <PlanPicker plans={rentalTabs.plans} />
           ) : rentalTabs.modelOff ? null : isLoading ? (
-            <p className="count"><Dyn>Loading the fleet…</Dyn></p>
+            <div className="empty plain"><p><Dyn>Loading the fleet…</Dyn></p></div>
           ) : isError ? (
-            <p className="count"><Dyn>The fleet could not be loaded. Please try again.</Dyn></p>
+            <div className="empty plain"><p><Dyn>The fleet could not be loaded. Please try again.</Dyn></p></div>
           ) : vehicles.length === 0 ? (
             <div className="empty">
               <h3><Dyn>{rentalTabs.emptyText ?? 'No cars match'}</Dyn></h3>

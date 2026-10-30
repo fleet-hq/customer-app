@@ -284,11 +284,9 @@ export function useFleetListing() {
     .filter(Boolean)
     .join(' · ');
 
-  const countLabel = showPlans || modelOff
+  const countLabel = showPlans || modelOff || isLoading
     ? ''
-    : isLoading
-      ? t('Loading…')
-      : activeModel === 'daily'
+    : activeModel === 'daily'
         ? `${shownLabel} · ${t('your')} ${days}${t('-day trip')}${pct > 0 ? ` (${pct}% ${t('off daily')})` : ''}`
         : ongoingCountLabel;
 
