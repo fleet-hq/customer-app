@@ -1,5 +1,5 @@
 'use client';
-import { SearchBar } from '@/components/search/search-bar';
+import { HomeSearch } from '@/components/search/home-search';
 import { HomeHero } from '@/components/sections/home/home-hero';
 import { HomeHeroFeatured } from '@/components/sections/home/home-hero-featured';
 import { PromoBanner } from '@/components/sections/home/promo-banner';
@@ -137,7 +137,7 @@ export default function HomeClient() {
         afterHero={
           <>
             <div className={`relative z-10 mx-auto max-w-[1120px] px-6 ${isFeaturedHero ? 'mt-8' : '-mt-16'}`}>
-              <SearchBar variant="hero" />
+              <HomeSearch />
             </div>
             {fleetVisible ? (
               <FleetCarousel
@@ -207,7 +207,7 @@ export default function HomeClient() {
       ) : null}
 
       <div className={`relative z-10 mx-auto max-w-[1120px] px-6 ${isFeaturedHero ? '-mt-6' : '-mt-16'}`}>
-        <SearchBar variant="hero" />
+        <HomeSearch />
         {promoBanner ? (
           <PromoBanner
             badge={promoBanner.badge}

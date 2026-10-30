@@ -19,7 +19,7 @@ const WEEK_DAYS = 7;
  *  banner copy, and the embed-aware submit — shared by both templates'
  *  search bars so this navigation/booking logic lives in exactly one
  *  place. Templates differ only in how they render what this returns. */
-export function useSearchBar() {
+export function useSearchBar(target?: string) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -154,7 +154,7 @@ export function useSearchBar() {
       }
     }
 
-    router.push(`${paths.fleet}?${params.toString()}`);
+    router.push(`${target ?? paths.fleet}?${params.toString()}`);
   };
 
   return {

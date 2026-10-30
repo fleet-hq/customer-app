@@ -3,6 +3,8 @@
 import { useTenantToday } from '@/hooks/use-tenant-today';
 import { cn } from '@/lib/utils';
 import { useSearchBar } from './use-search-bar';
+import { RENTAL_TABS } from '@/lib/rental-tabs';
+import type { RentalModel } from '@/services/rentalServices';
 import { ArrowRight, Check, ChevronDown, MapPin, Search, Swap } from '@/components/ui/icons';
 import { DateTimeField } from './date-time-field';
 import { Dyn } from '@/components/i18n/Dyn';
@@ -16,9 +18,12 @@ interface SearchBarProps {
    *  extra card would double up. Off by default so kaysgroove et al.
    *  still get the standard hero card. */
   bareContainer?: boolean;
+  model?: RentalModel;
 }
 
-export function SearchBar({ variant = 'hero', bareContainer = false }: SearchBarProps) {
+export function SearchBar({ variant = 'hero', bareContainer = false, model = 'daily' }: SearchBarProps) {
+  const ongoing = model !== 'daily';
+  const target = RENTAL_TABS.find((tab) => tab.model === model)?.href;
   const today = useTenantToday();
   const { t } = useDynamicTranslation(['Swap locations', "You've unlocked our best weekly rate."]);
   const {
@@ -52,7 +57,7 @@ export function SearchBar({ variant = 'hero', bareContainer = false }: SearchBar
     discTitle,
     discSub,
     goSearch,
-  } = useSearchBar();
+  } = useSearchBar(target);
 
   const LocationField = ({ which }: { which: 'pickup' | 'drop' }) => {
     const selected = which === 'pickup' ? selectedPickup : selectedDrop;
@@ -114,29 +119,31 @@ export function SearchBar({ variant = 'hero', bareContainer = false }: SearchBar
         <div className="mx-auto max-w-[1200px] px-6 py-[12px]">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-2">
             <LocationField which="pickup" />
-            <div
-              aria-hidden={!diffLocation}
-              className={cn(
-                'flex items-center transition-all duration-300 ease-out',
-                diffLocation
-                  ? 'w-full gap-2 overflow-visible opacity-100 md:w-auto md:max-w-[360px] md:flex-[1.1]'
-                  : 'hidden overflow-hidden opacity-0 md:flex md:max-w-0 md:flex-[0_0_0px] md:gap-0 md:opacity-0 pointer-events-none',
-              )}
-            >
-              <button
-                type="button"
-                onClick={() => {
-                  setPickupLocId(dropLocId);
-                  setDropLocId(pickupLocId);
-                }}
-                title={t('Swap locations')}
-                aria-label={t('Swap locations')}
-                className="flex flex-shrink-0 cursor-pointer items-center justify-center bg-transparent p-1 text-primary"
+            {!ongoing && (
+              <div
+                aria-hidden={!diffLocation}
+                className={cn(
+                  'flex items-center transition-all duration-300 ease-out',
+                  diffLocation
+                    ? 'w-full gap-2 overflow-visible opacity-100 md:w-auto md:max-w-[360px] md:flex-[1.1]'
+                    : 'hidden overflow-hidden opacity-0 md:flex md:max-w-0 md:flex-[0_0_0px] md:gap-0 md:opacity-0 pointer-events-none',
+                )}
               >
-                <Swap size={16} />
-              </button>
-              <LocationField which="drop" />
-            </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPickupLocId(dropLocId);
+                    setDropLocId(pickupLocId);
+                  }}
+                  title={t('Swap locations')}
+                  aria-label={t('Swap locations')}
+                  className="flex flex-shrink-0 cursor-pointer items-center justify-center bg-transparent p-1 text-primary"
+                >
+                  <Swap size={16} />
+                </button>
+                <LocationField which="drop" />
+              </div>
+            )}
             <div className="mx-[9px] hidden h-[38px] w-px flex-shrink-0 bg-line md:block" />
             <div className="min-w-0 flex-[1.55]">
               <div className="mb-[5px] text-[10px] tracking-[0.03em] text-faint uppercase"><Dyn>Pick-up Date &amp; Time</Dyn></div>
@@ -152,22 +159,26 @@ export function SearchBar({ variant = 'hero', bareContainer = false }: SearchBar
                 compact
               />
             </div>
-            <div className="mx-[9px] hidden h-[38px] w-px flex-shrink-0 bg-line md:block" />
-            <div className="min-w-0 flex-[1.55]">
-              <div className="mb-[5px] text-[10px] tracking-[0.03em] text-faint uppercase"><Dyn>Return Date &amp; Time</Dyn></div>
-              <DateTimeField
-                date={returnDate}
-                time={returnTime}
-                onDate={setReturnDate}
-                onTime={setReturnTime}
-                minTime={minTime}
-                maxTime={maxTime}
-                minDate={pickupDate || today}
-                highlightDate={pickupDate}
-                label="Return"
-                compact
-              />
-            </div>
+            {!ongoing && (
+              <>
+              <div className="mx-[9px] hidden h-[38px] w-px flex-shrink-0 bg-line md:block" />
+              <div className="min-w-0 flex-[1.55]">
+                <div className="mb-[5px] text-[10px] tracking-[0.03em] text-faint uppercase"><Dyn>Return Date &amp; Time</Dyn></div>
+                <DateTimeField
+                  date={returnDate}
+                  time={returnTime}
+                  onDate={setReturnDate}
+                  onTime={setReturnTime}
+                  minTime={minTime}
+                  maxTime={maxTime}
+                  minDate={pickupDate || today}
+                  highlightDate={pickupDate}
+                  label="Return"
+                  compact
+                />
+              </div>
+              </>
+            )}
             <button
               onClick={goSearch}
               className="flex h-[42px] w-full flex-shrink-0 items-center justify-center gap-2 rounded-[9px] border border-line bg-white text-[13px] font-semibold text-primary md:ml-2 md:w-[42px]"
@@ -176,23 +187,25 @@ export function SearchBar({ variant = 'hero', bareContainer = false }: SearchBar
               <span className="md:hidden"><Dyn>Search</Dyn></span>
             </button>
           </div>
-          <label
-            onClick={() => {
-              setDiffLocation((d) => !d);
-              setOpenLoc(null);
-            }}
-            className="mt-[10px] inline-flex cursor-pointer items-center gap-[9px] text-[12.5px] text-label"
-          >
-            <span
-              className={cn(
-                'inline-flex h-[16px] w-[16px] flex-shrink-0 items-center justify-center rounded-[5px] border-[1.5px]',
-                diffLocation ? 'border-primary bg-primary' : 'border-control bg-white',
-              )}
+          {!ongoing && (
+            <label
+              onClick={() => {
+                setDiffLocation((d) => !d);
+                setOpenLoc(null);
+              }}
+              className="mt-[10px] inline-flex cursor-pointer items-center gap-[9px] text-[12.5px] text-label"
             >
-              {diffLocation && <Check size={11} strokeWidth={3} className="text-white" />}
-            </span>
-            <Dyn>Return car to different location</Dyn>
-          </label>
+              <span
+                className={cn(
+                  'inline-flex h-[16px] w-[16px] flex-shrink-0 items-center justify-center rounded-[5px] border-[1.5px]',
+                  diffLocation ? 'border-primary bg-primary' : 'border-control bg-white',
+                )}
+              >
+                {diffLocation && <Check size={11} strokeWidth={3} className="text-white" />}
+              </span>
+              <Dyn>Return car to different location</Dyn>
+            </label>
+          )}
         </div>
       </div>
     );
@@ -209,29 +222,31 @@ export function SearchBar({ variant = 'hero', bareContainer = false }: SearchBar
       >
         <div className="flex flex-col gap-5 md:flex-row md:items-center md:gap-3">
           <LocationField which="pickup" />
-          <div
-            aria-hidden={!diffLocation}
-            className={cn(
-              'flex items-center transition-all duration-300 ease-out',
-              diffLocation
-                ? 'w-full gap-2 overflow-visible opacity-100 md:w-auto md:max-w-[460px] md:flex-[1.6]'
-                : 'hidden overflow-hidden opacity-0 md:flex md:max-w-0 md:flex-[0_0_0px] md:gap-0 md:opacity-0 pointer-events-none',
-            )}
-          >
-            <button
-              type="button"
-              onClick={() => {
-                setPickupLocId(dropLocId);
-                setDropLocId(pickupLocId);
-              }}
-              title="Swap locations"
-              aria-label="Swap locations"
-              className="flex flex-shrink-0 cursor-pointer items-center justify-center bg-transparent p-1 text-primary"
+          {!ongoing && (
+            <div
+              aria-hidden={!diffLocation}
+              className={cn(
+                'flex items-center transition-all duration-300 ease-out',
+                diffLocation
+                  ? 'w-full gap-2 overflow-visible opacity-100 md:w-auto md:max-w-[460px] md:flex-[1.6]'
+                  : 'hidden overflow-hidden opacity-0 md:flex md:max-w-0 md:flex-[0_0_0px] md:gap-0 md:opacity-0 pointer-events-none',
+              )}
             >
-              <Swap size={18} />
-            </button>
-            <LocationField which="drop" />
-          </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setPickupLocId(dropLocId);
+                  setDropLocId(pickupLocId);
+                }}
+                title="Swap locations"
+                aria-label="Swap locations"
+                className="flex flex-shrink-0 cursor-pointer items-center justify-center bg-transparent p-1 text-primary"
+              >
+                <Swap size={18} />
+              </button>
+              <LocationField which="drop" />
+            </div>
+          )}
           <div className="mx-3 hidden h-[44px] w-px flex-shrink-0 bg-line md:block" />
           <div className="min-w-0 flex-[1.7]">
             <div className="mb-[6px] text-[10px] tracking-[0.03em] text-faint uppercase"><Dyn>Pick-up Date &amp; Time</Dyn></div>
@@ -246,21 +261,25 @@ export function SearchBar({ variant = 'hero', bareContainer = false }: SearchBar
               label="Pick-up"
             />
           </div>
-          <div className="mx-3 hidden h-[44px] w-px flex-shrink-0 bg-line md:block" />
-          <div className="min-w-0 flex-[1.7]">
-            <div className="mb-[6px] text-[10px] tracking-[0.03em] text-faint uppercase"><Dyn>Return Date &amp; Time</Dyn></div>
-            <DateTimeField
-              date={returnDate}
-              time={returnTime}
-              onDate={setReturnDate}
-              onTime={setReturnTime}
-                minTime={minTime}
-                maxTime={maxTime}
-              minDate={pickupDate || today}
-              highlightDate={pickupDate}
-              label="Return"
-            />
-          </div>
+          {!ongoing && (
+            <>
+            <div className="mx-3 hidden h-[44px] w-px flex-shrink-0 bg-line md:block" />
+            <div className="min-w-0 flex-[1.7]">
+              <div className="mb-[6px] text-[10px] tracking-[0.03em] text-faint uppercase"><Dyn>Return Date &amp; Time</Dyn></div>
+              <DateTimeField
+                date={returnDate}
+                time={returnTime}
+                onDate={setReturnDate}
+                onTime={setReturnTime}
+                  minTime={minTime}
+                  maxTime={maxTime}
+                minDate={pickupDate || today}
+                highlightDate={pickupDate}
+                label="Return"
+              />
+            </div>
+            </>
+          )}
         </div>
 
         <div className="my-[14px] mt-[14px] mb-3 h-px bg-hairline" />
@@ -279,27 +298,29 @@ export function SearchBar({ variant = 'hero', bareContainer = false }: SearchBar
         )}
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <label
-            onClick={() => {
-              setDiffLocation((d) => !d);
-              setOpenLoc(null);
-            }}
-            className="flex cursor-pointer items-center gap-[9px] text-[13px] text-label"
-          >
-            <span
-              className={cn(
-                'inline-flex h-[17px] w-[17px] flex-shrink-0 items-center justify-center rounded-[5px] border-[1.5px]',
-                diffLocation ? 'border-primary bg-primary' : 'border-control bg-white',
-              )}
+          {!ongoing && (
+            <label
+              onClick={() => {
+                setDiffLocation((d) => !d);
+                setOpenLoc(null);
+              }}
+              className="flex cursor-pointer items-center gap-[9px] text-[13px] text-label"
             >
-              {diffLocation && (
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M20 6 9 17l-5-5" />
-                </svg>
-              )}
-            </span>
-            <Dyn>Return car to different location</Dyn>
-          </label>
+              <span
+                className={cn(
+                  'inline-flex h-[17px] w-[17px] flex-shrink-0 items-center justify-center rounded-[5px] border-[1.5px]',
+                  diffLocation ? 'border-primary bg-primary' : 'border-control bg-white',
+                )}
+              >
+                {diffLocation && (
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 6 9 17l-5-5" />
+                  </svg>
+                )}
+              </span>
+              <Dyn>Return car to different location</Dyn>
+            </label>
+          )}
           <button
             onClick={goSearch}
             className="inline-flex w-full items-center justify-center gap-2 rounded-[7px] bg-primary px-[18px] py-[11px] text-[13.5px] font-semibold text-white sm:w-auto sm:py-[9px]"
