@@ -2,8 +2,10 @@
 
 import { useTenantToday } from '@/hooks/use-tenant-today';
 import { cn } from '@/lib/utils';
+import { useState } from 'react';
 import { useSearchBar } from './use-search-bar';
-import { RENTAL_TABS } from '@/lib/rental-tabs';
+import { useRentalSiteConfig } from '@/hooks/useRentalSiteConfig';
+import { RENTAL_TABS, tabFor } from '@/lib/rental-tabs';
 import type { RentalModel } from '@/services/rentalServices';
 import { ArrowRight, Check, ChevronDown, MapPin, Search, Swap } from '@/components/ui/icons';
 import { DateTimeField } from './date-time-field';
@@ -19,10 +21,16 @@ interface SearchBarProps {
    *  still get the standard hero card. */
   bareContainer?: boolean;
   model?: RentalModel;
+  attached?: boolean;
 }
 
-export function SearchBar({ variant = 'hero', bareContainer = false, model = 'daily' }: SearchBarProps) {
+export function SearchBar({ variant = 'hero', bareContainer = false, model = 'daily', attached = false }: SearchBarProps) {
   const ongoing = model !== 'daily';
+  const [wantsReturn, setWantsReturn] = useState(false);
+  const rentalConfig = useRentalSiteConfig();
+  const tab = tabFor(model);
+  const minWeeks = ongoing ? rentalConfig.terms?.[model]?.min_term_weeks ?? 0 : 0;
+  const returnShown = !ongoing || wantsReturn;
   const target = RENTAL_TABS.find((tab) => tab.model === model)?.href;
   const today = useTenantToday();
   const { t } = useDynamicTranslation(['Swap locations', "You've unlocked our best weekly rate."]);
@@ -159,7 +167,7 @@ export function SearchBar({ variant = 'hero', bareContainer = false, model = 'da
                 compact
               />
             </div>
-            {!ongoing && (
+            {returnShown && (
               <>
               <div className="mx-[9px] hidden h-[38px] w-px flex-shrink-0 bg-line md:block" />
               <div className="min-w-0 flex-[1.55]">
@@ -206,6 +214,22 @@ export function SearchBar({ variant = 'hero', bareContainer = false, model = 'da
               <Dyn>Return car to different location</Dyn>
             </label>
           )}
+          {ongoing && (
+            <label
+              onClick={() => setWantsReturn((v) => !v)}
+              className="mt-[10px] inline-flex cursor-pointer items-center gap-[9px] text-[12.5px] text-label"
+            >
+              <span
+                className={cn(
+                  'inline-flex h-[16px] w-[16px] flex-shrink-0 items-center justify-center rounded-[5px] border-[1.5px]',
+                  wantsReturn ? 'border-primary bg-primary' : 'border-control bg-white',
+                )}
+              >
+                {wantsReturn && <Check size={11} strokeWidth={3} className="text-white" />}
+              </span>
+              <Dyn>{minWeeks > 0 ? `Add a return date (${minWeeks}-week minimum)` : 'Add a return date'}</Dyn>
+            </label>
+          )}
         </div>
       </div>
     );
@@ -218,8 +242,13 @@ export function SearchBar({ variant = 'hero', bareContainer = false, model = 'da
           bareContainer
             ? 'rounded-xl border border-card-border px-5 pt-5 pb-4 md:px-8 md:pt-6'
             : 'rounded-xl border border-card-border bg-white px-5 pt-5 pb-4 shadow-[var(--shadow-card)] md:px-8 md:pt-6',
+          attached && 'rounded-t-none',
         )}
       >
+        <div className="mb-[12px] flex items-center gap-[7px] text-[11px] font-semibold tracking-[0.05em] uppercase text-faint">
+          <span className="inline-block h-[7px] w-[7px] flex-shrink-0 bg-primary" />
+          <Dyn>{tab.fieldsLabel}</Dyn>
+        </div>
         <div className="flex flex-col gap-5 md:flex-row md:items-center md:gap-3">
           <LocationField which="pickup" />
           {!ongoing && (
@@ -261,7 +290,7 @@ export function SearchBar({ variant = 'hero', bareContainer = false, model = 'da
               label="Pick-up"
             />
           </div>
-          {!ongoing && (
+          {returnShown && (
             <>
             <div className="mx-3 hidden h-[44px] w-px flex-shrink-0 bg-line md:block" />
             <div className="min-w-0 flex-[1.7]">
@@ -319,6 +348,22 @@ export function SearchBar({ variant = 'hero', bareContainer = false, model = 'da
                 )}
               </span>
               <Dyn>Return car to different location</Dyn>
+            </label>
+          )}
+          {ongoing && (
+            <label
+              onClick={() => setWantsReturn((v) => !v)}
+              className="mt-[10px] inline-flex cursor-pointer items-center gap-[9px] text-[12.5px] text-label"
+            >
+              <span
+                className={cn(
+                  'inline-flex h-[16px] w-[16px] flex-shrink-0 items-center justify-center rounded-[5px] border-[1.5px]',
+                  wantsReturn ? 'border-primary bg-primary' : 'border-control bg-white',
+                )}
+              >
+                {wantsReturn && <Check size={11} strokeWidth={3} className="text-white" />}
+              </span>
+              <Dyn>{minWeeks > 0 ? `Add a return date (${minWeeks}-week minimum)` : 'Add a return date'}</Dyn>
             </label>
           )}
           <button

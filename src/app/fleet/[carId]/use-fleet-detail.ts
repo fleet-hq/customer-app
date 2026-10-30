@@ -44,7 +44,7 @@ import { onlineModels } from '@/lib/rental-offers';
 import { trackedPromo } from '@/lib/tracking-tag';
 import { weeklyDepositTiming } from '@/lib/price-rows';
 import { useOngoingQuote } from '@/hooks/useRentalSiteConfig';
-import type { OngoingOffer, OngoingQuotePayload, RentalModel } from '@/services/rentalServices';
+import type { OngoingOffer, OngoingQuotePayload, RentalModel, BillingCycle } from '@/services/rentalServices';
 
 type OngoingModel = Exclude<RentalModel, 'daily'>;
 import { trackVehicleView, trackBeginCheckout } from '@/lib/tracking-events';
@@ -409,6 +409,7 @@ export function useFleetDetail(carId: string) {
   const notBookableOnline = !!vehicle && rentalConfig.ready && carModels.length === 0;
   const [weeklyChosen, setWeekly] = useState(urlModel === 'gig' || urlModel === 'subscription');
   const [weeklyConsent, setWeeklyConsent] = useState(false);
+  const [billingCycle, setBillingCycle] = useState<BillingCycle | null>(null);
   const planId = ongoingModel === 'subscription' ? vehicle?.subscriptionPlanId ?? null : null;
 
   const renterEmail = EMAIL_PATTERN.test(fields.email.trim()) ? fields.email.trim() : undefined;
@@ -422,8 +423,9 @@ export function useFleetDetail(carId: string) {
       pickup_location_id: quotePayload.pickup_location_id,
       extras: quotePayload.extras,
       email: renterEmail,
+      billing_cycle: billingCycle,
     };
-  }, [ongoingModel, planId, quotePayload, renterEmail]);
+  }, [ongoingModel, planId, quotePayload, renterEmail, billingCycle]);
   const { quote: ongoingQuote, stale: ongoingStale } = useOngoingQuote(ongoingPayload);
   const futureBooked = !!ongoingQuote && !ongoingQuote.available && ongoingQuote.code === 'future_booking';
   const hideWeekly = futureBooked && dailyAllowed;
@@ -749,6 +751,9 @@ export function useFleetDetail(carId: string) {
       reason: ongoingQuote && !ongoingQuote.available ? ongoingQuote.reason : null,
       stale: ongoingStale,
       cycle,
+      cycles: offer?.cycles ?? [],
+      cycleValue: offer?.billing_cycle ?? billingCycle,
+      setCycle: setBillingCycle,
       consent: weeklyConsent,
       setConsent: setWeeklyConsent,
     },

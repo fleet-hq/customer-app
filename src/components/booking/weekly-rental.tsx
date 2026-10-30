@@ -5,7 +5,7 @@ import { cn, money } from '@/lib/utils';
 import { useIsT2 } from '@/lib/use-is-t2';
 import { depositSummary, weeklyDepositTiming } from '@/lib/price-rows';
 import { cycleWords, type CycleWords } from '@/lib/billing-cycle';
-import type { OngoingOffer, PeriodPrice, RentalModel } from '@/services/rentalServices';
+import type { BillingCycle, OngoingOffer, PeriodPrice, RentalModel } from '@/services/rentalServices';
 
 export interface WeeklyState {
   options: Exclude<RentalModel, 'daily'>[];
@@ -18,6 +18,9 @@ export interface WeeklyState {
   reason: string | null;
   stale: boolean;
   cycle: CycleWords;
+  cycles: { value: string; label: string }[];
+  cycleValue: string | null;
+  setCycle: (next: BillingCycle) => void;
   consent: boolean;
   setConsent: (next: boolean) => void;
 }
@@ -108,6 +111,29 @@ export function ReturnModeToggle({ weekly, variant = 'tokens' }: { weekly: Weekl
           <Dyn>{label}</Dyn>
         </label>
       ))}
+      {weekly.on && weekly.cycles.length > 1 && (
+        <div className="mt-1">
+          <div className={cn('mb-[6px] text-[11px] tracking-[0.03em] uppercase', skin.quiet)}>
+            <Dyn>Billing terms</Dyn>
+          </div>
+          <div className="flex flex-wrap gap-[6px]">
+            {weekly.cycles.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => weekly.setCycle(option.value as BillingCycle)}
+                className={cn(
+                  'cursor-pointer rounded-[8px] border px-[11px] py-[6px] text-[12.5px]',
+                  weekly.cycleValue === option.value ? skin.active : skin.line,
+                  skin.strong,
+                )}
+              >
+                <Dyn>{option.label}</Dyn>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

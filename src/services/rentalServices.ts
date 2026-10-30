@@ -55,6 +55,7 @@ export interface OngoingQuotePayload {
   pickup_location_id: number;
   extras?: { id: number; quantity: number }[];
   email?: string;
+  billing_cycle?: BillingCycle | null;
 }
 
 export interface PeriodPrice {
@@ -74,6 +75,7 @@ export type OngoingQuote =
       available: true;
       rental_model: Exclude<RentalModel, 'daily'>;
       billing_cycle?: BillingCycle;
+      cycles?: { value: string; label: string }[];
       first_period_end: string;
       first: PeriodPrice;
       recurring: PeriodPrice;
