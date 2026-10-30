@@ -1,0 +1,114 @@
+/* Template 1 booking dashboard.
+ *
+ * Template 1 has no shell of its own — it is the Tailwind theme — so the
+ * dashboard's structural classes are scoped under .t1 here and the page
+ * wraps itself in it. Same markup as templates 2 and 3; only the tokens
+ * differ. */
+
+.t1 {
+  --t1-pad: clamp(16px, 3vw, 32px);
+  --color-muted: #6b7280;
+}
+
+/* Gig dashboard — same structure as template 3, template 1 theme */
+.t1 :global(.kp) { display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:#ffffff;border:1px solid var(--color-card-border);margin-bottom:clamp(28px,3.5vw,44px) }
+.t1 :global(.kp>div) { padding:16px 18px;border-left:1px solid var(--color-card-border);display:flex;flex-direction:column;gap:6px;min-width:0 }
+.t1 :global(.kp>div:first-child) { border-left:0 }
+.t1 :global(.kp span) { font:600 10px var(--font-manrope);letter-spacing:.14em;text-transform:uppercase;color:#5A635C }
+.t1 :global(.kp b) { font:800 32px/1 var(--font-manrope);text-transform:uppercase }
+.t1 :global(.kp b.due) { color:#8A5A00 }
+.t1 :global(.kp small) { font-size:12px;color:#4A524C }
+.t1 :global(.kp>div:nth-child(3)) { border-left:0 }
+.t1 :global(.kp>div:nth-child(n+3)) { border-top:1px solid var(--color-card-border) }
+.t1 :global(.gd) { display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,380px);gap:clamp(24px,3.5vw,48px);align-items:start }
+.t1 :global(.gd>div>.blk:first-child) { margin-top:0 }
+.t1 :global(.cc) { display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr);background:#ffffff;border:1px solid var(--color-card-border) }
+.t1 :global(.cc .im) { aspect-ratio:4/3;min-height:100% }
+.t1 :global(.cc .tx) { padding:18px 20px;display:flex;flex-direction:column;gap:10px;min-width:0 }
+.t1 :global(.cc h3) { font-size:30px }
+.t1 :global(.meta) { display:flex;flex-wrap:wrap;gap:4px 18px;font-size:13px;color:#4A524C }
+.t1 :global(.meta b) { color:var(--color-ink);font-weight:600 }
+.t1 :global(.racts) { display:flex;gap:8px;flex-wrap:wrap;margin-top:auto;padding-top:4px }
+.t1 :global(.gb) { display:inline-flex;align-items:center;gap:8px;padding:11px 15px;border:1px solid var(--color-ink);background:transparent;font:600 11px var(--font-manrope);letter-spacing:.14em;text-transform:uppercase;cursor:pointer;color:var(--color-ink);transition:background .2s,color .2s }
+.t1 :global(.gb:hover) { background:var(--color-ink);color:var(--color-subtle) }
+.t1 :global(.gb.lt) { border-color:var(--color-hairline);color:var(--color-subtle) }
+.t1 :global(.gb.lt:hover) { background:var(--color-subtle);color:var(--color-ink) }
+.t1 :global(.gb.w) { width:100%;justify-content:center }
+.t1 :global(.flag) { background:var(--color-primary-soft);color:var(--color-primary, var(--color-ink));padding:12px 14px;font-size:13px;display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap }
+.t1 :global(.flag.warn) { background:#F5E7C6;color:#6B4E0E }
+.t1 :global(.flag button) { background:none;border:0;font:600 11px var(--font-manrope);letter-spacing:.12em;text-transform:uppercase;color:inherit;cursor:pointer;text-decoration:underline;padding:0 }
+.t1 :global(.lst) { background:#ffffff;border:1px solid var(--color-card-border) }
+.t1 :global(.lst>div) { display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:13px 16px;border-top:1px solid var(--color-card-border);align-items:center;font-size:14px }
+.t1 :global(.lst>div:first-child) { border-top:0 }
+.t1 :global(.lst small) { display:block;font-size:12px;color:#5A635C }
+.t1 :global(.lg>div) { grid-template-columns:88px minmax(0,1fr) auto 64px }
+.t1 :global(.lg .d) { color:#5A635C;font-size:13px }
+.t1 :global(.lg .a) { font-variant-numeric:tabular-nums;text-align:right }
+.t1 :global(.st) { font:600 9px var(--font-manrope);letter-spacing:.14em;text-transform:uppercase;padding:4px 7px;background:var(--color-primary-soft);color:var(--color-primary, var(--color-ink));justify-self:end;white-space:nowrap }
+.t1 :global(.st.due) { background:#F5E7C6;color:#6B4E0E }
+.t1 :global(.st.hold) { background:#E6E8E3;color:#3E4640 }
+
+
+.t1 :global(.bh) { display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px }
+.t1 :global(.bh h2) { margin:0!important }
+.t1 :global(.mf) { display:flex;flex-direction:column;gap:6px;margin-top:14px }
+.t1 :global(.mf>label) { font:600 10px var(--font-manrope);letter-spacing:.14em;text-transform:uppercase;color:#5A635C }
+.t1 :global(.mf input[type=date]), .t1 :global(.mf textarea), .t1 :global(.mf input[type=text]) { border:1px solid var(--color-card-border);background:#ffffff;padding:11px 12px;font:500 14px var(--font-manrope);color:var(--color-ink);width:100%;color-scheme:light }
+.t1 :global(.mf textarea) { min-height:88px;resize:vertical }
+.t1 :global(.sos) { background:var(--color-ink);color:var(--color-subtle);padding:12px 14px;font-size:13px;margin-top:12px }
+.t1 :global(.sos a) { color:var(--color-primary) }
+
+/* Gig dashboard — compound selectors */
+.t1 :global(.rule.d) { border-color:var(--color-hairline) }
+.t1 :global(.why-item .n) { font-family:var(--font-manrope);font-weight:800;font-size:34px;color:var(--color-primary);line-height:1;margin-bottom:18px }
+.t1 :global(.why-item .n) { transition:transform .4s cubic-bezier(.2,.7,.2,1) }
+.t1 :global(.why-item:hover .n) { transform:translateX(6px) }
+.t1 :global(.okbar .ic) { width:40px;height:40px;background:var(--color-primary);display:grid;place-items:center;flex:none }
+.t1 :global(.okbar .ic::after) { content:"";width:14px;height:8px;border-left:3px solid var(--color-ink);border-bottom:3px solid var(--color-ink);transform:rotate(-45deg) translate(1px,-2px) }
+.t1 :global(.bk-car .im) { aspect-ratio:4/3;height:100% }
+.t1 :global(.bk-car .tx) { padding:16px 16px 16px 0 }
+.t1 :global(.bk-car .tx) { padding:0 16px 16px }
+.t1 :global(.docs) { list-style:none;margin:0;padding:0;border-top:1px solid var(--color-card-border) }
+.t1 :global(.docs li) { display:flex;justify-content:space-between;gap:12px;align-items:center;padding:14px 0;border-bottom:1px solid var(--color-card-border);font-size:14px }
+.t1 :global(.docs label.up) { font:600 11px var(--font-manrope);letter-spacing:.12em;text-transform:uppercase;color:var(--color-primary);cursor:pointer }
+.t1 :global(.docs label.up:hover) { color:var(--color-ink) }
+.t1 :global(.docs input) { display:none }
+.t1 :global(.docs .got) { color:var(--color-primary);font-size:12px;font-weight:600 }
+.t1 :global(.ln.due) { border-top:1px solid var(--color-hairline);margin-top:8px;padding-top:12px;font-weight:600 }
+.t1 :global(.ln.due span:last-child) { color:var(--color-primary);font:800 22px/1 var(--font-manrope) }
+.t1 :global(.cf-car .im) { aspect-ratio:4/3;background:var(--color-subtle) }
+.t1 :global(.gd-hd) { display:flex;justify-content:space-between;align-items:end;gap:16px;flex-wrap:wrap;margin:14px 0 22px }
+.t1 :global(.gd-hd h1) { font-size:clamp(36px,4.6vw,62px);margin-top:8px }
+.t1 :global(.flag) { background:var(--color-primary-soft);color:var(--color-primary);padding:12px 14px;font-size:13px;display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap }
+.t1 :global(.st) { font:600 9px var(--font-manrope);letter-spacing:.14em;text-transform:uppercase;padding:4px 7px;background:var(--color-primary-soft);color:var(--color-primary);justify-self:end;white-space:nowrap }
+.t1 :global(.sum .bar) { height:6px;background:var(--color-hairline);margin:14px 0 8px }
+.t1 :global(.sum .bar i) { display:block;height:100%;background:var(--color-primary) }
+.t1 :global(.sum .kv) { display:flex;justify-content:space-between;font-size:13px;color:var(--color-muted) }
+.t1 :global(.sum .btns) { display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px }
+.t1 :global(.sum .pt) { font:800 26px/1 var(--font-manrope);text-transform:uppercase;margin:4px 0 8px }
+.t1 :global(.sum .ps) { font-size:13px;color:var(--color-muted);line-height:1.55 }
+.t1 :global(.pk .rd) { width:16px;height:16px;border:1.5px solid currentColor;border-radius:50%;display:grid;place-items:center }
+.t1 :global(.pk button.on .rd::after) { content:"";width:8px;height:8px;border-radius:50%;background:var(--color-primary) }
+.t1 :global(.steps .n) { font:600 10px var(--font-manrope);letter-spacing:.14em;text-transform:uppercase;color:#5A635C }
+.t1 :global(.steps .on .n) { color:var(--color-primary) }
+
+/* Gig dashboard — responsive rules */
+@media(max-width:960px) {
+  .t1 :global(.gd) { grid-template-columns:1fr }
+}
+@media(max-width:620px) {
+  .t1 :global(.cc) { grid-template-columns:1fr }
+}
+@media (max-width: 560px) {
+  .t1 :global(.lg > div) {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .t1 :global(.lg .d) {
+    grid-column: 1 / -1;
+    order: -1;
+    margin-bottom: -8px;
+  }
+  .t1 :global(.lg .st) {
+    grid-column: 2;
+  }
+}

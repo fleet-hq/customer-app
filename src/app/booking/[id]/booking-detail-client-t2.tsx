@@ -1,34 +1,49 @@
 'use client';
 
-import { RenterRentalPanel } from '@/components/booking/renter-rental-panel';
-import { VerifyFirstConfirm } from '@/components/booking/verify-first-confirm';
-import { SquarePayModal } from '@/components/booking/square-pay-modal';
-import { paths } from '@/lib/paths';
+import { useState } from 'react';
+
 import { Dyn } from '@/components/i18n/Dyn';
-import { useBookingDetail } from './use-booking-detail';
-import styles from '@/styles/template-2.module.css';
+import { BookingDashboard } from '@/components/booking/booking-dashboard';
 import { RentalAgreementSignModal } from '@/components/booking/rental-agreement-sign-modal';
+import { SquarePayModal } from '@/components/booking/square-pay-modal';
+import { useBookingPayment } from '@/hooks/use-booking-payment';
+import { useGiveRenterNotice, useRenterRental } from '@/hooks/useRentalSiteConfig';
+import { gigDashboard } from '@/lib/gig-dashboard';
+import { paths } from '@/lib/paths';
+import styles from '@/styles/template-2.module.css';
+import { useBookingDetail } from './use-booking-detail';
 
 export default function BookingDetailClientT2({ id }: { id: string }) {
   const bd = useBookingDetail(id);
+  const [returnDate, setReturnDate] = useState('');
+
+  const ongoing = bd.status === 'ready' && bd.booking.rentalModel !== 'daily';
+  const { data: rental } = useRenterRental(id, ongoing);
+  const notice = useGiveRenterNotice(id);
+  const pay = useBookingPayment(id, ongoing);
 
   if (bd.status === 'loading') {
     return (
       <div className={styles.centerState}>
-        <p style={{ color: 'var(--text-muted)' }}><Dyn>Loading booking…</Dyn></p>
+        <p style={{ color: 'var(--text-muted)' }}>
+          <Dyn>Loading your rental…</Dyn>
+        </p>
       </div>
     );
   }
 
-  if (bd.status === 'link-expired') {
+  if (bd.status === 'link-expired' || bd.status === 'not-found') {
+    const expired = bd.status === 'link-expired';
     return (
       <div className={styles.centerState}>
-        <a href={paths.home} className={styles.linkMore}><Dyn>Back to home</Dyn></a>
-        <h1 style={{ marginTop: '0.9rem' }}><Dyn>This booking link has expired</Dyn></h1>
+        <h1 style={{ marginTop: '0.9rem' }}>
+          <Dyn>{expired ? 'This booking link has expired' : 'Booking not found'}</Dyn>
+        </h1>
         <p style={{ maxWidth: '30rem' }}>
           <Dyn>
-            For your security, booking links stop working once the trip is over.
-            Your booking is safe — look it up with your booking reference and email to carry on.
+            {expired
+              ? 'For your security, booking links stop working once the trip is over. Your booking is safe — look it up with your reference and email.'
+              : 'We couldn’t load this booking. Check the link from your confirmation email, or look it up with your reference and email.'}
           </Dyn>
         </p>
         <a href={paths.manage} className={`${styles.btn} ${styles.btnBrass}`} style={{ marginTop: '1.1rem' }}>
@@ -38,151 +53,67 @@ export default function BookingDetailClientT2({ id }: { id: string }) {
     );
   }
 
-  if (bd.status === 'not-found') {
-    return (
-      <div className={styles.centerState}>
-        <a href={paths.home} className={styles.linkMore}><Dyn>Back to home</Dyn></a>
-        <h1 style={{ marginTop: '0.9rem' }}><Dyn>Booking not found</Dyn></h1>
-        <p style={{ maxWidth: '30rem' }}>
-          <Dyn>
-            We couldn’t load this booking. Check the link from your confirmation email,
-            or look it up with your booking reference and email.
-          </Dyn>
-        </p>
-        <a href={paths.manage} className={styles.linkMore} style={{ marginTop: '0.8rem' }}>
-          <Dyn>Manage your booking</Dyn>
-        </a>
-      </div>
-    );
-  }
-
   const {
     booking,
-    balance,
-    outstanding,
-    mode,
-    holdCountdownLabel,
-    holdExpired,
-    idVerified,
-    insuranceVerified,
-    insuranceFailed,
-    insuranceDetails,
-    showInsuranceStep,
-    requireId,
-    requireInsurance,
-    idPending,
-    idError,
-    idSent,
-    insurancePending,
-    insuranceError,
-    insuranceLinkAlreadySent,
-    allRequiredChecksDone,
-    consentChecksDone,
-    saveCardOnly,
-    handlePay,
-    payLoading,
-    payError,
     agreementSigned,
-    staffAskedForCard,
-    saveCard,
-    chooseSaveCard,
-    agreementModalOpen,
-    signAgreement,
-    setAgreementModalOpen,
-    agreementPreviewData,
     agreementHref,
-    secondaryDrivers,
-    tokenReady,
-    isCancelled,
-    isReserved,
-    manualSubmissions,
-    refetchManual,
-    preTrip,
-    postTrip,
-    token,
+    agreementModalOpen,
+    setAgreementModalOpen,
+    signAgreement,
+    agreementPreviewData,
+    saveCardOnly,
     providersData,
-    tenant,
-    payAmount,
     squareModalOpen,
     setSquareModalOpen,
+    payLoading,
+    payError,
+    payAmount,
     handleSquarePaySubmit,
-    handleIdVerify,
-    handleInsuranceVerify,
+    tenant,
   } = bd;
 
-  // VerifyFirstConfirm is the complex payment/verification/legal
-  // component (holds Stripe/Square payment kickoff, ID + insurance
-  // verification, agreement + photo upload) — reused unchanged here
-  // rather than reimplemented, per the same trade-off already made for
-  // the fleet-detail page's payment widgets. Only the page chrome above
-  // (loading/not-found states) is restyled for template 2.
+  const view = rental
+    ? gigDashboard({
+        rental,
+        vehicleName: booking.vehicle.name,
+        bookingRef: booking.invoice.number,
+        pickupAt: booking.pickUp.rawDatetime ?? null,
+        deposit: booking.invoice.deposit || 0,
+        outstanding: pay.outstanding,
+      })
+    : null;
+
   return (
-    <div className={styles.section} style={{ paddingTop: 0 }}>
-      <VerifyFirstConfirm
-        booking={booking}
-        backHref={mode === 'pending_verification' ? paths.checkout(String(booking.fleetId)) : paths.home}
-        mode={mode}
-        outstanding={outstanding}
-        charges={balance?.charges ?? []}
-        paymentPendingHref={`/booking/${id}/payment-pending${token ? `?token=${token}` : ''}`}
-        holdCountdownLabel={holdCountdownLabel}
-        holdExpired={holdExpired}
-        idVerified={idVerified}
-        insuranceVerified={insuranceVerified}
-        insuranceFailed={insuranceFailed}
-        insuranceFailureDetails={insuranceFailed ? insuranceDetails : null}
-        requireId={requireId}
-        requireInsurance={showInsuranceStep}
-        insuranceBlocking={requireInsurance}
-        idPending={idPending}
-        idError={idError}
-        idLinkSent={idSent || idVerified}
-        onIdVerify={handleIdVerify}
-        insurancePending={insurancePending}
-        insuranceError={insuranceError}
-        insuranceLinkSent={insuranceLinkAlreadySent}
-        onInsuranceVerify={handleInsuranceVerify}
-        allRequiredChecksDone={allRequiredChecksDone}
-        consentChecksDone={consentChecksDone}
-        onSaveCardOnly={saveCardOnly}
-        cardRequestOpen={!!booking?.cardRequestOpen}
-        hasCardOnFile={!!booking?.cardOnFile}
-        onPay={handlePay}
-        payLoading={payLoading}
-        payError={payError}
+    <main className="pg">
+      <BookingDashboard
+        view={view}
+        bookingId={id}
+        vehicleName={booking.vehicle.name}
+        vehicleYear={booking.vehicle.year}
+        vehicleImage={booking.vehicle.image}
+        fallbackEyebrow={`${booking.vehicle.name} · ${booking.invoice.number}`}
+        fallbackTitle={booking.vehicle.name}
+        fallbackState={booking.status}
+        rental={rental}
+        outstanding={pay.outstanding}
+        payLoading={pay.payLoading}
+        onPay={pay.handlePay}
         agreementSigned={agreementSigned}
         agreementHref={agreementHref}
-        staffAskedForCard={staffAskedForCard}
-        saveCard={saveCard}
-        onChooseSaveCard={chooseSaveCard}
-        companyName={tenant.name}
-        depositAmount={booking?.invoice.deposit}
         onSignAgreement={() => setAgreementModalOpen(true)}
-        bookingId={id}
-        token={token}
-        secondaryDrivers={secondaryDrivers ?? []}
-        rentalStartDate={booking.pickUp.rawDatetime.slice(0, 10)}
-        rentalEndDate={booking.dropOff.rawDatetime.slice(0, 10)}
-        canModify={booking.canModify}
-        preTripPhotos={preTrip}
-        postTripPhotos={postTrip}
-        isReserved={isReserved}
-      documentSubmissions={manualSubmissions}
-      onDocumentUploaded={refetchManual}
-      canUploadPhotos={tokenReady && !isCancelled}
-      rentalPanel={
-        <RenterRentalPanel
-          bookingId={id}
-          ongoing={booking.rentalModel !== 'daily'}
-          deposit={booking.invoice.deposit || 0}
-          vehicleName={booking.vehicle.name}
-          vehicleImage={booking.vehicle.image}
-          swapHref={paths.swap(id)}
-          bookingRef={booking.bookingRef}
-          pickupAt={booking.pickUp.rawDatetime ?? null}
-          onUpdateCard={saveCardOnly}
-        />
-      }
+        onUpdateCard={saveCardOnly}
+        returnDate={returnDate}
+        onReturnDate={setReturnDate}
+        onGiveNotice={() => returnDate && notice.mutate(returnDate)}
+        noticePending={notice.isPending}
+        noticeError={notice.isError ? notice.error : null}
+      />
+
+      <RentalAgreementSignModal
+        open={agreementModalOpen}
+        onClose={() => setAgreementModalOpen(false)}
+        onSigned={signAgreement}
+        data={agreementPreviewData ?? undefined}
       />
       {providersData?.square && (
         <SquarePayModal
@@ -200,15 +131,6 @@ export default function BookingDetailClientT2({ id }: { id: string }) {
           onSubmit={handleSquarePaySubmit}
         />
       )}
-      <RentalAgreementSignModal
-        open={agreementModalOpen}
-        onClose={() => setAgreementModalOpen(false)}
-        data={agreementPreviewData ?? undefined}
-        onSigned={async (dataUri) => {
-          await signAgreement(dataUri);
-          setAgreementModalOpen(false);
-        }}
-      />
-    </div>
+    </main>
   );
 }

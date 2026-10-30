@@ -6,6 +6,7 @@ import { VerifyFirstConfirm } from '@/components/booking/verify-first-confirm';
 import { SquarePayModal } from '@/components/booking/square-pay-modal';
 import { paths } from '@/lib/paths';
 import { useBookingDetail } from './use-booking-detail';
+import BookingDetailClientT1 from './booking-detail-client-t1';
 import BookingDetailClientT2 from './booking-detail-client-t2';
 import BookingDetailClientT3 from './booking-detail-client-t3';
 import { RentalAgreementSignModal } from '@/components/booking/rental-agreement-sign-modal';
@@ -17,7 +18,7 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
   const bd = useBookingDetail(id);
 
   const Editorial = pickTemplateView(bd.tenant.websiteTemplate, {
-    template_1: null,
+    template_1: BookingDetailClientT1,
     template_2: BookingDetailClientT2,
     template_3: BookingDetailClientT3,
   });
