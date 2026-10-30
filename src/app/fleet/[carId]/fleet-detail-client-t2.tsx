@@ -405,14 +405,14 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
               </div>
               <span className={styles.tripEdit}><Dyn>Edit</Dyn></span>
             </div>
-            {(weekly.model || weekly.unavailable) && weekly.canPickDate ? (
+            {!weekly.on && (weekly.model || weekly.unavailable) && weekly.canPickDate ? (
               <div style={{ marginTop: '0.8rem' }}>
                 <ReturnModeToggle weekly={weekly} />
               </div>
             ) : null}
 
             <div className={styles.priceHeadRow}>
-              <h3><Dyn>Price details</Dyn></h3>
+              <h3><Dyn>{weekly.on ? 'Each charge' : 'Price details'}</Dyn></h3>
               <span className={styles.priceDayPill}>{weekly.on ? <Dyn>{weekly.cycle.badge}</Dyn> : <>{days} <Dyn>days</Dyn></>}</span>
             </div>
 

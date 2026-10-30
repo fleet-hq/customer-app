@@ -502,7 +502,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
                 </span>
               </div>
             </div>
-            {(weekly.model || weekly.unavailable) && weekly.canPickDate ? (
+            {!weekly.on && (weekly.model || weekly.unavailable) && weekly.canPickDate ? (
               <div className="mt-3">
                 <ReturnModeToggle weekly={weekly} />
               </div>
@@ -510,7 +510,7 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
             <div className="my-[18px] h-px bg-card-border" />
 
             <div className="mb-4 flex items-center justify-between">
-              <span className="text-sm font-semibold text-ink"><Dyn>Price details</Dyn></span>
+              <span className="text-sm font-semibold text-ink"><Dyn>{weekly.on ? 'Each charge' : 'Price details'}</Dyn></span>
               <span className="rounded-full border border-line bg-white px-[10px] py-[3px] text-[11px] font-medium text-muted">{weekly.on ? <Dyn>{weekly.cycle.badge}</Dyn> : <>{days} <Dyn>days</Dyn></>}</span>
             </div>
 

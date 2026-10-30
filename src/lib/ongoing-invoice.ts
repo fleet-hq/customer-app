@@ -28,6 +28,7 @@ export interface OngoingInvoice {
   endingHeading: string;
   endingBody: string;
   insuranceTick: string;
+  recurringConsent: string;
 }
 
 const INSURANCE_LINE: Record<string, string> = {
@@ -123,6 +124,7 @@ export function ongoingInvoice(offer: OngoingOffer): OngoingInvoice {
     cycleTotal: money(cycleTotal),
     note: `About ${money(perWeek)} a week, all in. ${words.renews(offer)}, ${words.recurringNote}.`,
     dueLines,
+    recurringConsent: offer.consent_text,
     insuranceTick:
       offer.insurance_mode === 'included_in_plan'
         ? 'Liability insurance included'

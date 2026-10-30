@@ -716,7 +716,14 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
             ) : null}
 
             {weekly.on && weekly.invoice ? (
-              <EndingPolicy heading={weekly.invoice.endingHeading} body={weekly.invoice.endingBody} />
+              <>
+                <EndingPolicy heading={weekly.invoice.endingHeading} body={weekly.invoice.endingBody} />
+                <section>
+                  <p className="consent">
+                    <Dyn>{weekly.invoice.recurringConsent}</Dyn>
+                  </p>
+                </section>
+              </>
             ) : null}
 
             {!weekly.on ? <section>
