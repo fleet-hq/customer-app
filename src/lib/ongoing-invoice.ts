@@ -1,5 +1,5 @@
 import { cycleWords } from '@/lib/billing-cycle';
-import { depositSummary, weeklyDepositTiming } from '@/lib/price-rows';
+import { weeklyDepositTiming } from '@/lib/price-rows';
 import { money } from '@/lib/utils';
 import type { OngoingOffer, PeriodPrice } from '@/services/rentalServices';
 
@@ -63,7 +63,7 @@ export function ongoingInvoice(offer: OngoingOffer): OngoingInvoice {
     {
       key: 'rental',
       label: 'Car rental',
-      detail: weeklyRate ? `${money(weeklyRate)} / week × ${spanLabel}` : words.rentalLine(weeklyRate),
+      detail: weeklyRate ? `${money(weeklyRate)} × ${spanLabel}` : words.rentalLine(weeklyRate),
       amount: money(amount(period.rental)),
     },
   ];
@@ -110,7 +110,8 @@ export function ongoingInvoice(offer: OngoingOffer): OngoingInvoice {
     {
       key: 'deposit',
       label: 'Security deposit',
-      amount: depositSummary(deposit, weeklyDepositTiming(offer.deposit_method)),
+      detail: weeklyDepositTiming(offer.deposit_method) === 'hold' ? 'Held on your card' : 'Refundable',
+      amount: money(deposit),
     },
     { key: 'due', label: 'Due at pick-up', amount: money(firstTotal + deposit) },
   ];

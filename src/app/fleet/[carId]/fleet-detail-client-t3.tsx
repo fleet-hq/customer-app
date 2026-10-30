@@ -483,7 +483,7 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
             ) : (<>
             <section>
               <h3>
-                <Dyn>Your trip</Dyn>
+                <Dyn>{weekly.on ? 'Your plan' : 'Your trip'}</Dyn>
               </h3>
               <div className="leg">
                 <div>
@@ -501,19 +501,27 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
               <div className="leg">
                 <div>
                   <span>
-                    <Dyn>Drop-off</Dyn>
+                    <Dyn>{weekly.on ? 'Return' : 'Drop-off'}</Dyn>
                   </span>
                   <b>
-                    {dropoffCity} · {weekly.on ? <Dyn>No fixed return</Dyn> : formatTripStamp(returnDate, returnTime)}
+                    {weekly.on ? (
+                      <Dyn>Ongoing · no end date</Dyn>
+                    ) : (
+                      <>
+                        {dropoffCity} · {formatTripStamp(returnDate, returnTime)}
+                      </>
+                    )}
                   </b>
                 </div>
-                <button type="button" onClick={() => setTripOpen(true)}>
-                  <Dyn>Edit</Dyn> ✎
-                </button>
+                {weekly.on ? null : (
+                  <button type="button" onClick={() => setTripOpen(true)}>
+                    <Dyn>Edit</Dyn> ✎
+                  </button>
+                )}
               </div>
             </section>
 
-            {(weekly.model || weekly.unavailable) && weekly.canPickDate ? (
+            {!weekly.on && (weekly.model || weekly.unavailable) && weekly.canPickDate ? (
               <section>
                 <ReturnModeToggle weekly={weekly} variant="inherit" />
               </section>
