@@ -13,7 +13,7 @@ import { useDynamicTranslation } from '@/hooks/useDynamicTranslation';
 import { trackFleetList } from '@/lib/tracking-events';
 import { useRentalSiteConfig } from '@/hooks/useRentalSiteConfig';
 import { rateCard, type RateView } from '@/lib/rate-card';
-import { RENTAL_TABS, modelForPath } from '@/lib/rental-tabs';
+import { RENTAL_TABS, tabFor, modelForPath } from '@/lib/rental-tabs';
 
 export const SORTS = ['Recommended', 'Price: low to high', 'Price: high to low'] as const;
 const PAGE_SIZE = 12;
@@ -257,15 +257,35 @@ export function useFleetListing() {
   const clientFiltered = isFiltered || clientFilterCount > 0;
   const shown = clientFiltered ? vehicles.length : count - (data?.unbookable ?? 0);
   const shownLabel = `${t('Showing')} ${shown} ${shown === 1 ? t('car') : t('cars')}`;
+  const pickupMoment = useMemo(() => {
+    const d = searchParams.get('pickupDate');
+    if (!d) return null;
+    const time = searchParams.get('pickupTime') || '09:00';
+    const parsed = new Date(`${d}T${time}`);
+    if (Number.isNaN(parsed.getTime())) return null;
+    const day = parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const clock = parsed.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    return `${day}, ${clock}`;
+  }, [searchParams]);
+
+  const ongoingCountLabel = [
+    `${count} ${t(tabFor(activeModel).countNoun)}`,
+    pickupMoment ? `${t('pick-up')} ${pickupMoment}` : null,
+    t('no return date'),
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
   const countLabel = showPlans || modelOff
     ? ''
     : isLoading
       ? t('Loading…')
       : activeModel === 'daily'
         ? `${shownLabel} · ${t('your')} ${days}${t('-day trip')}${pct > 0 ? ` (${pct}% ${t('off daily')})` : ''}`
-        : shownLabel;
+        : ongoingCountLabel;
 
-  const modelHeading = activeModel === 'daily' ? null : selectedPlan?.name ?? RENTAL_TABS.find((tab) => tab.model === activeModel)?.label;
+  const modelHeading =
+    activeModel === 'daily' ? null : selectedPlan?.name ?? t(tabFor(activeModel).pageHeading);
   const heading = isFiltered ? t(activeLabel) : modelHeading ?? t('Pick your next ride from our fleet.');
 
   return {

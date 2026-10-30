@@ -6,6 +6,8 @@ export interface RentalTab {
   href: string;
   blurb: string;
   fieldsLabel: string;
+  pageHeading: string;
+  countNoun: string;
 }
 
 export const RENTAL_TABS: RentalTab[] = [
@@ -15,6 +17,8 @@ export const RENTAL_TABS: RentalTab[] = [
     href: '/fleet',
     blurb: 'Pick-up and return dates',
     fieldsLabel: 'Pick-up & return',
+    pageHeading: 'Our fleet.',
+    countNoun: 'cars',
   },
   {
     model: 'gig',
@@ -22,6 +26,8 @@ export const RENTAL_TABS: RentalTab[] = [
     href: '/drive',
     blurb: 'Ongoing, billed weekly, no end date',
     fieldsLabel: 'Gig weekly plan · pick-up only',
+    pageHeading: 'Weekly plans for gig drivers.',
+    countNoun: 'rideshare-ready cars',
   },
   {
     model: 'subscription',
@@ -29,6 +35,8 @@ export const RENTAL_TABS: RentalTab[] = [
     href: '/subscribe',
     blurb: 'Ongoing, renews until you cancel',
     fieldsLabel: 'Subscription plan · pick-up only',
+    pageHeading: 'Car subscription. One monthly price.',
+    countNoun: 'cars',
   },
 ];
 
