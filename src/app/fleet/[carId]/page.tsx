@@ -10,7 +10,7 @@ import { Dialog } from '@/components/ui/dialog';
 import { DateDealsCallout } from '@/components/booking/date-deals-callout';
 import { RentalBreakdown } from '@/components/booking/rental-breakdown';
 import { depositSummary, taxRows } from '@/lib/price-rows';
-import { ReturnModeToggle, WeeklyRentalSummary } from '@/components/booking/weekly-rental';
+import { BillingTermsPicker, ReturnModeToggle, WeeklyRentalSummary } from '@/components/booking/weekly-rental';
 import { NmiPayModal } from '@/components/booking/nmi-pay-modal';
 import { EmbedPaymentPanel } from '@/components/checkout/embed-payment-panel';
 import ProtectionSection from '@/components/checkout/protection-section';
@@ -405,6 +405,11 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
               </>
             )}
 
+            {weekly.on ? (
+              <div className="mb-6">
+                <BillingTermsPicker weekly={weekly} />
+              </div>
+            ) : null}
             <h3 className="mb-3 text-[15px] font-semibold text-ink"><Dyn>Driver details</Dyn></h3>
             <div className="grid grid-cols-1 gap-x-3 gap-y-[14px] sm:grid-cols-2">
               <div>

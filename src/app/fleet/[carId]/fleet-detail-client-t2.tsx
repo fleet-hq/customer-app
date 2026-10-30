@@ -8,7 +8,7 @@ import { Dialog } from '@/components/ui/dialog';
 import { DateDealsCallout } from '@/components/booking/date-deals-callout';
 import { RentalBreakdown } from '@/components/booking/rental-breakdown';
 import { depositSummary, taxRows } from '@/lib/price-rows';
-import { ReturnModeToggle, WeeklyRentalSummary } from '@/components/booking/weekly-rental';
+import { BillingTermsPicker, ReturnModeToggle, WeeklyRentalSummary } from '@/components/booking/weekly-rental';
 import { NmiPayModal } from '@/components/booking/nmi-pay-modal';
 import { EmbedPaymentPanel } from '@/components/checkout/embed-payment-panel';
 import ProtectionSection from '@/components/checkout/protection-section';
@@ -315,6 +315,11 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
             ) : null}
 
             <div className={styles.detailSection}>
+              {weekly.on ? (
+                <div style={{ marginBottom: '1.4rem' }}>
+                  <BillingTermsPicker weekly={weekly} />
+                </div>
+              ) : null}
               <p className={styles.detailSectionTitle}><Dyn>Driver details</Dyn></p>
               <div className={styles.formGrid}>
                 <div>

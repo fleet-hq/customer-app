@@ -93,29 +93,44 @@ export function ReturnModeToggle({ weekly, variant = 'tokens' }: { weekly: Weekl
           <Dyn>{label}</Dyn>
         </label>
       ))}
-      {weekly.on && weekly.cycles.length > 1 && (
-        <div className="mt-1">
-          <div className={cn('mb-[6px] text-[11px] tracking-[0.03em] uppercase', skin.quiet)}>
-            <Dyn>Billing terms</Dyn>
-          </div>
-          <div className="flex flex-wrap gap-[6px]">
-            {weekly.cycles.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => weekly.setCycle(option.value as BillingCycle)}
-                className={cn(
-                  'cursor-pointer rounded-[8px] border px-[11px] py-[6px] text-[12.5px]',
-                  weekly.cycleValue === option.value ? skin.active : skin.line,
-                  skin.strong,
-                )}
-              >
-                <Dyn>{option.label}</Dyn>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+    </div>
+  );
+}
+
+export function BillingTermsPicker({ weekly, variant = 'tokens' }: { weekly: WeeklyState; variant?: Variant }) {
+  const skin = useSkin(variant);
+  if (!weekly.on || weekly.cycles.length < 2) return null;
+  return (
+    <div>
+      <div className={cn('mb-[6px] text-[11px] tracking-[0.03em] uppercase', skin.quiet)}>
+        <Dyn>Billing terms</Dyn>
+      </div>
+      <div className="flex flex-wrap gap-[8px]">
+        {weekly.cycles.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => weekly.setCycle(option.value as BillingCycle)}
+            className={cn(
+              'cursor-pointer rounded-[10px] border px-[13px] py-[9px] text-left text-[12.5px]',
+              weekly.cycleValue === option.value ? skin.active : skin.line,
+              skin.strong,
+            )}
+          >
+            <span className="block font-medium">
+              <Dyn>{option.label}</Dyn>
+            </span>
+            <span className={cn('mt-0.5 block text-[11.5px]', skin.quiet)}>
+              <Dyn>{`${option.perWeek} ${option.saving}`}</Dyn>
+            </span>
+          </button>
+        ))}
+      </div>
+      {weekly.termsBlurb ? (
+        <p className={cn('mt-2 text-[12px] leading-[1.5]', skin.quiet)}>
+          <Dyn>{weekly.termsBlurb}</Dyn>
+        </p>
+      ) : null}
     </div>
   );
 }

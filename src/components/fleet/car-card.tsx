@@ -50,7 +50,7 @@ export function CarCard({ vehicle, badge, oldPrice, bookingQuery, hours, discoun
           vehicleType: vehicle.vehicleType,
         })
       }
-      className="group flex h-full flex-col overflow-hidden rounded-[16px] border border-card-border bg-white transition-shadow hover:shadow-[var(--shadow-card)] supports-[grid-template-rows:subgrid]:grid supports-[grid-template-rows:subgrid]:[grid-row:span_4] supports-[grid-template-rows:subgrid]:[grid-template-rows:subgrid] supports-[grid-template-rows:subgrid]:[row-gap:0]"
+      className="group flex h-full flex-col overflow-hidden rounded-[16px] border border-card-border bg-white transition-shadow hover:shadow-[var(--shadow-card)]"
     >
       <div className="relative aspect-[16/11] overflow-hidden">
         <div
@@ -64,7 +64,7 @@ export function CarCard({ vehicle, badge, oldPrice, bookingQuery, hours, discoun
         )}
       </div>
 
-      <div className="flex flex-1 flex-col p-[16px] supports-[grid-template-rows:subgrid]:grid supports-[grid-template-rows:subgrid]:[grid-row:span_3] supports-[grid-template-rows:subgrid]:[grid-template-rows:subgrid] supports-[grid-template-rows:subgrid]:[row-gap:0]">
+      <div className="flex flex-1 flex-col p-[16px]">
         <div>
         {vehicle.vehicleType && (
           <div className="mb-[5px] truncate text-[10.5px] font-semibold tracking-[0.05em] uppercase text-primary">
@@ -101,7 +101,7 @@ export function CarCard({ vehicle, badge, oldPrice, bookingQuery, hours, discoun
           ) : null}
         </div>
 
-        <div className="mt-auto flex w-full flex-col pt-[12px] supports-[grid-template-rows:subgrid]:mt-0 supports-[grid-template-rows:subgrid]:self-stretch">
+        <div className="mt-auto flex w-full flex-col pt-[12px]">
           <div className="h-px w-full bg-card-border" />
 
           {ranged ? (
