@@ -105,16 +105,29 @@ export function useFleetListing() {
   const selectedPlan = rentalConfig.plans.find((plan) => plan.id === planId) ?? null;
   const showPlans = activeModel === 'subscription' && !selectedPlan && !modelOff;
   const rateView: RateView | undefined = activeModel === 'daily' ? undefined : { model: activeModel, plan: selectedPlan };
-  const modelFilter =
-    tabs.length > 1 && !modelOff
-      ? { rental_model: activeModel, ...(selectedPlan ? { subscription_plan: selectedPlan.id } : {}) }
-      : {};
-  const listReady = activeModel === 'daily' || (rentalConfig.ready && !modelOff && !showPlans);
-
-  const { data, isLoading, isError } = useFleets(page, search, PAGE_SIZE, modelFilter, listReady);
   const { data: companyLocations } = useCompanyLocations();
   const tz = useDefaultLocation()?.timezone ?? null;
 
+  const buildDatetime = (dateKey: string, timeKey: string): string | null => {
+    const d = searchParams.get(dateKey);
+    const time = searchParams.get(timeKey);
+    if (!d || !time) return null;
+    return tz ? toUtcIso(d, time, tz) : `${d}T${time}:00`;
+  };
+  const pickupDatetime = useMemo(() => buildDatetime('pickupDate', 'pickupTime'), [searchParams, tz]);
+  const dropoffDatetime = useMemo(() => buildDatetime('returnDate', 'returnTime'), [searchParams, tz]);
+
+  const modelFilter = {
+    ...(tabs.length > 1 && !modelOff
+      ? { rental_model: activeModel, ...(selectedPlan ? { subscription_plan: selectedPlan.id } : {}) }
+      : {}),
+    ...(pickupDatetime && dropoffDatetime
+      ? { rate_from: pickupDatetime, rate_to: dropoffDatetime }
+      : {}),
+  };
+  const listReady = activeModel === 'daily' || (rentalConfig.ready && !modelOff && !showPlans);
+
+  const { data, isLoading, isError } = useFleets(page, search, PAGE_SIZE, modelFilter, listReady);
   const bookingQuery = useMemo(() => {
     const params = new URLSearchParams();
     ['pickupDate', 'pickupTime', 'returnDate', 'returnTime', 'pickupLocId', 'dropoffLocId'].forEach((key) => {
@@ -149,15 +162,6 @@ export function useFleetListing() {
   const type = searchParams.get('type') ?? '';
   const activeLabel = type ? CATEGORY_LABELS[type] ?? type : '';
   const isFiltered = !!type;
-
-  const buildDatetime = (dateKey: string, timeKey: string): string | null => {
-    const d = searchParams.get(dateKey);
-    const time = searchParams.get(timeKey);
-    if (!d || !time) return null;
-    return tz ? toUtcIso(d, time, tz) : `${d}T${time}:00`;
-  };
-  const pickupDatetime = useMemo(() => buildDatetime('pickupDate', 'pickupTime'), [searchParams, tz]);
-  const dropoffDatetime = useMemo(() => buildDatetime('returnDate', 'returnTime'), [searchParams, tz]);
 
   const days = useMemo(() => {
     const from = searchParams.get('pickupDate');

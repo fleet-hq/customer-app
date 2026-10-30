@@ -17,7 +17,12 @@ export const useFleets = (
   page: number = 1,
   name: string = '',
   pageSize?: number,
-  filters: { rental_model?: string; subscription_plan?: number } = {},
+  filters: {
+    rental_model?: string;
+    subscription_plan?: number;
+    rate_from?: string;
+    rate_to?: string;
+  } = {},
   enabled: boolean = true,
 ) => {
   const tenant = useTenant();

@@ -12,6 +12,7 @@ const DAILY_ONLY_OFFERS: RentalOffers = { daily: true, gig: false, subscription:
 export interface ApiBookingPrice {
   id?: number;
   price_per_day?: number | null;
+  base_price_per_day?: number | null;
   price_per_hour?: number | null;
   price_per_week?: number | null;
   subscription_price_per_week?: number | null;
@@ -132,6 +133,7 @@ export interface Vehicle {
   model: string;
   color: string;
   pricePerDay: number;
+  basePricePerDay: number;
   pricePerHour: number;
   pricePerWeek: number;
   subscriptionPricePerWeek: number | null;
@@ -185,6 +187,9 @@ export function transformApiVehicle(apiVehicle: ApiVehicle): Vehicle {
       apiVehicle.price_per_day ??
       0,
   );
+  const basePricePerDay = Number(
+    apiVehicle.booking_price?.base_price_per_day ?? pricePerDay,
+  );
   const pricePerHour = Number(apiVehicle.booking_price?.price_per_hour ?? 0);
   const autoCapEnabled = apiVehicle.booking_price?.auto_cap_enabled !== false;
   const minHours = Math.max(1, Number(apiVehicle.booking_price?.min_hours ?? 1));
@@ -211,6 +216,7 @@ export function transformApiVehicle(apiVehicle: ApiVehicle): Vehicle {
     model: apiVehicle.model || '',
     color: apiVehicle.color || '',
     pricePerDay,
+    basePricePerDay,
     pricePerHour,
     pricePerWeek: Number(apiVehicle.booking_price?.price_per_week ?? 0) || 0,
     subscriptionPricePerWeek: Number(apiVehicle.booking_price?.subscription_price_per_week ?? 0) || null,

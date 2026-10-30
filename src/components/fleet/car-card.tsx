@@ -36,7 +36,7 @@ export function CarCard({ vehicle, badge, oldPrice, bookingQuery, hours, discoun
   const tag = badge ?? card.weekly?.badge ?? null;
   const pricing = cardPricing(vehicle, card, hours, discountPct);
   const ranged = pricing.mode === 'hourly' || pricing.mode === 'daily';
-  const strikeUnitPrice = pricing.discounted ? pricing.basePrice : oldPrice ?? null;
+  const strikeUnitPrice = pricing.strikePrice ?? oldPrice ?? null;
   const unitNoun = `${pricing.unit}${pricing.units === 1 ? '' : 's'}`;
 
   return (
@@ -118,8 +118,8 @@ export function CarCard({ vehicle, badge, oldPrice, bookingQuery, hours, discoun
               <div className="flex items-baseline gap-[6px]">
                 <span className="text-[18px] font-bold text-secondary">{money(pricing.unitPrice)}</span>
                 <span className="text-[11.5px] text-faint"><Dyn>{`/${pricing.unit}`}</Dyn></span>
-                {oldPrice != null && (
-                  <span className="text-[12px] text-faint line-through">{money(oldPrice)}</span>
+                {strikeUnitPrice != null && (
+                  <span className="text-[12px] text-faint line-through">{money(strikeUnitPrice)}</span>
                 )}
               </div>
               <ViewCta />

@@ -100,6 +100,7 @@ export function CarCardT3({
           ) : pricing.unitPrice > 0 ? (
             <div className="price">
               {money(pricing.unitPrice)}
+              {pricing.strikePrice != null ? <s>{money(pricing.strikePrice)}</s> : null}
               <small>
                 <Dyn>{`/ ${pricing.unit}`}</Dyn>
               </small>

@@ -11,22 +11,25 @@ export interface CardPricing {
   units: number;
   total: number;
   discounted: boolean;
+  strikePrice: number | null;
 }
 
 export function cardPricing(
-  vehicle: Pick<Vehicle, 'pricePerHour'>,
+  vehicle: Pick<Vehicle, 'pricePerHour' | 'basePricePerDay' | 'isDynamicPricing'>,
   card: RateCard,
   hours?: number,
   discountPct?: number,
 ): CardPricing {
   if (card.headline.per === 'week') {
     const price = card.headline.price;
-    return { mode: 'weekly', unit: 'week', basePrice: price, unitPrice: price, units: 0, total: 0, discounted: false };
+    return { mode: 'weekly', unit: 'week', basePrice: price, unitPrice: price, units: 0, total: 0, discounted: false, strikePrice: null };
   }
   const perDay = card.headline.price;
   const perHour = Number(vehicle.pricePerHour) || 0;
+  const base = Number(vehicle.basePricePerDay) || 0;
+  const dynamicBase = vehicle.isDynamicPricing && base > 0 && base !== perDay ? base : null;
   if (!hours || hours <= 0) {
-    return { mode: 'idle', unit: 'day', basePrice: perDay, unitPrice: perDay, units: 0, total: 0, discounted: false };
+    return { mode: 'idle', unit: 'day', basePrice: perDay, unitPrice: perDay, units: 0, total: 0, discounted: false, strikePrice: dynamicBase };
   }
   const hourly = hours <= HOURLY_MAX_HOURS && perHour > 0;
   const basePrice = hourly ? perHour : perDay;
@@ -34,5 +37,6 @@ export function cardPricing(
   const pct = Number(discountPct) || 0;
   const discounted = pct > 0 && pct < 100;
   const unitPrice = discounted ? basePrice * (1 - pct / 100) : basePrice;
-  return { mode: hourly ? 'hourly' : 'daily', unit: hourly ? 'hr' : 'day', basePrice, unitPrice, units, total: unitPrice * units, discounted };
+  const strikePrice = discounted ? basePrice : hourly ? null : dynamicBase;
+  return { mode: hourly ? 'hourly' : 'daily', unit: hourly ? 'hr' : 'day', basePrice, unitPrice, units, total: unitPrice * units, discounted, strikePrice };
 }

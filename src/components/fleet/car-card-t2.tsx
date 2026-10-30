@@ -76,7 +76,7 @@ export function CarCardT2({ vehicle, bookingQuery, hours, discountPct, unavailab
         ) : null}
         <div className={styles.carFoot}>
           <span className={styles.carPrice}>
-            {pricing.discounted ? <s>{money(pricing.basePrice)}</s> : null}
+            {pricing.strikePrice != null ? <s>{money(pricing.strikePrice)}</s> : null}
             <b>{money(pricing.unitPrice)}</b>
             <span>{`/${pricing.unit}`}</span>
           </span>

@@ -11,6 +11,8 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export interface ListFleetsParams {
   page?: number;
+  rate_from?: string;
+  rate_to?: string;
   name?: string;
   page_size?: number;
   rental_model?: string;
