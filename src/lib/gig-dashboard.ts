@@ -25,6 +25,8 @@ export interface GigDashboard {
   progress: number;
   nextChargeHeading: string;
   nextChargeTotal: string;
+  nextChargeLines: { label: string; detail?: string; amount: string }[];
+  activity: { key: string; title: string; detail: string; at: string }[];
   autopayNote: string;
   rows: DashboardRow[];
   planHeading: string;
@@ -147,7 +149,17 @@ export function gigDashboard({
     cycleEnd: current ? shortDate(current.period_end) : '',
     progress,
     nextChargeHeading: renewal.at ? `Next charge · ${shortDate(renewal.at)}` : 'Next charge',
-    nextChargeTotal: amount ? money(Number(amount)) : '—',
+    nextChargeTotal: rental.next_charge ? money(Number(rental.next_charge.total)) : amount ? money(Number(amount)) : '—',
+    nextChargeLines: (rental.next_charge?.lines ?? []).map((line) => ({
+      label: line.label,
+      amount: money(Number(line.amount)),
+    })),
+    activity: (rental.activity ?? []).map((item) => ({
+      key: `event-${item.id}`,
+      title: item.title,
+      detail: item.detail,
+      at: new Date(item.at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }),
+    })),
     autopayNote: [
       card ? `Autopay from ${card}.` : 'No card on file.',
       perWeek ? `About ${money(perWeek)} a week.` : null,

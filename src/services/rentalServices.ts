@@ -148,6 +148,14 @@ export interface RenterRental {
   charges: RenterCharge[];
   insurance_included: boolean;
   agreement: OngoingAgreementTerms | null;
+  next_charge: {
+    period_start: string;
+    period_end: string;
+    label: string | null;
+    lines: { label: string; amount: string }[];
+    total: string;
+  } | null;
+  activity: { id: number; kind: string; title: string; detail: string; amount: string | null; at: string }[];
 }
 
 export async function getRenterRental(): Promise<RenterRental> {

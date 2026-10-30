@@ -27,6 +27,7 @@
   --t3-grey: #b7bfb8;
   --t3-line: rgba(17, 22, 19, 0.14);
   --t3-dline: rgba(243, 244, 239, 0.13);
+  --t3-accent-ink: color-mix(in srgb, var(--t3-accent) 65%, var(--t3-char));
   --t3-head: var(--t3-font-display), "Barlow Condensed", sans-serif;
   --t3-body: var(--t3-font-body), "Inter", sans-serif;
   --t3-pad: clamp(20px, 3vw, 40px);
@@ -3556,3 +3557,85 @@
     align-self: end;
   }
 }
+
+/* Gig dashboard — ported from Gig Dashboard (standalone).html */
+.t3 :global(.kp) { display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:#fff;border:1px solid var(--t3-line);margin-bottom:clamp(28px,3.5vw,44px) }
+.t3 :global(.kp>div) { padding:16px 18px;border-left:1px solid var(--t3-line);display:flex;flex-direction:column;gap:6px;min-width:0 }
+.t3 :global(.kp>div:first-child) { border-left:0 }
+.t3 :global(.kp span) { font:600 10px var(--t3-body);letter-spacing:.14em;text-transform:uppercase;color:#5A635C }
+.t3 :global(.kp b) { font:800 32px/1 var(--t3-head);text-transform:uppercase }
+.t3 :global(.kp b.due) { color:#8A5A00 }
+.t3 :global(.kp small) { font-size:12px;color:#4A524C }
+.t3 :global(.kp>div:nth-child(3)) { border-left:0 }
+.t3 :global(.kp>div:nth-child(n+3)) { border-top:1px solid var(--t3-line) }
+.t3 :global(.gd) { display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,380px);gap:clamp(24px,3.5vw,48px);align-items:start }
+.t3 :global(.gd>div>.blk:first-child) { margin-top:0 }
+.t3 :global(.cc) { display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr);background:#fff;border:1px solid var(--t3-line) }
+.t3 :global(.cc .im) { aspect-ratio:4/3;min-height:100% }
+.t3 :global(.cc .tx) { padding:18px 20px;display:flex;flex-direction:column;gap:10px;min-width:0 }
+.t3 :global(.cc h3) { font-size:30px }
+.t3 :global(.meta) { display:flex;flex-wrap:wrap;gap:4px 18px;font-size:13px;color:#4A524C }
+.t3 :global(.meta b) { color:var(--t3-char);font-weight:600 }
+.t3 :global(.racts) { display:flex;gap:8px;flex-wrap:wrap;margin-top:auto;padding-top:4px }
+.t3 :global(.gb) { display:inline-flex;align-items:center;gap:8px;padding:11px 15px;border:1px solid var(--t3-char);background:transparent;font:600 11px var(--t3-body);letter-spacing:.14em;text-transform:uppercase;cursor:pointer;color:var(--t3-char);transition:background .2s,color .2s }
+.t3 :global(.gb:hover) { background:var(--t3-char);color:var(--t3-paper) }
+.t3 :global(.gb.lt) { border-color:var(--t3-dline);color:var(--t3-paper) }
+.t3 :global(.gb.lt:hover) { background:var(--t3-paper);color:var(--t3-char) }
+.t3 :global(.gb.w) { width:100%;justify-content:center }
+.t3 :global(.flag) { background:var(--t3-accent-50);color:var(--t3-accent-ink, var(--t3-char));padding:12px 14px;font-size:13px;display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap }
+.t3 :global(.flag.warn) { background:#F5E7C6;color:#6B4E0E }
+.t3 :global(.flag button) { background:none;border:0;font:600 11px var(--t3-body);letter-spacing:.12em;text-transform:uppercase;color:inherit;cursor:pointer;text-decoration:underline;padding:0 }
+.t3 :global(.lst) { background:#fff;border:1px solid var(--t3-line) }
+.t3 :global(.lst>div) { display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:13px 16px;border-top:1px solid var(--t3-line);align-items:center;font-size:14px }
+.t3 :global(.lst>div:first-child) { border-top:0 }
+.t3 :global(.lst small) { display:block;font-size:12px;color:#5A635C }
+.t3 :global(.lg>div) { grid-template-columns:88px minmax(0,1fr) auto 64px }
+.t3 :global(.lg .d) { color:#5A635C;font-size:13px }
+.t3 :global(.lg .a) { font-variant-numeric:tabular-nums;text-align:right }
+.t3 :global(.st) { font:600 9px var(--t3-body);letter-spacing:.14em;text-transform:uppercase;padding:4px 7px;background:var(--t3-accent-50);color:var(--t3-accent-ink, var(--t3-char));justify-self:end;white-space:nowrap }
+.t3 :global(.st.due) { background:#F5E7C6;color:#6B4E0E }
+.t3 :global(.st.hold) { background:#E6E8E3;color:#3E4640 }
+.t3 :global(.lg .d) { grid-column:1/-1;order:-1;margin-bottom:-8px }
+.t3 :global(.lg .st) { grid-column:2 }
+.t3 :global(.bh) { display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px }
+.t3 :global(.bh h2) { margin:0!important }
+.t3 :global(.mf) { display:flex;flex-direction:column;gap:6px;margin-top:14px }
+.t3 :global(.mf>label) { font:600 10px var(--t3-body);letter-spacing:.14em;text-transform:uppercase;color:#5A635C }
+.t3 :global(.mf input[type=date]), .t3 :global(.mf textarea), .t3 :global(.mf input[type=text]) { border:1px solid var(--t3-line);background:#fff;padding:11px 12px;font:500 14px var(--t3-body);color:var(--t3-char);width:100%;color-scheme:light }
+.t3 :global(.mf textarea) { min-height:88px;resize:vertical }
+.t3 :global(.sos) { background:var(--t3-char);color:var(--t3-paper);padding:12px 14px;font-size:13px;margin-top:12px }
+.t3 :global(.sos a) { color:var(--t3-accent) }
+
+/* Gig dashboard — compound selectors */
+.t3 :global(.rule.d) { border-color:var(--t3-dline) }
+.t3 :global(.why-item .n) { font-family:var(--t3-head);font-weight:800;font-size:34px;color:var(--t3-accent);line-height:1;margin-bottom:18px }
+.t3 :global(.why-item .n) { transition:transform .4s cubic-bezier(.2,.7,.2,1) }
+.t3 :global(.why-item:hover .n) { transform:translateX(6px) }
+.t3 :global(.okbar .ic) { width:40px;height:40px;background:var(--t3-accent);display:grid;place-items:center;flex:none }
+.t3 :global(.okbar .ic::after) { content:"";width:14px;height:8px;border-left:3px solid var(--t3-char);border-bottom:3px solid var(--t3-char);transform:rotate(-45deg) translate(1px,-2px) }
+.t3 :global(.bk-car .im) { aspect-ratio:4/3;height:100% }
+.t3 :global(.bk-car .tx) { padding:16px 16px 16px 0 }
+.t3 :global(.bk-car .tx) { padding:0 16px 16px }
+.t3 :global(.docs) { list-style:none;margin:0;padding:0;border-top:1px solid var(--t3-line) }
+.t3 :global(.docs li) { display:flex;justify-content:space-between;gap:12px;align-items:center;padding:14px 0;border-bottom:1px solid var(--t3-line);font-size:14px }
+.t3 :global(.docs label.up) { font:600 11px var(--t3-body);letter-spacing:.12em;text-transform:uppercase;color:var(--t3-accent);cursor:pointer }
+.t3 :global(.docs label.up:hover) { color:var(--t3-char) }
+.t3 :global(.docs input) { display:none }
+.t3 :global(.docs .got) { color:var(--t3-accent);font-size:12px;font-weight:600 }
+.t3 :global(.ln.due) { border-top:1px solid var(--t3-dline);margin-top:8px;padding-top:12px;font-weight:600 }
+.t3 :global(.ln.due span:last-child) { color:var(--t3-accent);font:800 22px/1 var(--t3-head) }
+.t3 :global(.cf-car .im) { aspect-ratio:4/3;background:var(--t3-paper) }
+.t3 :global(.gd-hd) { display:flex;justify-content:space-between;align-items:end;gap:16px;flex-wrap:wrap;margin:14px 0 22px }
+.t3 :global(.gd-hd h1) { font-size:clamp(36px,4.6vw,62px);margin-top:8px }
+.t3 :global(.flag) { background:var(--t3-accent-50);color:var(--t3-accent-ink);padding:12px 14px;font-size:13px;display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap }
+.t3 :global(.st) { font:600 9px var(--t3-body);letter-spacing:.14em;text-transform:uppercase;padding:4px 7px;background:var(--t3-accent-50);color:var(--t3-accent-ink);justify-self:end;white-space:nowrap }
+.t3 :global(.sum .bar) { height:6px;background:var(--t3-dline);margin:14px 0 8px }
+.t3 :global(.sum .bar i) { display:block;height:100%;background:var(--t3-accent) }
+.t3 :global(.sum .kv) { display:flex;justify-content:space-between;font-size:13px;color:var(--t3-grey) }
+.t3 :global(.sum .btns) { display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px }
+.t3 :global(.sum .pt) { font:800 26px/1 var(--t3-head);text-transform:uppercase;margin:4px 0 8px }
+.t3 :global(.sum .ps) { font-size:13px;color:var(--t3-grey);line-height:1.55 }
+.t3 :global(.pk .rd) { width:16px;height:16px;border:1.5px solid currentColor;border-radius:50%;display:grid;place-items:center }
+.t3 :global(.pk button.on .rd::after) { content:"";width:8px;height:8px;border-radius:50%;background:var(--t3-accent) }
+.t3 :global(.steps .n) { font:600 10px var(--t3-body);letter-spacing:.14em;text-transform:uppercase;color:#5A635C }
+.t3 :global(.steps .on .n) { color:var(--t3-accent) }
