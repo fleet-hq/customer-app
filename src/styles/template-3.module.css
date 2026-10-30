@@ -756,8 +756,12 @@
   gap: 0;
   flex-wrap: wrap;
   border: 1px solid var(--t3-line);
+  background: #fff;
 }
 .t3 :global(.chip) {
+  display: grid;
+  place-items: center;
+  text-decoration: none;
   font: 600 11px var(--t3-body);
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -2464,39 +2468,89 @@
 .t3 :global(.chk.req b) {
   color: #ff8a80;
 }
-.t3 :global(.sign) {
+.t3 :global(.tobk) {
   display: flex;
   gap: 12px;
   align-items: center;
   width: 100%;
-  border: 1px dashed var(--t3-accent);
-  background: rgba(98, 201, 34, 0.06);
-  color: var(--t3-paper);
   padding: 14px;
+  border: 1px solid var(--t3-dline);
+  background: transparent;
+  color: var(--t3-paper);
   cursor: pointer;
-  font: 500 14px var(--t3-body);
   text-align: left;
-  transition: all 0.2s;
+  font: 500 14px var(--t3-body);
+  transition: border-color 0.2s, background 0.2s;
 }
-.t3 :global(.sign:hover) {
-  background: rgba(98, 201, 34, 0.12);
+.t3 :global(.tobk:hover) {
+  border-color: var(--t3-accent);
+  background: rgba(98, 201, 34, 0.06);
 }
-.t3 :global(.sign .ck) {
+.t3 :global(.tobk .ck) {
   border-color: var(--t3-accent);
 }
-.t3 :global(.sign.done) {
-  border-style: solid;
+.t3 :global(.tobk.done) {
+  border-color: rgba(98, 201, 34, 0.45);
+  background: rgba(98, 201, 34, 0.06);
 }
-.t3 :global(.sign.done .ck) {
+.t3 :global(.tobk.done .ck) {
   background: var(--t3-accent);
 }
-.t3 :global(.sign.done .ck::after) {
+.t3 :global(.tobk.done .ck::after) {
   content: "";
   width: 9px;
   height: 5px;
   border-left: 2px solid var(--t3-char);
   border-bottom: 2px solid var(--t3-char);
   transform: rotate(-45deg) translate(1px, -1px);
+}
+.t3 :global(.tobk .t) {
+  flex: 1;
+  min-width: 0;
+}
+.t3 :global(.tobk small) {
+  display: block;
+  color: var(--t3-grey);
+  font-size: 12px;
+  margin-top: 2px;
+}
+.t3 :global(.tobk .lk) {
+  font: 600 11px var(--t3-body);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--t3-accent);
+  white-space: nowrap;
+}
+.t3 :global(.consent) {
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--t3-grey);
+  margin: 0;
+}
+.t3 :global(.policy) {
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 0;
+}
+@media (max-width: 480px) {
+  .t3 :global(.tobk) {
+    padding: 10px 12px;
+    font-size: 13px;
+    gap: 10px;
+  }
+  .t3 :global(.tobk .ck) {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+  }
+  .t3 :global(.tobk .t) {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .t3 :global(.tobk .lk) {
+    font-size: 10px;
+  }
 }
 .t3 :global(.reserve) {
   width: 100%;
@@ -3450,4 +3504,17 @@
 .t3 :global(.ftab span) {
   font-size: 12px;
   line-height: 1.35;
+}
+
+.t3 :global(.sum h5.tobk-h) {
+  margin: 0;
+}
+.t3 :global(.sum h5 .cnt) {
+  color: var(--t3-grey);
+}
+.t3 :global(.ln.due) {
+  border-top: 1px solid var(--t3-dline);
+  margin-top: 8px;
+  padding-top: 12px;
+  font-weight: 600;
 }

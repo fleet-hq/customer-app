@@ -13,7 +13,7 @@ import { useFleetListing, SORTS, applicableDiscountPct } from './use-fleet-listi
 import FleetClientT2 from './fleet-client-t2';
 import FleetClientT3 from './fleet-client-t3';
 import { pickTemplateView } from '@/lib/template-view';
-import { PlanPicker, RentalModelBar } from '@/components/fleet/rental-model-bar';
+import { PlanPicker } from '@/components/fleet/rental-model-bar';
 
 const FLEET_GRID_CLASS =
   'grid gap-x-4 gap-y-6 sm:gap-x-5 sm:gap-y-8 lg:gap-x-[30px] lg:gap-y-[34px] grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
@@ -103,8 +103,6 @@ export default function FleetClient() {
             ) : null}
           </div>
         ) : null}
-
-        <RentalModelBar state={rentalTabs} />
 
         <FleetToolbar
           showAvailability={hasAvailabilityWindow}

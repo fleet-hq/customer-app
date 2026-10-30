@@ -29,7 +29,7 @@ import {
   NotBookableOnline,
 } from './fleet-detail-shared';
 import styles from '@/styles/template-2.module.css';
-import { CardConsent } from '@/components/booking/card-consent';
+import { BookingAuthorization, reserveLabel } from '@/components/booking/booking-authorization';
 import { AgreementSignBar } from '@/components/booking/agreement-sign-bar';
 
 export default function FleetDetailClientT2({ carId }: { carId: string }) {
@@ -90,8 +90,8 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
     setPromoError,
     fields,
     errors,
-    cardConsent,
-    setCardConsent,
+    consentText,
+    checkoutBusy,
     checkoutError,
     rentalAgreementSignature,
     rentalAgreementModalOpen,
@@ -575,14 +575,19 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
 
             {/* E8.6: every website checkout leaves a reusable card with
                 the provider, so the renter authorizes that before paying. */}
-            <CardConsent
-              checked={cardConsent}
-              onChange={setCardConsent}
-              companyName={tenant.name}
-              depositAmount={cardDeposit.amount}
-              depositMode={cardDeposit.timing}
-              required
-            />
+            <BookingAuthorization
+              consentText={consentText}
+              agreementRequired={rentalAgreementRequired}
+              agreementSigned={rentalAgreementSigned}
+              headingClassName={styles.authHeading}
+              countClassName={styles.authCount}
+              consentClassName={styles.authConsent}
+            >
+              <AgreementSignBar
+                signed={rentalAgreementSigned}
+                onOpen={() => setRentalAgreementModalOpen(true)}
+              />
+            </BookingAuthorization>
 
             <button
               type="button"
@@ -590,17 +595,15 @@ export default function FleetDetailClientT2({ carId }: { carId: string }) {
               disabled={reserveBlocked}
               className={`${styles.btn} ${styles.btnBrass} ${styles.reserveBtn}`}
             >
-              <Dyn>{startCheckout.isPending || startVerification.isPending || startEmbedPayment.isPending
-                ? 'Starting checkout…'
-                : 'Reserve Now'}</Dyn>
+              <Dyn>
+                {reserveLabel({
+                  agreementRequired: rentalAgreementRequired,
+                  agreementSigned: rentalAgreementSigned,
+                  busy: checkoutBusy,
+                  label: weekly.on ? 'Book Weekly Plan' : 'Reserve Now',
+                })}
+              </Dyn>
             </button>
-
-            {rentalAgreementRequired ? (
-              <AgreementSignBar
-                signed={rentalAgreementSigned}
-                onOpen={() => setRentalAgreementModalOpen(true)}
-              />
-            ) : null}
 
             <div className={styles.trustRow}>
               {['No hidden fees, price you see is final', 'Encrypted, secure payment'].map((line) => (

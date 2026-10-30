@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 
 import { Dyn } from '@/components/i18n/Dyn';
 import { useSearchBar } from './use-search-bar';
@@ -30,9 +31,7 @@ export function SearchBarT3({
   const tab = tabFor(model);
   const minWeeks = ongoing ? rentalConfig.terms?.[model]?.min_term_weeks ?? 0 : 0;
   const returnShown = !ongoing || wantsReturn;
-  const splitTabs = onModelChange
-    ? RENTAL_TABS.filter((entry) => rentalConfig.bookableModels.includes(entry.model))
-    : [];
+  const splitTabs = RENTAL_TABS.filter((entry) => rentalConfig.bookableModels.includes(entry.model));
   const {
     rootRef,
     pickupLocations,
@@ -55,7 +54,7 @@ export function SearchBarT3({
     showDisc,
     discTitle,
     goSearch,
-  } = useSearchBar();
+  } = useSearchBar(tab.href);
 
   return (
     <div className={variant === 'hero' ? 'booking' : 'booking inline'} id="book" ref={rootRef}>
@@ -66,23 +65,40 @@ export function SearchBarT3({
           aria-label="Rental type"
           style={{ gridTemplateColumns: `repeat(${splitTabs.length}, minmax(0, 1fr))` }}
         >
-          {splitTabs.map((entry) => (
-            <button
-              key={entry.model}
-              className="ftab"
-              type="button"
-              role="tab"
-              aria-selected={entry.model === model}
-              onClick={() => onModelChange?.(entry.model)}
-            >
-              <b>
-                <Dyn>{entry.label}</Dyn>
-              </b>
-              <span>
-                <Dyn>{entry.blurb}</Dyn>
-              </span>
-            </button>
-          ))}
+          {splitTabs.map((entry) => {
+            const label = (
+              <>
+                <b>
+                  <Dyn>{entry.label}</Dyn>
+                </b>
+                <span>
+                  <Dyn>{entry.blurb}</Dyn>
+                </span>
+              </>
+            );
+            return onModelChange ? (
+              <button
+                key={entry.model}
+                className="ftab"
+                type="button"
+                role="tab"
+                aria-selected={entry.model === model}
+                onClick={() => onModelChange(entry.model)}
+              >
+                {label}
+              </button>
+            ) : (
+              <Link
+                key={entry.model}
+                href={entry.href}
+                className="ftab"
+                role="tab"
+                aria-selected={entry.model === model}
+              >
+                {label}
+              </Link>
+            );
+          })}
         </div>
       ) : null}
       <form

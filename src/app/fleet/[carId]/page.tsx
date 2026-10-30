@@ -36,7 +36,7 @@ import {
 import FleetDetailClientT2 from './fleet-detail-client-t2';
 import FleetDetailClientT3 from './fleet-detail-client-t3';
 import { pickTemplateView } from '@/lib/template-view';
-import { CardConsent } from '@/components/booking/card-consent';
+import { BookingAuthorization, reserveLabel } from '@/components/booking/booking-authorization';
 import { AgreementSignBar } from '@/components/booking/agreement-sign-bar';
 
 export default function Page({ params }: { params: Promise<{ carId: string }> }) {
@@ -116,8 +116,8 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
     setPromoError,
     fields,
     errors,
-    cardConsent,
-    setCardConsent,
+    consentText,
+    checkoutBusy,
     checkoutError,
     rentalAgreementSignature,
     rentalAgreementModalOpen,
@@ -739,32 +739,35 @@ export default function Page({ params }: { params: Promise<{ carId: string }> })
 
             {/* E8.6: every website checkout leaves a reusable card with
                 the provider, so the renter authorizes that before paying. */}
-            <CardConsent
-              checked={cardConsent}
-              onChange={setCardConsent}
-              companyName={tenant.name}
-              depositAmount={cardDeposit.amount}
-              depositMode={cardDeposit.timing}
-              required
-            />
+            <BookingAuthorization
+              consentText={consentText}
+              agreementRequired={rentalAgreementRequired}
+              agreementSigned={rentalAgreementSigned}
+              headingClassName="mt-[14px] flex items-center justify-between text-[11px] font-bold uppercase tracking-[0.12em] text-muted"
+              countClassName="font-semibold normal-case tracking-normal text-faint"
+              consentClassName="mt-2 text-[11.5px] leading-[1.55] text-muted"
+            >
+              <AgreementSignBar
+                signed={rentalAgreementSigned}
+                onOpen={() => setRentalAgreementModalOpen(true)}
+                className="mt-2"
+              />
+            </BookingAuthorization>
 
             <button
               onClick={() => reserve()}
               disabled={reserveBlocked}
               className="mt-[14px] block w-full cursor-pointer rounded-[10px] bg-primary py-[13px] text-center text-sm font-bold text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <Dyn>{startCheckout.isPending || startVerification.isPending || startEmbedPayment.isPending
-                ? 'Starting checkout…'
-                : 'Reserve Now'}</Dyn>
+              <Dyn>
+                {reserveLabel({
+                  agreementRequired: rentalAgreementRequired,
+                  agreementSigned: rentalAgreementSigned,
+                  busy: checkoutBusy,
+                  label: weekly.on ? 'Book Weekly Plan' : 'Reserve Now',
+                })}
+              </Dyn>
             </button>
-
-            {rentalAgreementRequired && (
-              <AgreementSignBar
-                signed={rentalAgreementSigned}
-                onOpen={() => setRentalAgreementModalOpen(true)}
-                className="mt-[13px]"
-              />
-            )}
 
             <div className="mt-4 flex flex-col gap-[9px]">
               {['No hidden fees, price you see is final', 'Encrypted, secure payment'].map((line) => (

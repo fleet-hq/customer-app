@@ -34,11 +34,13 @@ export interface RentalSiteConfig {
   plans: PublicPlan[];
   daily_insurance_mode?: DailyInsuranceMode | null;
   terms?: Partial<Record<RentalModel, ModelTerms>>;
+  card_consent_text?: string | null;
+  card_consent_version?: string | null;
 }
 
 export type DailyInsuranceMode = 'bonzah_optional' | 'bonzah_cdw_required' | 'own_policy_only';
 
-export const DAILY_ONLY: RentalSiteConfig = { models: ['daily'], website_ongoing: false, plans: [], daily_insurance_mode: null, terms: {} };
+export const DAILY_ONLY: RentalSiteConfig = { models: ['daily'], website_ongoing: false, plans: [], daily_insurance_mode: null, terms: {}, card_consent_text: null, card_consent_version: null };
 
 export async function getRentalSiteConfig(domain?: string | null): Promise<RentalSiteConfig> {
   const res = await axios.get<RentalSiteConfig>(`${API_URL}/api/rentals/public/config/`, {

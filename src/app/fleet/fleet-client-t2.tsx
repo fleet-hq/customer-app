@@ -9,7 +9,7 @@ import { paths } from '@/lib/paths';
 import { Dyn } from '@/components/i18n/Dyn';
 import { useFleetListing, SORTS, applicableDiscountPct } from './use-fleet-listing';
 import styles from '@/styles/template-2.module.css';
-import { PlanPicker, RentalModelBar } from '@/components/fleet/rental-model-bar';
+import { PlanPicker } from '@/components/fleet/rental-model-bar';
 
 export default function FleetClientT2() {
   const {
@@ -87,8 +87,6 @@ export default function FleetClientT2() {
             ) : null}
           </div>
         ) : null}
-
-        <RentalModelBar state={rentalTabs} />
 
         <div className={styles.toolbar}>
           <h2 className={styles.toolbarHeading}>{heading}</h2>

@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { defaultReturnDate, defaultTrip } from '@/lib/trip-defaults';
-import { cycleWords } from '@/lib/billing-cycle';
+import { cycleInfo, cycleWords } from '@/lib/billing-cycle';
+import { ongoingInvoice } from '@/lib/ongoing-invoice';
 import {
   useFleet,
   useInsuranceOptions,
@@ -24,11 +25,12 @@ import { useDefaultLocation } from '@/contexts';
 import { checkFleetAvailability, checkoutBody, validatePromoCode } from '@/services/bookingServices';
 import type { InsuranceOption, QuotePayload } from '@/services/bookingServices';
 import { toUtcIso } from '@/utils/datetime';
-import { rentalDays } from '@/lib/utils';
+import { rentalDays, money } from '@/lib/utils';
 import { buildUnavailabilityIndex, slotsBlockedOn, firstBlockInSpan } from '@/lib/unavailable-slots';
 import { formatInTimeZone } from 'date-fns-tz';
 import { useEmbedBridge } from '@/hooks';
 import { useTenant } from '@/lib/tenant-context';
+import { fallbackConsentText } from '@/components/booking/booking-authorization';
 import { useDefaultAgreementTemplate, useCompanySettings, useBonzahAddendum } from '@/hooks/useAgreements';
 import { useBookingAgreementData } from '@/components/booking/use-booking-agreement-data';
 import { useAbiQuote } from '@/hooks/useAbi';
@@ -161,7 +163,6 @@ export function useFleetDetail(carId: string) {
   // E8.6: website checkouts are created with setup_future_usage=off_session,
   // so every one of them leaves a reusable card behind. The renter has to
   // authorize that before they can pay.
-  const [cardConsent, setCardConsent] = useState(false);
   const [rentalAgreementSignature, setRentalAgreementSignature] = useState<string | null>(null);
   const [rentalAgreementModalOpen, setRentalAgreementModalOpen] = useState(false);
   const { data: rentalAgreementTemplate } = useDefaultAgreementTemplate();
@@ -255,6 +256,7 @@ export function useFleetDetail(carId: string) {
 
   const { data: vehicle, isLoading } = useFleet(carId, true, fleetDateArgs);
   const rentalConfig = useRentalSiteConfig();
+  const consentText = rentalConfig.card_consent_text || fallbackConsentText(tenant.name);
 
   // Fire once per vehicle, not per render — price and availability
   // refetch as the trip dates change, which would otherwise re-fire
@@ -408,7 +410,6 @@ export function useFleetDetail(carId: string) {
   const dailyAllowed = !vehicle || carModels.includes('daily');
   const notBookableOnline = !!vehicle && rentalConfig.ready && carModels.length === 0;
   const [weeklyChosen, setWeekly] = useState(urlModel === 'gig' || urlModel === 'subscription');
-  const [weeklyConsent, setWeeklyConsent] = useState(false);
   const [billingCycle, setBillingCycle] = useState<BillingCycle | null>(null);
   const planId = ongoingModel === 'subscription' ? vehicle?.subscriptionPlanId ?? null : null;
 
@@ -467,9 +468,9 @@ export function useFleetDetail(carId: string) {
       abi_coverage: false,
       rental_model: ongoingModel,
       subscription_plan_id: planId,
-      weekly_consent: weeklyConsent,
+      weekly_consent: true,
     };
-  }, [quotePayload, weeklyOn, offer, ongoingModel, planId, weeklyConsent]);
+  }, [quotePayload, weeklyOn, offer, ongoingModel, planId]);
 
   const bonzahSelected = useMemo(
     () => Array.from(selectedInsurance).some((id) => id !== 'own'),
@@ -682,8 +683,6 @@ export function useFleetDetail(carId: string) {
     fields,
     setFields,
     errors,
-    cardConsent,
-    setCardConsent,
     setErrors,
     checkoutError,
     setCheckoutError,
@@ -693,6 +692,7 @@ export function useFleetDetail(carId: string) {
     setRentalAgreementModalOpen,
     rentalAgreementRequired,
     rentalAgreementSigned,
+    consentText,
     galleryOpen,
     setGalleryOpen,
     galleryIndex,
@@ -751,13 +751,32 @@ export function useFleetDetail(carId: string) {
       reason: ongoingQuote && !ongoingQuote.available ? ongoingQuote.reason : null,
       stale: ongoingStale,
       cycle,
-      cycles: offer?.cycles ?? [],
+      cycles: (offer?.cycles ?? []).map((option) => {
+        const info = cycleInfo(option.value);
+        const weeks = info?.weeksPerCycle ?? 1;
+        const total = Number(offer?.recurring?.rental ?? 0);
+        const perWeek = option.value === offer?.billing_cycle && total > 0 ? total / weeks : null;
+        const baseline = Number(vehicle?.pricePerWeek) || 0;
+        const rate = perWeek ?? (option.value === 'monthly'
+          ? (Number(vehicle?.pricePerMonth) || 0) / weeks
+          : baseline);
+        const saved = baseline > 0 && rate > 0 ? Math.round((1 - rate / baseline) * 100) : 0;
+        return {
+          value: option.value,
+          label: option.label,
+          description: info?.blurb ?? '',
+          perWeek: money(rate),
+          saving: saved > 0 ? `/ week · save ${saved}%` : '/ week',
+          best: saved > 0,
+        };
+      }),
+      termsBlurb: `There's no return date. Your plan renews every cycle until you give ${offer?.return_notice_days ?? 0} days' notice${offer?.min_term_weeks ? `, after a ${offer.min_term_weeks}-week minimum` : ''}.`,
       cycleValue: offer?.billing_cycle ?? billingCycle,
       setCycle: setBillingCycle,
-      consent: weeklyConsent,
-      setConsent: setWeeklyConsent,
+      invoice: offer ? ongoingInvoice(offer) : null,
     },
     notBookableOnline,
+    checkoutBusy: startCheckout.isPending || startVerification.isPending || startEmbedPayment.isPending,
     reserveBlocked:
       notBookableOnline ||
       reserving ||
@@ -765,8 +784,7 @@ export function useFleetDetail(carId: string) {
       startVerification.isPending ||
       startEmbedPayment.isPending ||
       !!tripProblem ||
-      (weeklyOn ? !offer || !weeklyConsent || ongoingStale : !meetsMinDuration) ||
-      !cardConsent ||
+      (weeklyOn ? !offer || ongoingStale : !meetsMinDuration) ||
       (rentalAgreementRequired && !rentalAgreementSigned),
     carId,
   };
@@ -909,16 +927,11 @@ export function useFleetDetail(carId: string) {
   const runReserve = async () => {
     const e = validate();
     setErrors(e);
-    if (Object.keys(e).length > 0 || !cardConsent) return;
+    if (Object.keys(e).length > 0) return;
     setCheckoutError('');
 
     if (!pickupDate || !pickupTime || (!weeklyOn && (!returnDate || !returnTime))) {
       setCheckoutError('Please select a pick-up date, pick-up time, return date, and return time.');
-      return;
-    }
-
-    if (weeklyOn && !weeklyConsent) {
-      setCheckoutError('Agree to the weekly charges to continue.');
       return;
     }
 
@@ -997,7 +1010,7 @@ export function useFleetDetail(carId: string) {
 
     const commonPayload = {
       ...bookingPayload,
-      card_consent: cardConsent,
+      card_consent: true,
       customer: {
         first_name: fields.firstName.trim(),
         last_name: fields.lastName.trim(),
@@ -1097,7 +1110,7 @@ export function useFleetDetail(carId: string) {
       const body = await nmiCreatePaymentForPending({
         pendingId: nmiPay.pendingId,
         paymentToken,
-        saveCard: cardConsent || nmiPay.deposit > 0,
+        saveCard: true,
       });
       suppressRelease({ clear: true });
       if (body.booking_id && body.access_token) {

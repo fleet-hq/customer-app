@@ -160,6 +160,14 @@ export function useFleetListing() {
   }, [companyLocations]);
 
   const type = searchParams.get('type') ?? '';
+  const hrefWithType = (value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (value) params.set('type', value);
+    else params.delete('type');
+    params.delete('page');
+    const query = params.toString();
+    return query ? `${pathname}?${query}` : pathname ?? '/fleet';
+  };
   const activeLabel = type ? CATEGORY_LABELS[type] ?? type : '';
   const isFiltered = !!type;
 
@@ -319,6 +327,13 @@ export function useFleetListing() {
     isFiltered,
     activeLabel: t(activeLabel),
     pickupDayLabel,
+    categoryChips: [
+      { label: 'All', value: '', href: hrefWithType(''), active: !type },
+      ...filterOptions.vehicleTypes.map((name) => {
+        const value = slugify(name);
+        return { label: name, value, href: hrefWithType(value), active: type === value };
+      }),
+    ],
     rentalTabs: {
       tabs: tabs.length > 1 ? tabs : [],
       active: activeModel,

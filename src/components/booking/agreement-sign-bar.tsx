@@ -12,8 +12,7 @@ interface AgreementSignBarProps {
   className?: string;
 }
 
-/** "Sign Rental Agreement · required" — the bar beneath the booking
- *  button.
+/** "Read & sign agreement" — the bar beneath the booking button.
  *
  *  A renter meets this at checkout and again on their booking page, and
  *  the two looked nothing alike until they shared this. Both templates
@@ -30,9 +29,9 @@ export function AgreementSignBar({ signed, onOpen, className }: AgreementSignBar
         className={cn(styles.agreementBtn, signed && styles.agreementBtnSigned, className)}
       >
         <span>
-          <Dyn>{signed ? 'Rental Agreement signed' : 'Sign Rental Agreement · required'}</Dyn>
+          <Dyn>{signed ? 'Agreement signed' : 'Read & sign agreement'}</Dyn>
         </span>
-        {signed ? <Check size={14} strokeWidth={2.4} /> : null}
+        {signed ? <Check size={14} strokeWidth={2.4} /> : <span><Dyn>Open</Dyn></span>}
       </button>
     );
   }
@@ -59,14 +58,17 @@ export function AgreementSignBar({ signed, onOpen, className }: AgreementSignBar
           {signed && <Check size={11} strokeWidth={3.2} className="text-white" />}
         </span>
         <span className={cn('truncate text-[12px] font-semibold', signed ? 'text-success' : 'text-ink')}>
-          <Dyn>{signed ? 'Rental Agreement signed' : 'Sign Rental Agreement · required'}</Dyn>
+          <Dyn>{signed ? 'Agreement signed' : 'Read & sign agreement'}</Dyn>
         </span>
       </span>
-      {signed && (
-        <span className="flex-shrink-0 whitespace-nowrap text-[11.5px] font-semibold text-success underline">
-          <Dyn>Review</Dyn>
-        </span>
-      )}
+      <span
+        className={cn(
+          'flex-shrink-0 whitespace-nowrap text-[11.5px] font-semibold underline',
+          signed ? 'text-success' : 'text-primary',
+        )}
+      >
+        <Dyn>{signed ? 'View' : 'Open'}</Dyn>
+      </span>
     </button>
   );
 }

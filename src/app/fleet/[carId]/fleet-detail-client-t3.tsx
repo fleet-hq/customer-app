@@ -3,9 +3,9 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { Dyn } from '@/components/i18n/Dyn';
-import { CardConsent } from '@/components/booking/card-consent';
+import { BookingAuthorization, EndingPolicy, reserveLabel } from '@/components/booking/booking-authorization';
 import { depositSummary, rateRows, taxRows, weeklySavingText } from '@/lib/price-rows';
-import { ReturnModeToggle, WeeklyRentalSummary } from '@/components/booking/weekly-rental';
+import { ReturnModeToggle } from '@/components/booking/weekly-rental';
 import { NmiPayModal } from '@/components/booking/nmi-pay-modal';
 import { RentalAgreementSignModal } from '@/components/booking/rental-agreement-sign-modal';
 import { EmbedPaymentPanel } from '@/components/checkout/embed-payment-panel';
@@ -81,8 +81,6 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
     errors,
     setField,
     blurField,
-    cardConsent,
-    setCardConsent,
     checkoutError,
     errorBannerRef,
     protectionRef,
@@ -119,6 +117,8 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
     minDurationLabel,
     rentalAgreementRequired,
     rentalAgreementSigned,
+    consentText,
+    checkoutBusy,
     rentalAgreementSignature,
     rentalAgreementModalOpen,
     setRentalAgreementModalOpen,
@@ -288,6 +288,31 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
             ) : null}
 
             {notBookableOnline ? null : (<>
+            {weekly.on && weekly.cycles.length > 1 ? (
+              <div className="blk" id="billing-terms">
+                <h2>
+                  <i />
+                  <Dyn>Billing terms</Dyn>
+                </h2>
+                <p style={{ marginBottom: 16 }}>
+                  <Dyn>{weekly.termsBlurb}</Dyn>
+                </p>
+                <div className="opts">
+                  {weekly.cycles.map((option) => (
+                    <Opt
+                      key={option.value}
+                      on={weekly.cycleValue === option.value}
+                      title={option.label}
+                      description={option.description}
+                      amount={option.perWeek}
+                      unit={option.saving}
+                      pill={option.best ? 'Best rate' : undefined}
+                      onToggle={() => weekly.setCycle(option.value as never)}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : null}
             {!weekly.on ? <div className="blk" id="protection">
               <h2 ref={protectionRef}>
                 <i />
@@ -496,12 +521,42 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
 
             <section>
               <h3>
-                <Dyn>Price details</Dyn>
+                <Dyn>{weekly.on ? 'Each charge' : 'Price details'}</Dyn>
                 <span className="daypill">
                   {weekly.on ? <Dyn>{weekly.cycle.badge}</Dyn> : <>{days} <Dyn>{days === 1 ? 'day' : 'days'}</Dyn></>}
                 </span>
               </h3>
-              {weekly.on ? <WeeklyRentalSummary weekly={weekly} variant="inherit" /> : (<>
+              {weekly.on ? (
+                weekly.invoice ? (
+                  weekly.invoice.groups.map((group) => (
+                    <div key={group.key}>
+                      <h5>
+                        <Dyn>{group.heading}</Dyn>
+                        {group.action === 'protection' ? (
+                          <button type="button" onClick={scrollProtection}>
+                            <Dyn>Change</Dyn>
+                          </button>
+                        ) : null}
+                      </h5>
+                      {group.lines.map((line) => (
+                        <div className={line.muted ? 'ln mut' : 'ln'} key={line.key}>
+                          <span>
+                            <Dyn>{line.label}</Dyn>
+                            {line.detail ? <small>{line.detail}</small> : null}
+                          </span>
+                          <span>
+                            <Dyn>{line.amount}</Dyn>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ))
+                ) : (
+                  <p className="note">
+                    <Dyn>{weekly.reason ?? 'Working out your weekly price…'}</Dyn>
+                  </p>
+                )
+              ) : (<>
 
               <h5>
                 <Dyn>Rental</Dyn>
@@ -624,6 +679,38 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
               </>)}
             </section>
 
+            {weekly.on && weekly.invoice ? (
+              <section>
+                <div className="total">
+                  <span>
+                    <Dyn>{weekly.invoice.cycleLabel}</Dyn>
+                  </span>
+                  <div>
+                    <small>USD</small>
+                    <b>{weekly.invoice.cycleTotal}</b>
+                  </div>
+                </div>
+                <p className="note">
+                  <Dyn>{weekly.invoice.note}</Dyn>
+                </p>
+                {weekly.invoice.dueLines.map((line) => (
+                  <div className={line.key === 'due' ? 'ln due' : 'ln'} key={line.key}>
+                    <span>
+                      <Dyn>{line.label}</Dyn>
+                      {line.detail ? <small>{line.detail}</small> : null}
+                    </span>
+                    <span>
+                      <Dyn>{line.amount}</Dyn>
+                    </span>
+                  </div>
+                ))}
+              </section>
+            ) : null}
+
+            {weekly.on && weekly.invoice ? (
+              <EndingPolicy heading={weekly.invoice.endingHeading} body={weekly.invoice.endingBody} />
+            ) : null}
+
             {!weekly.on ? <section>
               <div className="total">
                 <span>
@@ -640,30 +727,27 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
             </section> : null}
 
             <section className="sum-act">
-              <CardConsent
-                checked={cardConsent}
-                onChange={setCardConsent}
-                companyName={tenant.name}
-                depositAmount={cardDeposit.amount}
-                depositMode={cardDeposit.timing}
-              />
-
-              {rentalAgreementRequired ? (
+              <BookingAuthorization
+                consentText={consentText}
+                agreementRequired={rentalAgreementRequired}
+                agreementSigned={rentalAgreementSigned}
+                headingClassName="tobk-h"
+                countClassName="cnt"
+              >
                 <button
                   type="button"
-                  className={rentalAgreementSigned ? 'sign done' : 'sign'}
+                  className={rentalAgreementSigned ? 'tobk done' : 'tobk'}
                   onClick={() => setRentalAgreementModalOpen(true)}
                 >
                   <span className="ck" />
-                  <span>
-                    <Dyn>
-                      {rentalAgreementSigned
-                        ? 'Rental Agreement signed'
-                        : 'Sign Rental Agreement · required'}
-                    </Dyn>
+                  <span className="t">
+                    <Dyn>{rentalAgreementSigned ? 'Agreement signed' : 'Read & sign agreement'}</Dyn>
+                  </span>
+                  <span className="lk">
+                    <Dyn>{rentalAgreementSigned ? 'View' : 'Open'}</Dyn>
                   </span>
                 </button>
-              ) : null}
+              </BookingAuthorization>
 
               {!weekly.on && !meetsMinDuration ? (
                 <p className="note">
@@ -682,7 +766,15 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
                 disabled={reserveBlocked || hasErrors}
                 onClick={reserve}
               >
-                <Dyn>Reserve now</Dyn> <span className="chev">›</span>
+                <Dyn>
+                  {reserveLabel({
+                    agreementRequired: rentalAgreementRequired,
+                    agreementSigned: rentalAgreementSigned,
+                    busy: checkoutBusy,
+                    label: weekly.on ? 'Book weekly plan' : 'Reserve now',
+                  })}
+                </Dyn>{' '}
+                <span className="chev">›</span>
               </button>
 
               {checkoutError ? (
@@ -696,7 +788,11 @@ export default function FleetDetailClientT3({ carId }: { carId: string }) {
                   <Dyn>No hidden fees, the price you see is final</Dyn>
                 </li>
                 <li>
-                  <Dyn>Insurance options shown before you pay</Dyn>
+                  <Dyn>
+                    {weekly.on && weekly.invoice
+                      ? weekly.invoice.insuranceTick
+                      : 'Insurance options shown before you pay'}
+                  </Dyn>
                 </li>
                 <li>
                   <Dyn>Encrypted, secure payment</Dyn>

@@ -8,7 +8,7 @@ import { INITIAL_FILTERS } from '@/components/fleet/fleet-filters';
 import { SearchBarT3 } from '@/components/search/search-bar-t3';
 import { paths } from '@/lib/paths';
 import { useFleetListing, SORTS } from './use-fleet-listing';
-import { PlanPicker, RentalModelBar } from '@/components/fleet/rental-model-bar';
+import { PlanPicker } from '@/components/fleet/rental-model-bar';
 
 /** Template-3 fleet listing.
  *
@@ -49,6 +49,7 @@ export default function FleetClientT3() {
     countLabel,
     heading,
     rentalTabs,
+    categoryChips,
   } = useFleetListing();
 
   const [panelOpen, setPanelOpen] = useState(false);
@@ -94,6 +95,8 @@ export default function FleetClientT3() {
     });
   }
 
+  const ongoing = rentalTabs.active !== 'daily';
+
   return (
     <>
       <div className="sbar dark">
@@ -116,6 +119,20 @@ export default function FleetClientT3() {
             </div>
 
             <div className="fl-tools" ref={toolsRef}>
+              {ongoing ? (
+                <div className="chips" role="group" aria-label="Filter by type">
+                  {categoryChips.map((chip) => (
+                    <Link
+                      key={chip.value || 'all'}
+                      href={chip.href}
+                      className="chip"
+                      aria-pressed={chip.active}
+                    >
+                      <Dyn>{chip.label}</Dyn>
+                    </Link>
+                  ))}
+                </div>
+              ) : (<>
               <label className="srch">
                 <svg viewBox="0 0 16 16" aria-hidden="true">
                   <circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" strokeWidth="1.5" />
@@ -208,10 +225,9 @@ export default function FleetClientT3() {
                   </button>
                 </div>
               </div>
+              </>)}
             </div>
           </div>
-
-          <RentalModelBar state={rentalTabs} />
 
           {rentalTabs.showPlans ? (
             <PlanPicker plans={rentalTabs.plans} />
