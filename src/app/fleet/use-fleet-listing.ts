@@ -209,6 +209,14 @@ export function useFleetListing() {
   }, [availability]);
 
   const hasWindow = Boolean(pickupDatetime && dropoffDatetime);
+  const pickupDayLabel = useMemo(() => {
+    const d = searchParams.get('pickupDate');
+    if (!d) return null;
+    const parsed = new Date(`${d}T00:00:00`);
+    return Number.isNaN(parsed.getTime())
+      ? null
+      : parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase();
+  }, [searchParams]);
 
   const vehicles = useMemo(() => {
     let list = [...enrichedResults];
@@ -290,6 +298,7 @@ export function useFleetListing() {
     heading,
     isFiltered,
     activeLabel: t(activeLabel),
+    pickupDayLabel,
     rentalTabs: {
       tabs: tabs.length > 1 ? tabs : [],
       active: activeModel,

@@ -47,6 +47,7 @@ export default function FleetClient() {
     isFiltered,
     activeLabel,
     rentalTabs,
+    pickupDayLabel,
   } = useFleetListing();
 
   const Template = pickTemplateView(tenant.websiteTemplate, {
@@ -161,8 +162,9 @@ export default function FleetClient() {
                         <Dyn>Unavailable</Dyn>
                       </span>
                     ) : hasAvailabilityWindow && !isAvailabilityLoading ? (
-                      <span className="pointer-events-none absolute top-[10px] right-[10px] rounded-full border border-success/25 bg-white/95 px-[10px] py-[3px] text-[10px] font-semibold tracking-[0.02em] text-success shadow-sm">
-                        <Dyn>Available</Dyn>
+                      <span className="pointer-events-none absolute top-[10px] right-[10px] inline-flex items-center gap-[5px] rounded-full border border-success/25 bg-white/95 px-[10px] py-[3px] text-[10px] font-semibold tracking-[0.02em] text-success shadow-sm">
+                        <span className="inline-block h-[5px] w-[5px] rounded-full bg-success" />
+                        <Dyn>{pickupDayLabel ? `Available ${pickupDayLabel}` : 'Available'}</Dyn>
                       </span>
                     ) : null}
                   </div>

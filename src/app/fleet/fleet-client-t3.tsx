@@ -98,7 +98,7 @@ export default function FleetClientT3() {
     <>
       <div className="sbar dark">
         <div className="wrap">
-          <SearchBarT3 variant="inline" />
+          <SearchBarT3 variant="inline" model={rentalTabs.active} />
         </div>
       </div>
 

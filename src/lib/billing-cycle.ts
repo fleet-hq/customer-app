@@ -1,6 +1,8 @@
 import { money } from '@/lib/utils';
 import type { BillingCycle } from '@/services/rentalServices';
 
+export const WEEKS_PER_MONTH = 365 / 12 / 7;
+
 export interface Renewal {
   renew_weekday_name?: string | null;
   renew_day?: number | null;

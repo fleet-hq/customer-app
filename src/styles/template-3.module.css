@@ -3407,3 +3407,15 @@
   margin: 0 0 clamp(28px, 4vw, 44px);
   max-width: 720px;
 }
+
+.t3 :global(.car .ft) {
+  flex-wrap: wrap;
+}
+.t3 :global(.car .ongoing-note) {
+  flex: 0 0 100%;
+  order: 9;
+  margin-top: 2px;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--t3-muted, var(--text-muted));
+}

@@ -1,5 +1,6 @@
 import { released } from '@/lib/release';
 import { money } from '@/lib/utils';
+import { WEEKS_PER_MONTH } from '@/lib/billing-cycle';
 import { offeredModels } from '@/lib/rental-offers';
 import type { PublicPlan, RentalModel, RentalSiteConfig } from '@/services/rentalServices';
 import type { Vehicle } from '@/types/vehicle';
@@ -13,6 +14,7 @@ export interface WeeklyOffer {
 export interface RateCard {
   ongoing: boolean;
   minTerm: string | null;
+  altRate: { perWeek: number; cycleLabel: string } | null;
   week: number | null;
   hourFrom: number | null;
   extras: string | null;
@@ -28,7 +30,16 @@ export interface RateView {
 
 const DAILY_VIEW: RateView = { model: 'daily' };
 
-type RateVehicle = Pick<Vehicle, 'pricePerDay' | 'pricePerHour' | 'pricePerWeek' | 'subscriptionPricePerWeek' | 'offers' | 'milesPerDay'>;
+type RateVehicle = Pick<
+  Vehicle,
+  'pricePerDay' | 'pricePerHour' | 'pricePerWeek' | 'subscriptionPricePerWeek' | 'pricePerMonth' | 'subscriptionPricePerMonth' | 'offers' | 'milesPerDay'
+>;
+
+function altRate(weekly: number, monthly: number | null): { perWeek: number; cycleLabel: string } | null {
+  if (!monthly || monthly <= 0 || weekly <= 0) return null;
+  const perWeek = monthly / WEEKS_PER_MONTH;
+  return perWeek < weekly ? { perWeek, cycleLabel: 'billed monthly' } : null;
+}
 
 function termLabel(weeks: number | null | undefined): string | null {
   const n = Number(weeks) || 0;
@@ -49,6 +60,7 @@ export function rateCard(vehicle: RateVehicle, config: RentalSiteConfig, view: R
     return {
       ongoing: true,
       minTerm: termLabel(view.plan.min_term_weeks),
+      altRate: altRate(price, vehicle.subscriptionPricePerMonth),
       week: null, hourFrom: null, extras: null, weekly: null,
       headline: { price, per: 'week' }, mileage: planMileage(view.plan),
     };
@@ -57,6 +69,7 @@ export function rateCard(vehicle: RateVehicle, config: RentalSiteConfig, view: R
     return {
       ongoing: true,
       minTerm: termLabel(config.terms?.gig?.min_term_weeks),
+      altRate: altRate(vehicle.pricePerWeek, vehicle.pricePerMonth),
       week: null, hourFrom: null, extras: null, weekly: null,
       headline: { price: vehicle.pricePerWeek, per: 'week' }, mileage: null,
     };
@@ -69,6 +82,7 @@ export function rateCard(vehicle: RateVehicle, config: RentalSiteConfig, view: R
   return {
     ongoing: false,
     minTerm: null,
+    altRate: null,
     week,
     hourFrom,
     extras: extras || null,

@@ -1,16 +1,33 @@
 'use client';
 
+import { useState } from 'react';
+
 import { Dyn } from '@/components/i18n/Dyn';
 import { useSearchBar } from './use-search-bar';
 import { useTenantToday } from '@/hooks/use-tenant-today';
+import { useRentalSiteConfig } from '@/hooks/useRentalSiteConfig';
+import { tabFor } from '@/lib/rental-tabs';
+import type { RentalModel } from '@/services/rentalServices';
 
 /** Template-3 booking form — the raw template's own markup (boxed
  *  fields on the dark hero, a checkbox for a different return
  *  location). Every piece of state and the submit behaviour come from
  *  the shared useSearchBar hook, so all three templates search
  *  identically and only the presentation differs. */
-export function SearchBarT3({ variant = 'hero' }: { variant?: 'hero' | 'inline' }) {
+export function SearchBarT3({
+  variant = 'hero',
+  model = 'daily',
+}: {
+  variant?: 'hero' | 'inline';
+  model?: RentalModel;
+}) {
   const today = useTenantToday();
+  const [wantsReturn, setWantsReturn] = useState(false);
+  const rentalConfig = useRentalSiteConfig();
+  const ongoing = model !== 'daily';
+  const tab = tabFor(model);
+  const minWeeks = ongoing ? rentalConfig.terms?.[model]?.min_term_weeks ?? 0 : 0;
+  const returnShown = !ongoing || wantsReturn;
   const {
     rootRef,
     pickupLocations,
@@ -48,7 +65,7 @@ export function SearchBarT3({ variant = 'hero' }: { variant?: 'hero' | 'inline' 
         <div className="book-hd">
           <i />
           <span className="eyebrow">
-            <Dyn>Pick-up &amp; return</Dyn>
+            <Dyn>{tab.fieldsLabel}</Dyn>
           </span>
         </div>
 
@@ -71,7 +88,7 @@ export function SearchBarT3({ variant = 'hero' }: { variant?: 'hero' | 'inline' 
           </select>
         </div>
 
-        {diffLocation ? (
+        {!ongoing && diffLocation ? (
           <div className="drop field">
             <label htmlFor="t3-dloc">
               <Dyn>Return location</Dyn>
@@ -116,6 +133,7 @@ export function SearchBarT3({ variant = 'hero' }: { variant?: 'hero' | 'inline' 
           </div>
         </div>
 
+        {returnShown ? (
         <div className="field">
           <label htmlFor="t3-rd">
             <Dyn>Return</Dyn>
@@ -125,7 +143,7 @@ export function SearchBarT3({ variant = 'hero' }: { variant?: 'hero' | 'inline' 
               <input
                 type="date"
                 id="t3-rd"
-                required
+                required={returnShown}
                 value={returnDate}
                 min={pickupDate || today}
                 onChange={(e) => setReturnDate(e.target.value)}
@@ -140,15 +158,22 @@ export function SearchBarT3({ variant = 'hero' }: { variant?: 'hero' | 'inline' 
             </span>
           </div>
         </div>
+        ) : null}
 
         <div className="book-go">
           <label className="toggle">
             <input
               type="checkbox"
-              checked={diffLocation}
-              onChange={(e) => setDiffLocation(e.target.checked)}
+              checked={ongoing ? wantsReturn : diffLocation}
+              onChange={(e) => (ongoing ? setWantsReturn(e.target.checked) : setDiffLocation(e.target.checked))}
             />
-            <Dyn>Return car to a different location</Dyn>
+            <Dyn>
+              {ongoing
+                ? minWeeks > 0
+                  ? `Add a return date (${minWeeks}-week minimum)`
+                  : 'Add a return date'
+                : 'Return car to a different location'}
+            </Dyn>
           </label>
           <button className="btn" type="submit">
             <Dyn>Search the fleet</Dyn> <span className="chev">›</span>

@@ -33,7 +33,7 @@ export function CarCard({ vehicle, badge, oldPrice, bookingQuery, hours, discoun
   const href = bookingQuery ? `${checkoutPath}?${bookingQuery}` : checkoutPath;
 
   const card = useRateCard(vehicle, view);
-  const tag = badge ?? (card.ongoing ? 'Ongoing' : null) ?? card.weekly?.badge ?? null;
+  const tag = badge ?? card.weekly?.badge ?? null;
   const pricing = cardPricing(vehicle, card, hours, discountPct);
   const ranged = pricing.mode === 'hourly' || pricing.mode === 'daily';
   const strikeUnitPrice = pricing.strikePrice ?? oldPrice ?? null;
@@ -65,6 +65,11 @@ export function CarCard({ vehicle, badge, oldPrice, bookingQuery, hours, discoun
       </div>
 
       <div className="flex flex-1 flex-col p-[16px]">
+        {vehicle.vehicleType && (
+          <div className="mb-[5px] truncate text-[10.5px] font-semibold tracking-[0.05em] uppercase text-primary">
+            <Dyn>{vehicle.vehicleType}</Dyn>
+          </div>
+        )}
         <div className="truncate text-[15px] leading-none font-semibold text-ink">{vehicle.name}</div>
         {vehicle.location && (
           <div className="mt-[5px] truncate text-[11.5px] text-muted">
@@ -110,7 +115,7 @@ export function CarCard({ vehicle, badge, oldPrice, bookingQuery, hours, discoun
                     <span className="text-[12px] text-faint line-through">{money(strikeUnitPrice)}</span>
                   )}
                 </div>
-                <ViewCta />
+                <ViewCta label={card.ongoing ? 'Select' : 'View'} />
               </div>
             </div>
           ) : (
@@ -123,11 +128,25 @@ export function CarCard({ vehicle, badge, oldPrice, bookingQuery, hours, discoun
                   <span className="text-[12px] text-faint line-through">{money(strikeUnitPrice)}</span>
                 )}
               </div>
-              <ViewCta />
+              <ViewCta label={card.ongoing ? 'Select' : 'View'} />
             </div>
           )}
-          {card.minTerm && (
-            <div className="pt-[6px] text-[11.5px] text-faint"><Dyn>{card.minTerm}</Dyn></div>
+          {card.ongoing && (
+            <div className="pt-[6px] text-[11.5px] leading-[1.45] text-faint">
+              <Dyn>Ongoing</Dyn>
+              {card.altRate ? (
+                <>
+                  {' · '}
+                  <Dyn>{`from ${money(card.altRate.perWeek)}/wk ${card.altRate.cycleLabel}`}</Dyn>
+                </>
+              ) : null}
+              {card.minTerm ? (
+                <>
+                  {' · '}
+                  <Dyn>{card.minTerm}</Dyn>
+                </>
+              ) : null}
+            </div>
           )}
           {card.extras && (
             <div className="mt-[6px] text-[11.5px] text-faint">
@@ -143,10 +162,10 @@ export function CarCard({ vehicle, badge, oldPrice, bookingQuery, hours, discoun
   );
 }
 
-function ViewCta() {
+function ViewCta({ label = 'View' }: { label?: string }) {
   return (
     <span className="inline-flex items-center gap-[4px] text-[12px] font-semibold text-primary">
-      <Dyn>View</Dyn>
+      <Dyn>{label}</Dyn>
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M5 12h14M13 6l6 6-6 6" />
       </svg>

@@ -108,9 +108,18 @@ export function CarCardT3({
           ) : (
             <div className="price" />
           )}
+          {card.ongoing ? (
+            <div className="ongoing-note">
+              <Dyn>Ongoing</Dyn>
+              {card.altRate ? (
+                <>{' · '}<Dyn>{`from ${money(card.altRate.perWeek)}/wk ${card.altRate.cycleLabel}`}</Dyn></>
+              ) : null}
+              {card.minTerm ? (<>{' · '}<Dyn>{card.minTerm}</Dyn></>) : null}
+            </div>
+          ) : null}
           {variant === 'view' ? (
             <Link className="view" href={href} onClick={() => trackVehicleSelect(vehicle)}>
-              <Dyn>View</Dyn> <span className="chev">›</span>
+              <Dyn>{card.ongoing ? 'Select' : 'View'}</Dyn> <span className="chev">›</span>
             </Link>
           ) : (
             <Link className="btn" href={href} onClick={() => trackVehicleSelect(vehicle)}>

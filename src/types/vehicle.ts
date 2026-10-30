@@ -15,6 +15,8 @@ export interface ApiBookingPrice {
   base_price_per_day?: number | null;
   price_per_hour?: number | null;
   price_per_week?: number | null;
+  price_per_month?: number | null;
+  subscription_price_per_month?: number | null;
   subscription_price_per_week?: number | null;
   auto_cap_enabled?: boolean;
   min_hours?: number | null;
@@ -137,6 +139,8 @@ export interface Vehicle {
   pricePerHour: number;
   pricePerWeek: number;
   subscriptionPricePerWeek: number | null;
+  pricePerMonth: number | null;
+  subscriptionPricePerMonth: number | null;
   offers: RentalOffers;
   subscriptionPlanId: number | null;
   autoCapEnabled: boolean;
@@ -220,6 +224,8 @@ export function transformApiVehicle(apiVehicle: ApiVehicle): Vehicle {
     pricePerHour,
     pricePerWeek: Number(apiVehicle.booking_price?.price_per_week ?? 0) || 0,
     subscriptionPricePerWeek: Number(apiVehicle.booking_price?.subscription_price_per_week ?? 0) || null,
+    pricePerMonth: Number(apiVehicle.booking_price?.price_per_month ?? 0) || null,
+    subscriptionPricePerMonth: Number(apiVehicle.booking_price?.subscription_price_per_month ?? 0) || null,
     offers: apiVehicle.offers ?? DAILY_ONLY_OFFERS,
     subscriptionPlanId: apiVehicle.booking_rule?.subscription_plan ?? null,
     autoCapEnabled,
