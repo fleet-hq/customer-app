@@ -12,7 +12,7 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { useBookingPayment } from '@/hooks/use-booking-payment';
 import { Calendar } from '@/components/ui/icons';
 import { cycleWords } from '@/lib/billing-cycle';
-import { rentalStats } from '@/lib/rental-stats';
+import { gigDashboard } from '@/lib/gig-dashboard';
 
 const STATUS: Record<string, { label: string; tone: 'good' | 'bad' | 'due' | 'quiet' }> = {
   paid: { label: 'Paid', tone: 'good' },
@@ -37,11 +37,14 @@ function useSkin() {
     line: isT2 ? 'border-[var(--line)]' : 'border-hairline',
     link: isT2 ? 'text-[var(--brass)]' : 'text-primary',
     button: isT2 ? 'bg-[var(--brass)] text-[var(--paper)]' : 'bg-primary text-white hover:bg-primary-hover',
+    progress: isT2 ? 'bg-[var(--brass)]' : 'bg-primary',
     tone: {
       good: isT2 ? 'text-[var(--success)]' : 'text-success',
       bad: isT2 ? 'text-[var(--danger)]' : 'text-danger',
       due: isT2 ? 'text-[var(--brass)]' : 'text-amber-text-2',
       quiet: isT2 ? 'text-[var(--text-muted)]' : 'text-faint',
+      paid: isT2 ? 'text-[var(--success)]' : 'text-success',
+      held: isT2 ? 'text-[var(--text-muted)]' : 'text-muted',
     },
   };
 }
@@ -63,11 +66,17 @@ export function RenterRentalPanel({
   bookingId,
   ongoing,
   deposit = 0,
+  vehicleName = '',
+  bookingRef = '',
+  pickupAt = null,
   onUpdateCard,
 }: {
   bookingId: string;
   ongoing: boolean;
   deposit?: number;
+  vehicleName?: string;
+  bookingRef?: string;
+  pickupAt?: string | null;
   onUpdateCard: () => void;
 }) {
   const skin = useSkin();
@@ -77,7 +86,14 @@ export function RenterRentalPanel({
   const pay = useBookingPayment(bookingId, ongoing);
   if (!ongoing || !rental) return null;
 
-  const renewal = renewalLine(rental);
+  const view = gigDashboard({
+    rental,
+    vehicleName,
+    bookingRef,
+    pickupAt,
+    deposit,
+    outstanding: pay.outstanding,
+  });
   const earliest = rental.earliest_return_date;
   const minimumEnd = rental.minimum_term_end_date;
   const plannedReturn = returnDate || earliest;
@@ -89,14 +105,21 @@ export function RenterRentalPanel({
   return (
     <section className={cn('border p-5', skin.card)}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h3 className={cn('text-[16px] font-bold', skin.strong)}>
-          <Dyn>{rental.plan?.name ?? cycleWords(rental.billing_cycle).rentalTitle}</Dyn>
-        </h3>
-        {renewal ? <span className={cn('text-[13px]', skin.quiet)}><Dyn>{renewal}</Dyn></span> : null}
+        <div>
+          <p className={cn('text-[11px] font-semibold uppercase tracking-[0.12em]', skin.quiet)}>
+            <Dyn>{view.eyebrow}</Dyn>
+          </p>
+          <h3 className={cn('mt-1 text-[18px] font-bold', skin.strong)}>
+            <Dyn>{view.title}</Dyn>
+          </h3>
+        </div>
+        <span className={cn('rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.1em]', skin.line, 'border', skin.quiet)}>
+          <Dyn>{view.stateLabel}</Dyn>
+        </span>
       </div>
 
       <div className="mt-4 grid grid-cols-2 lg:grid-cols-4">
-        {rentalStats(rental, deposit).map((stat) => (
+        {view.stats.map((stat) => (
           <div key={stat.key} className={cn('border p-3.5', skin.line, skin.card)}>
             <span className={cn('block text-[10px] font-semibold uppercase tracking-[0.14em]', skin.quiet)}>
               <Dyn>{stat.label}</Dyn>
@@ -111,76 +134,98 @@ export function RenterRentalPanel({
         ))}
       </div>
 
-      <ul className={cn('mt-4 divide-y border-y', skin.line)}>
-        {rental.periods.map((period: RenterPeriod) => {
-          const status = STATUS[period.status] ?? { label: period.status, tone: 'quiet' as const };
-          const owing = Number(period.outstanding) > 0;
-          return (
-            <li key={period.id} className={cn('flex items-center justify-between gap-3 py-3 text-[13px]', skin.line)}>
-              <div>
-                <div className={cn('font-medium', skin.strong)}><Dyn>{period.label}</Dyn></div>
-                <div className={cn('mt-0.5 text-[11.5px] font-semibold', skin.tone[period.overdue ? 'bad' : status.tone])}>
-                  <Dyn>{period.overdue ? 'Overdue' : status.label}</Dyn>
-                  {period.status === 'paid' && period.method_label ? <span className={skin.quiet}> · {period.method_label}</span> : null}
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className={cn('font-medium tabular-nums', skin.strong)}>{money(Number(period.amount))}</span>
-                {owing ? (
-                  <button type="button" onClick={pay.handlePay} disabled={pay.payLoading} className={cn('font-semibold disabled:opacity-60', skin.link)}>
-                    <Dyn>Pay now</Dyn>
-                  </button>
-                ) : null}
-              </div>
-            </li>
-          );
-        })}
-      </ul>
-
-      {rental.charges.length > 0 ? (
-        <>
-          <h4 className={cn('mt-5 text-[13px] font-semibold', skin.strong)}>
-            <Dyn>Other charges</Dyn>
+      <div className={cn('mt-5 border p-4', skin.line)}>
+        <div className="flex items-center justify-between gap-3">
+          <h4 className={cn('text-[13px] font-bold uppercase tracking-[0.1em]', skin.strong)}>
+            <Dyn>Billing</Dyn>
           </h4>
-          <ul className={cn('mt-2 divide-y border-y', skin.line)}>
-            {rental.charges.map((charge) => (
-              <li key={charge.id} className={cn('flex items-center justify-between gap-3 py-3 text-[13px]', skin.line)}>
-                <div className="min-w-0">
-                  <div className={cn('font-medium', skin.strong)}><Dyn>{charge.label}</Dyn></div>
-                  {charge.description ? <div className={cn('mt-0.5 truncate text-[11.5px]', skin.quiet)}><Dyn>{charge.description}</Dyn></div> : null}
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className={cn('font-medium tabular-nums', skin.strong)}>{money(Number(charge.amount))}</span>
-                  {charge.receipt_url ? (
-                    <a href={charge.receipt_url} target="_blank" rel="noreferrer" className={cn('font-semibold', skin.link)}>
-                      <Dyn>View receipt</Dyn>
-                    </a>
-                  ) : null}
-                  {Number(charge.outstanding) > 0 ? (
-                    <button type="button" onClick={pay.handlePay} disabled={pay.payLoading} className={cn('font-semibold disabled:opacity-60', skin.link)}>
-                      <Dyn>Pay now</Dyn>
-                    </button>
-                  ) : null}
-                </div>
-              </li>
-            ))}
-          </ul>
-        </>
-      ) : null}
-
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-[13px]">
-        <span className={skin.quiet}>
-          <Dyn>Card on file</Dyn>: <span className={skin.strong}>{rental.card_on_file?.label ?? <Dyn>None</Dyn>}</span>
-        </span>
+          <span className={cn('border px-2 py-0.5 text-[11px] font-semibold', skin.line, skin.strong)}>
+            <Dyn>{view.cycleBadge}</Dyn>
+          </span>
+        </div>
+        {view.cycleStart ? (
+          <>
+            <div className={cn('mt-3 h-[3px] w-full', skin.line, 'border-0 bg-current opacity-20')}>
+              <div className={cn('h-full', skin.progress)} style={{ width: `${view.progress}%` }} />
+            </div>
+            <div className={cn('mt-1.5 flex justify-between text-[11.5px]', skin.quiet)}>
+              <span>{view.cycleStart}</span>
+              <span>{view.cycleEnd}</span>
+            </div>
+          </>
+        ) : null}
+        <p className={cn('mt-4 text-[11px] font-semibold uppercase tracking-[0.12em]', skin.quiet)}>
+          <Dyn>{view.nextChargeHeading}</Dyn>
+        </p>
+        <div className="mt-1.5 flex items-baseline justify-between gap-3">
+          <span className={cn('text-[12px] font-semibold uppercase tracking-[0.1em]', skin.quiet)}>
+            <Dyn>Total</Dyn>
+          </span>
+          <span className={cn('text-[22px] font-bold', skin.strong)}>
+            <span className={cn('mr-1 text-[11px] font-semibold', skin.quiet)}>USD</span>
+            {view.nextChargeTotal}
+          </span>
+        </div>
+        <p className={cn('mt-1.5 text-[12px] leading-[1.5]', skin.quiet)}>
+          <Dyn>{view.autopayNote}</Dyn>
+        </p>
         {!rental.closed ? (
-          <button type="button" onClick={onUpdateCard} className={cn('font-semibold', skin.link)}>
+          <button
+            type="button"
+            onClick={onUpdateCard}
+            className={cn('mt-3 w-full border px-4 py-2 text-[12.5px] font-semibold', skin.line, skin.strong)}
+          >
             <Dyn>{rental.card_on_file ? 'Update card' : 'Add a card'}</Dyn>
           </button>
         ) : null}
       </div>
 
+      <div className="mt-5 flex items-center justify-between gap-3">
+        <h4 className={cn('text-[13px] font-bold uppercase tracking-[0.1em]', skin.strong)}>
+          <Dyn>Payments</Dyn>
+        </h4>
+        {pay.outstanding > 0 ? (
+          <button
+            type="button"
+            onClick={pay.handlePay}
+            disabled={pay.payLoading}
+            className={cn('px-3 py-1.5 text-[12.5px] font-semibold disabled:opacity-60', skin.button)}
+          >
+            <Dyn>{`Pay ${money(pay.outstanding)}`}</Dyn>
+          </button>
+        ) : null}
+      </div>
+      <ul className={cn('mt-2 divide-y border-y', skin.line)}>
+        {view.rows.map((row) => (
+          <li key={row.key} className={cn('flex items-center justify-between gap-3 py-3 text-[13px]', skin.line)}>
+            <div className="flex min-w-0 items-baseline gap-3">
+              <span className={cn('w-[52px] shrink-0 text-[11.5px]', skin.quiet)}>{row.date}</span>
+              <span className={cn('truncate font-medium', skin.strong)}>
+                <Dyn>{row.label}</Dyn>
+              </span>
+            </div>
+            <div className="flex shrink-0 items-center gap-3">
+              <span className={cn('font-medium tabular-nums', skin.strong)}>{row.amount}</span>
+              <span className={cn('text-[11px] font-semibold uppercase tracking-[0.08em]', skin.tone[row.tone])}>
+                <Dyn>{row.status}</Dyn>
+              </span>
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      <div className={cn('mt-5 border-t pt-4', skin.line)}>
+        <p className={cn('text-[11px] font-semibold uppercase tracking-[0.12em]', skin.quiet)}>
+          <Dyn>Your plan</Dyn>
+        </p>
+        <p className={cn('mt-1 text-[16px] font-bold uppercase', skin.strong)}>
+          <Dyn>{view.planHeading}</Dyn>
+        </p>
+        <p className={cn('mt-1 text-[12.5px] leading-[1.5]', skin.quiet)}>
+          <Dyn>{view.planNote}</Dyn>
+        </p>
       {!rental.closed ? (
-        <div className={cn('mt-4 border-t pt-4', skin.line)}>
+        <div className="mt-3">
           {rental.notice_return_date ? (
             <p className={cn('text-[13px]', skin.strong)}>
               <Dyn>Returning on</Dyn> {calendarDay(rental.notice_return_date)}
@@ -228,6 +273,7 @@ export function RenterRentalPanel({
           )}
         </div>
       ) : null}
+      </div>
     </section>
   );
 }

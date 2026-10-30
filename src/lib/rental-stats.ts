@@ -21,13 +21,7 @@ const dayBefore = (iso: string) => {
 const daysBetween = (from: Date, to: Date) =>
   Math.max(0, Math.round((to.getTime() - from.getTime()) / 86400000));
 
-export function outstandingTotal(rental: RenterRental): number {
-  const periods = rental.periods.reduce((sum, p) => sum + (Number(p.outstanding) || 0), 0);
-  const charges = rental.charges.reduce((sum, c) => sum + (Number(c.outstanding) || 0), 0);
-  return periods + charges;
-}
-
-export function rentalStats(rental: RenterRental, deposit: number): RentalStat[] {
+export function rentalStats(rental: RenterRental, deposit: number, outstanding: number): RentalStat[] {
   const renewal = rental.next_renewal;
   const scheduled = renewal.state === 'scheduled' && !!renewal.at;
   const amount = renewal.amount ?? rental.recurring_amount;
@@ -69,7 +63,7 @@ export function rentalStats(rental: RenterRental, deposit: number): RentalStat[]
       })()
     : { key: 'through', label: 'Paid through', value: '—', note: 'No cycle running' };
 
-  const owed = outstandingTotal(rental);
+  const owed = outstanding;
   const unpaid =
     rental.periods.filter((p) => Number(p.outstanding) > 0).length +
     rental.charges.filter((c) => Number(c.outstanding) > 0).length;

@@ -196,6 +196,9 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
           bookingId={id}
           ongoing={booking.rentalModel !== 'daily'}
           deposit={booking.invoice.deposit || 0}
+          vehicleName={booking.vehicle.name}
+          bookingRef={booking.bookingRef}
+          pickupAt={booking.pickUp.rawDatetime ?? null}
           onUpdateCard={saveCardOnly}
         />
       }
