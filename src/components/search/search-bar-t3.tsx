@@ -31,7 +31,10 @@ export function SearchBarT3({
   const tab = tabFor(model);
   const minWeeks = ongoing ? rentalConfig.terms?.[model]?.min_term_weeks ?? 0 : 0;
   const returnShown = !ongoing || wantsReturn;
-  const splitTabs = RENTAL_TABS.filter((entry) => rentalConfig.bookableModels.includes(entry.model));
+  const splitTabs =
+    variant === 'hero'
+      ? RENTAL_TABS.filter((entry) => rentalConfig.bookableModels.includes(entry.model))
+      : [];
   const {
     rootRef,
     pickupLocations,

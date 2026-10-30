@@ -7,6 +7,7 @@ import { Dyn } from '@/components/i18n/Dyn';
 import { paths } from '@/lib/paths';
 import { telHref } from '@/lib/seo';
 import { useTenant } from '@/lib/tenant-context';
+import { useNavLinks } from '@/hooks/use-nav-links';
 
 /** The raw template hardcoded Zenith's links, phone and logo; all three
  *  come from the tenant here, so the same markup serves any company.
@@ -22,8 +23,9 @@ import { useTenant } from '@/lib/tenant-context';
 export function HeaderT3({ minimal = false }: { minimal?: boolean }) {
   const tenant = useTenant();
   const [open, setOpen] = useState(false);
+  const navLinks = useNavLinks();
   const phone = telHref(tenant.footer.contact.phone);
-  const links = minimal ? [] : tenant.brand.navLinks;
+  const links = minimal ? [] : navLinks;
 
   return (
     <nav className="site-nav">
@@ -46,7 +48,12 @@ export function HeaderT3({ minimal = false }: { minimal?: boolean }) {
         {links.length > 0 ? (
           <div className={open ? 'navlinks open' : 'navlinks'}>
             {links.map((link) => (
-              <Link key={link.href} href={link.href} onClick={() => setOpen(false)}>
+              <Link
+                key={link.href}
+                href={link.href}
+                className={link.active ? 'on' : undefined}
+                onClick={() => setOpen(false)}
+              >
                 <Dyn>{link.label}</Dyn>
               </Link>
             ))}

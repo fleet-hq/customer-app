@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useTenant } from '@/lib/tenant-context';
+import { useNavLinks } from '@/hooks/use-nav-links';
 import { navDropdownFor } from '@/lib/nav-dropdowns';
 import { paths } from '@/lib/paths';
 import { telHref } from '@/lib/seo';
@@ -30,6 +31,7 @@ function BrandMark() {
  *  operator-supplied fields. */
 export function HeaderT2({ minimal = false }: { minimal?: boolean } = {}) {
   const tenant = useTenant();
+  const navLinks = useNavLinks();
   const [open, setOpen] = useState(false);
   const phone = tenant.footer.contact.phone;
   // Same rule as template 1: a nav item pointing at an overview page
@@ -54,7 +56,7 @@ export function HeaderT2({ minimal = false }: { minimal?: boolean } = {}) {
         {minimal ? null : (
         <nav aria-label="Primary" className={open ? styles.navOpen : undefined}>
           <ul className={styles.navLinks}>
-            {tenant.brand.navLinks.map((link) => {
+            {navLinks.map((link) => {
               const children = dropdownFor(link.href);
               if (!children.length) {
                 return (

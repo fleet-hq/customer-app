@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTenant } from '@/lib/tenant-context';
+import { useNavLinks } from '@/hooks/use-nav-links';
 import { navDropdownFor } from '@/lib/nav-dropdowns';
 import { cn } from '@/lib/utils';
 import { DEMO_USER } from '@/lib/mock-data';
@@ -48,6 +49,7 @@ export function Header({
   userEmail = DEMO_USER.email,
 }: HeaderProps) {
   const tenant = useTenant();
+  const navLinks = useNavLinks();
   const { t } = useDynamicTranslation(['Open menu', 'Close menu']);
   // Shared with the template-2 header — see lib/nav-dropdowns.
   const dropdownFor = (href: string) => navDropdownFor(tenant, href);
@@ -104,7 +106,7 @@ export function Header({
             )}
           </Link>
           <nav className="hidden items-center gap-6 min-[840px]:flex">
-            {tenant.brand.navLinks.map((link) => {
+            {navLinks.map((link) => {
               const isActive = active
                 ? link.label === active
                 : isLinkActive(link.href, pathname ?? '/', hash);
@@ -232,7 +234,7 @@ export function Header({
       {mobileNavOpen && (
         <div className="border-t border-hairline bg-white min-[840px]:hidden">
           <nav className="mx-auto flex max-w-[1200px] flex-col gap-1 px-6 py-3">
-            {tenant.brand.navLinks.map((link) => {
+            {navLinks.map((link) => {
               const isActive = active
                 ? link.label === active
                 : isLinkActive(link.href, pathname ?? '/', hash);
