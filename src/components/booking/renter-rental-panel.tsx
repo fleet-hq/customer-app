@@ -67,16 +67,20 @@ export function RenterRentalPanel({
   ongoing,
   deposit = 0,
   vehicleName = '',
+  vehicleImage = '',
   bookingRef = '',
   pickupAt = null,
+  swapHref = '',
   onUpdateCard,
 }: {
   bookingId: string;
   ongoing: boolean;
   deposit?: number;
   vehicleName?: string;
+  vehicleImage?: string;
   bookingRef?: string;
   pickupAt?: string | null;
+  swapHref?: string;
   onUpdateCard: () => void;
 }) {
   const skin = useSkin();
@@ -132,6 +136,32 @@ export function RenterRentalPanel({
             </small>
           </div>
         ))}
+      </div>
+
+      <div className={cn('mt-5 flex flex-wrap items-center gap-4 border p-4', skin.line)}>
+        {vehicleImage ? (
+          <img src={vehicleImage} alt="" className="h-[64px] w-[96px] shrink-0 object-cover" />
+        ) : null}
+        <div className="min-w-0 flex-1">
+          <h4 className={cn('text-[15px] font-bold', skin.strong)}>
+            <Dyn>{vehicleName}</Dyn>
+          </h4>
+          <div className={cn('mt-1 flex flex-wrap gap-x-4 gap-y-1 text-[12px]', skin.quiet)}>
+            {view.carFacts.map((fact) => (
+              <span key={fact.label}>
+                <Dyn>{fact.label}</Dyn>{' '}
+                <span className={skin.strong}>
+                  <Dyn>{fact.value}</Dyn>
+                </span>
+              </span>
+            ))}
+          </div>
+        </div>
+        {swapHref && !rental.closed ? (
+          <a href={swapHref} className={cn('border px-3 py-1.5 text-[12.5px] font-semibold', skin.line, skin.strong)}>
+            <Dyn>Swap car</Dyn>
+          </a>
+        ) : null}
       </div>
 
       <div className={cn('mt-5 border p-4', skin.line)}>

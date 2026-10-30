@@ -209,7 +209,8 @@ export function VerifyFirstConfirm(props: Props) {
   const showCardAction =
     !!cardRequestOpen && mode !== 'cancelled' && (outstanding ?? 0) <= 0;
   const deposit = ledgerDeposit(charges, depositAmount);
-  const { data: rental } = useRenterRental(bookingId, booking.rentalModel !== 'daily');
+  const ongoingBooking = booking.rentalModel !== 'daily';
+  const { data: rental } = useRenterRental(bookingId, ongoingBooking);
   const due = DUE_COPY[dueKind(charges)];
 
   const days = rentalDays(booking);
@@ -321,7 +322,12 @@ export function VerifyFirstConfirm(props: Props) {
       <div className="mx-auto max-w-[1180px] px-4 pt-5 pb-16 sm:px-6">
         <BackLink href={backHref}><Dyn>{modeCopy.backLabel}</Dyn></BackLink>
 
-        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-4">
+        <div
+          className={cn(
+            'mt-4 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-4',
+            ongoingBooking ? 'hidden' : 'flex',
+          )}
+        >
           <div className="min-w-0 flex-1">
             <h1
               className={cn(
@@ -352,7 +358,7 @@ export function VerifyFirstConfirm(props: Props) {
           )}
         </div>
 
-        <StateBanner
+        {ongoingBooking ? null : <StateBanner
           mode={mode}
           holdCountdownLabel={holdCountdownLabel}
           holdExpired={holdExpired}
@@ -364,11 +370,13 @@ export function VerifyFirstConfirm(props: Props) {
           isReserved={isReserved}
           outstandingId={outstandingId}
           outstandingInsurance={outstandingInsurance}
-        />
+        />}
 
         <div className="mt-6 grid grid-cols-1 items-start gap-6 lg:grid-cols-[1.55fr_1fr]">
           <div className="flex flex-col gap-6">
-            <VehicleCard
+            {props.rentalPanel}
+
+            {ongoingBooking ? null : <VehicleCard
               title={
                 mode === 'pending_verification'
                   ? `Reservation hold · #${booking.invoice.number}`
@@ -382,11 +390,9 @@ export function VerifyFirstConfirm(props: Props) {
                   ? `${startShort} → ${endShort} · ${days} day${days === 1 ? '' : 's'}`
                   : ongoingSpan(startShort, rental, booking.timezone)
               }
-            />
+            />}
 
             <PaymentLinkCard bookingId={bookingId} enabled />
-
-            {props.rentalPanel}
 
             {requiredCount > 0 && (
               <div
