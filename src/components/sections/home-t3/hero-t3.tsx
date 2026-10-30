@@ -3,7 +3,10 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { Dyn } from '@/components/i18n/Dyn';
+import { useState } from 'react';
+
 import { SearchBarT3 } from '@/components/search/search-bar-t3';
+import type { RentalModel } from '@/services/rentalServices';
 import { paths } from '@/lib/paths';
 
 interface HeroT3Props {
@@ -18,6 +21,7 @@ interface HeroT3Props {
  *  optional — a tenant who has not uploaded one gets the charcoal
  *  panel rather than a broken frame. */
 export function HeroT3({ pill, headingLines, subheading, backgroundImage }: HeroT3Props) {
+  const [model, setModel] = useState<RentalModel>('daily');
   return (
     <header className="hero dark" id="top">
       <div className="wrap">
@@ -68,7 +72,7 @@ export function HeroT3({ pill, headingLines, subheading, backgroundImage }: Hero
             </div>
           ) : null}
         </div>
-        <SearchBarT3 />
+        <SearchBarT3 model={model} onModelChange={setModel} />
       </div>
     </header>
   );

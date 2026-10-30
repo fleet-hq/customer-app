@@ -6,7 +6,7 @@ import { Dyn } from '@/components/i18n/Dyn';
 import { useSearchBar } from './use-search-bar';
 import { useTenantToday } from '@/hooks/use-tenant-today';
 import { useRentalSiteConfig } from '@/hooks/useRentalSiteConfig';
-import { tabFor } from '@/lib/rental-tabs';
+import { RENTAL_TABS, tabFor } from '@/lib/rental-tabs';
 import type { RentalModel } from '@/services/rentalServices';
 
 /** Template-3 booking form — the raw template's own markup (boxed
@@ -17,9 +17,11 @@ import type { RentalModel } from '@/services/rentalServices';
 export function SearchBarT3({
   variant = 'hero',
   model = 'daily',
+  onModelChange,
 }: {
   variant?: 'hero' | 'inline';
   model?: RentalModel;
+  onModelChange?: (next: RentalModel) => void;
 }) {
   const today = useTenantToday();
   const [wantsReturn, setWantsReturn] = useState(false);
@@ -28,6 +30,9 @@ export function SearchBarT3({
   const tab = tabFor(model);
   const minWeeks = ongoing ? rentalConfig.terms?.[model]?.min_term_weeks ?? 0 : 0;
   const returnShown = !ongoing || wantsReturn;
+  const splitTabs = onModelChange
+    ? RENTAL_TABS.filter((entry) => rentalConfig.bookableModels.includes(entry.model))
+    : [];
   const {
     rootRef,
     pickupLocations,
@@ -54,6 +59,32 @@ export function SearchBarT3({
 
   return (
     <div className={variant === 'hero' ? 'booking' : 'booking inline'} id="book" ref={rootRef}>
+      {splitTabs.length > 1 ? (
+        <div
+          className="ftabs"
+          role="tablist"
+          aria-label="Rental type"
+          style={{ gridTemplateColumns: `repeat(${splitTabs.length}, minmax(0, 1fr))` }}
+        >
+          {splitTabs.map((entry) => (
+            <button
+              key={entry.model}
+              className="ftab"
+              type="button"
+              role="tab"
+              aria-selected={entry.model === model}
+              onClick={() => onModelChange?.(entry.model)}
+            >
+              <b>
+                <Dyn>{entry.label}</Dyn>
+              </b>
+              <span>
+                <Dyn>{entry.blurb}</Dyn>
+              </span>
+            </button>
+          ))}
+        </div>
+      ) : null}
       <form
         className="book"
         noValidate

@@ -3419,3 +3419,46 @@
   line-height: 1.45;
   color: var(--t3-muted, var(--text-muted));
 }
+
+.t3 :global(.ftabs) {
+  display: grid;
+  background: color-mix(in srgb, var(--t3-char) 92%, #ffffff);
+  border-bottom: 1px solid var(--t3-dline);
+}
+.t3 :global(.ftab) {
+  background: transparent;
+  border: 0;
+  border-right: 1px solid var(--t3-dline);
+  color: var(--t3-grey);
+  text-align: left;
+  padding: 14px 22px 15px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font: inherit;
+  transition: background 0.2s, color 0.2s;
+  min-width: 0;
+}
+.t3 :global(.ftab:last-child) {
+  border-right: 0;
+}
+.t3 :global(.ftab[aria-selected='true']) {
+  background: color-mix(in srgb, var(--t3-char) 86%, #ffffff);
+  color: var(--t3-paper);
+}
+.t3 :global(.ftab b) {
+  font-family: var(--t3-head);
+  font-weight: 800;
+  font-size: 20px;
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--t3-paper);
+}
+.t3 :global(.ftab[aria-selected='true'] b) {
+  color: var(--t3-accent);
+}
+.t3 :global(.ftab span) {
+  font-size: 12px;
+  line-height: 1.35;
+}
