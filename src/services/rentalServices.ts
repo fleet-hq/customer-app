@@ -22,16 +22,23 @@ export interface PublicPlan {
   vehicle_classes: number[];
 }
 
+export interface ModelTerms {
+  min_term_weeks: number;
+  return_notice_days: number;
+  billing_cycle: string;
+}
+
 export interface RentalSiteConfig {
   models: RentalModel[];
   website_ongoing: boolean;
   plans: PublicPlan[];
   daily_insurance_mode?: DailyInsuranceMode | null;
+  terms?: Partial<Record<RentalModel, ModelTerms>>;
 }
 
 export type DailyInsuranceMode = 'bonzah_optional' | 'bonzah_cdw_required' | 'own_policy_only';
 
-export const DAILY_ONLY: RentalSiteConfig = { models: ['daily'], website_ongoing: false, plans: [], daily_insurance_mode: null };
+export const DAILY_ONLY: RentalSiteConfig = { models: ['daily'], website_ongoing: false, plans: [], daily_insurance_mode: null, terms: {} };
 
 export async function getRentalSiteConfig(domain?: string | null): Promise<RentalSiteConfig> {
   const res = await axios.get<RentalSiteConfig>(`${API_URL}/api/rentals/public/config/`, {

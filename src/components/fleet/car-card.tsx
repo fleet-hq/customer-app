@@ -33,7 +33,7 @@ export function CarCard({ vehicle, badge, oldPrice, bookingQuery, hours, discoun
   const href = bookingQuery ? `${checkoutPath}?${bookingQuery}` : checkoutPath;
 
   const card = useRateCard(vehicle, view);
-  const tag = badge ?? card.weekly?.badge ?? null;
+  const tag = badge ?? (card.ongoing ? 'Ongoing' : null) ?? card.weekly?.badge ?? null;
   const pricing = cardPricing(vehicle, card, hours, discountPct);
   const ranged = pricing.mode === 'hourly' || pricing.mode === 'daily';
   const strikeUnitPrice = pricing.strikePrice ?? oldPrice ?? null;
@@ -116,6 +116,7 @@ export function CarCard({ vehicle, badge, oldPrice, bookingQuery, hours, discoun
           ) : (
             <div className="flex items-baseline justify-between gap-[6px] pt-[12px]">
               <div className="flex items-baseline gap-[6px]">
+                {card.ongoing && <span className="text-[12px] text-faint"><Dyn>from</Dyn></span>}
                 <span className="text-[18px] font-bold text-secondary">{money(pricing.unitPrice)}</span>
                 <span className="text-[11.5px] text-faint"><Dyn>{`/${pricing.unit}`}</Dyn></span>
                 {strikeUnitPrice != null && (
@@ -124,6 +125,9 @@ export function CarCard({ vehicle, badge, oldPrice, bookingQuery, hours, discoun
               </div>
               <ViewCta />
             </div>
+          )}
+          {card.minTerm && (
+            <div className="pt-[6px] text-[11.5px] text-faint"><Dyn>{card.minTerm}</Dyn></div>
           )}
           {card.extras && (
             <div className="mt-[6px] text-[11.5px] text-faint">

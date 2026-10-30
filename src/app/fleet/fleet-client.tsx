@@ -58,7 +58,7 @@ export default function FleetClient() {
 
   return (
     <div className="flex min-h-screen flex-col bg-white text-ink">
-      <SearchBar variant="compact" />
+      <SearchBar variant="compact" model={rentalTabs.active} />
 
       <section className="mx-auto w-full max-w-[1200px] flex-1 px-4 pt-6 pb-12 sm:px-6 sm:pt-10 sm:pb-18">
         {!isFiltered && tenant.sections.fleet_page &&
