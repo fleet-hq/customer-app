@@ -4,6 +4,8 @@ import { Inter, Manrope, Caveat, Poppins } from 'next/font/google';
 import './globals.css';
 import { getCurrentTenant, TenantNotFoundError } from '@/lib/get-tenant';
 import { TenantProvider } from '@/lib/tenant-context';
+import { RentalConfigProvider } from '@/lib/rental-config-context';
+import { getRentalSiteConfig } from '@/services/rentalServices';
 import { LocaleProvider } from '@/lib/i18n/locale-context';
 import { DEFAULT_LOCALE, LOCALE_COOKIE, isLocale } from '@/lib/i18n/config';
 import { Providers } from './providers';
@@ -84,6 +86,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     throw err;
   }
 
+  const rentalConfig = await getRentalSiteConfig(tenant.domain).catch(() => null);
+
   const localeCookie = (await cookies()).get(LOCALE_COOKIE)?.value;
   const locale = isLocale(localeCookie) ? localeCookie : DEFAULT_LOCALE;
 
@@ -109,6 +113,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               render fires its hooks, throwing the runtime error
               "useTenant must be used within a TenantProvider". */}
           <TenantProvider tenant={tenant}>
+            <RentalConfigProvider config={rentalConfig}>
             <RenterActivityPing companyId={tenant.id} domain={tenant.domain} />
             {tenant.sections.leadPopup?.enabled ? (
               <LeadPopup config={tenant.sections.leadPopup} domain={tenant.domain} />
@@ -120,6 +125,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 </LayoutChrome>
               </StripeProvider>
             </CompanyProvider>
+            </RentalConfigProvider>
           </TenantProvider>
           </LocaleProvider>
         </Providers>

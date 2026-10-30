@@ -15,16 +15,19 @@ import {
 } from '@/services/rentalServices';
 import { useDebounce } from './use-debounce';
 import { useTenant } from '@/lib/tenant-context';
+import { useServerRentalConfig } from '@/lib/rental-config-context';
 import { rateCard, type RateCard, type RateView } from '@/lib/rate-card';
 import { released } from '@/lib/release';
 
 export function useRentalSiteConfig(): RentalSiteConfig & { ready: boolean; bookableModels: RentalModel[] } {
   const tenant = useTenant();
+  const serverConfig = useServerRentalConfig();
   const { data, isSuccess } = useQuery({
     queryKey: ['rental-site-config', tenant.slug],
     queryFn: () => getRentalSiteConfig(tenant.domain),
     staleTime: 60_000,
     retry: 2,
+    initialData: serverConfig ?? undefined,
   });
   return useMemo(() => {
     const config = data ?? DAILY_ONLY;
