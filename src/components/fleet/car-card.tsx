@@ -135,7 +135,7 @@ export function CarCard({ vehicle, badge, oldPrice, bookingQuery, hours, discoun
             </div>
           )}
           {card.ongoing && (
-            <div className="pt-[6px] text-[11.5px] leading-[1.45] text-faint">
+            <div className="line-clamp-2 min-h-[40px] pt-[6px] text-[11.5px] leading-[1.45] text-faint">
               <Dyn>Ongoing</Dyn>
               {card.altRate ? (
                 <>

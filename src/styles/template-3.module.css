@@ -787,13 +787,14 @@
 }
 .t3 :global(.cars) {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 270px), 1fr));
   gap: 1px;
-  background: var(--t3-line);
-  border: 1px solid var(--t3-line);
+  background: transparent;
+  border: 0;
 }
 .t3 :global(.car) {
   background: #fff;
+  box-shadow: 0 0 0 1px var(--t3-line);
   border-radius: 0;
   overflow: hidden;
   display: flex;
