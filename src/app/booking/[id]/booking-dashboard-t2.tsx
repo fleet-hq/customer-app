@@ -5,14 +5,15 @@ import { useState } from 'react';
 import { Dyn } from '@/components/i18n/Dyn';
 import { BookingDashboard } from '@/components/booking/booking-dashboard';
 import { RentalAgreementSignModal } from '@/components/booking/rental-agreement-sign-modal';
+import { SquarePayModal } from '@/components/booking/square-pay-modal';
 import { useBookingPayment } from '@/hooks/use-booking-payment';
 import { useGiveRenterNotice, useRenterRental } from '@/hooks/useRentalSiteConfig';
 import { gigDashboard } from '@/lib/gig-dashboard';
 import { paths } from '@/lib/paths';
-import styles from '@/styles/template-1.module.css';
+import styles from '@/styles/template-2.module.css';
 import { useBookingDetail } from './use-booking-detail';
 
-export default function BookingDetailClientT1({ id }: { id: string }) {
+export default function BookingDashboardT2({ id }: { id: string }) {
   const bd = useBookingDetail(id);
   const [returnDate, setReturnDate] = useState('');
 
@@ -23,8 +24,8 @@ export default function BookingDetailClientT1({ id }: { id: string }) {
 
   if (bd.status === 'loading') {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <p className="text-sm text-muted">
+      <div className={styles.centerState}>
+        <p style={{ color: 'var(--text-muted)' }}>
           <Dyn>Loading your rental…</Dyn>
         </p>
       </div>
@@ -34,21 +35,18 @@ export default function BookingDetailClientT1({ id }: { id: string }) {
   if (bd.status === 'link-expired' || bd.status === 'not-found') {
     const expired = bd.status === 'link-expired';
     return (
-      <div className="mx-auto flex min-h-[60vh] max-w-[34rem] flex-col items-center justify-center gap-3 px-6 text-center">
-        <h1 className="text-[22px] font-semibold text-ink">
+      <div className={styles.centerState}>
+        <h1 style={{ marginTop: '0.9rem' }}>
           <Dyn>{expired ? 'This booking link has expired' : 'Booking not found'}</Dyn>
         </h1>
-        <p className="text-sm text-muted">
+        <p style={{ maxWidth: '30rem' }}>
           <Dyn>
             {expired
               ? 'For your security, booking links stop working once the trip is over. Your booking is safe — look it up with your reference and email.'
               : 'We couldn’t load this booking. Check the link from your confirmation email, or look it up with your reference and email.'}
           </Dyn>
         </p>
-        <a
-          href={paths.manage}
-          className="mt-2 rounded-[10px] bg-primary px-5 py-2.5 text-sm font-bold text-white"
-        >
+        <a href={paths.manage} className={`${styles.btn} ${styles.btnBrass}`} style={{ marginTop: '1.1rem' }}>
           <Dyn>Manage your booking</Dyn>
         </a>
       </div>
@@ -64,6 +62,14 @@ export default function BookingDetailClientT1({ id }: { id: string }) {
     signAgreement,
     agreementPreviewData,
     saveCardOnly,
+    providersData,
+    squareModalOpen,
+    setSquareModalOpen,
+    payLoading,
+    payError,
+    payAmount,
+    handleSquarePaySubmit,
+    tenant,
   } = bd;
 
   const view = rental
@@ -78,7 +84,7 @@ export default function BookingDetailClientT1({ id }: { id: string }) {
     : null;
 
   return (
-    <main className={`${styles.t1} pg`}>
+    <main className="pg">
       <BookingDashboard
         view={view}
         bookingId={id}
@@ -109,6 +115,22 @@ export default function BookingDetailClientT1({ id }: { id: string }) {
         onSigned={signAgreement}
         data={agreementPreviewData ?? undefined}
       />
+      {providersData?.square && (
+        <SquarePayModal
+          open={squareModalOpen}
+          onClose={() => !payLoading && setSquareModalOpen(false)}
+          applicationId={providersData.square.application_id}
+          locationId={providersData.square.location_id}
+          environment={(providersData.square.environment as 'sandbox' | 'production') || 'production'}
+          amount={payAmount}
+          currency="usd"
+          deposit={booking.invoice.deposit || 0}
+          tenantName={tenant?.name}
+          submitting={payLoading}
+          error={payError}
+          onSubmit={handleSquarePaySubmit}
+        />
+      )}
     </main>
   );
 }

@@ -1,28 +1,43 @@
 'use client';
 
-import { use } from 'react';
+import { use, type ComponentType } from 'react';
 import { BackLink } from '@/components/ui/back-link';
 import { VerifyFirstConfirm } from '@/components/booking/verify-first-confirm';
 import { SquarePayModal } from '@/components/booking/square-pay-modal';
 import { paths } from '@/lib/paths';
 import { useBookingDetail } from './use-booking-detail';
-import BookingDetailClientT1 from './booking-detail-client-t1';
 import BookingDetailClientT2 from './booking-detail-client-t2';
-import BookingDetailClientT3 from './booking-detail-client-t3';
+import BookingDashboardT1 from './booking-dashboard-t1';
+import BookingDashboardT2 from './booking-dashboard-t2';
+import BookingDashboardT3 from './booking-dashboard-t3';
 import { RentalAgreementSignModal } from '@/components/booking/rental-agreement-sign-modal';
-import { pickTemplateView } from '@/lib/template-view';
+import { pickTemplateView, type TemplateVariants } from '@/lib/template-view';
 import { RenterRentalPanel } from '@/components/booking/renter-rental-panel';
+
+type BookingView = ComponentType<{ id: string }> | null;
+
+const DAILY_VIEWS: TemplateVariants<BookingView> = {
+  template_1: null,
+  template_2: BookingDetailClientT2,
+  template_3: null,
+};
+
+const ONGOING_VIEWS: TemplateVariants<BookingView> = {
+  template_1: BookingDashboardT1,
+  template_2: BookingDashboardT2,
+  template_3: BookingDashboardT3,
+};
 
 export default function BookingPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const bd = useBookingDetail(id);
 
-  const Editorial = pickTemplateView(bd.tenant.websiteTemplate, {
-    template_1: BookingDetailClientT1,
-    template_2: BookingDetailClientT2,
-    template_3: BookingDetailClientT3,
-  });
-  if (Editorial) return <Editorial id={id} />;
+  const ongoing = bd.status === 'ready' && bd.booking.rentalModel !== 'daily';
+  const View = pickTemplateView(
+    bd.tenant.websiteTemplate,
+    ongoing ? ONGOING_VIEWS : DAILY_VIEWS,
+  );
+  if (View) return <View id={id} />;
 
   if (bd.status === 'loading') {
     return (

@@ -33,7 +33,7 @@ function CentreState({ title, body, href, cta }: { title: string; body: string; 
   );
 }
 
-export default function BookingDetailClientT3({ id }: { id: string }) {
+export default function BookingDashboardT3({ id }: { id: string }) {
   const bd = useBookingDetail(id);
   const [returnDate, setReturnDate] = useState('');
 
