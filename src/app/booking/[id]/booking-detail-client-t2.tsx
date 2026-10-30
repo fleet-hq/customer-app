@@ -174,6 +174,7 @@ export default function BookingDetailClientT2({ id }: { id: string }) {
         <RenterRentalPanel
           bookingId={id}
           ongoing={booking.rentalModel !== 'daily'}
+          deposit={booking.invoice.deposit || 0}
           onUpdateCard={saveCardOnly}
         />
       }

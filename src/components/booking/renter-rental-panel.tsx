@@ -12,6 +12,7 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { useBookingPayment } from '@/hooks/use-booking-payment';
 import { Calendar } from '@/components/ui/icons';
 import { cycleWords } from '@/lib/billing-cycle';
+import { rentalStats } from '@/lib/rental-stats';
 
 const STATUS: Record<string, { label: string; tone: 'good' | 'bad' | 'due' | 'quiet' }> = {
   paid: { label: 'Paid', tone: 'good' },
@@ -61,10 +62,12 @@ function renewalLine(rental: RenterRental): string | null {
 export function RenterRentalPanel({
   bookingId,
   ongoing,
+  deposit = 0,
   onUpdateCard,
 }: {
   bookingId: string;
   ongoing: boolean;
+  deposit?: number;
   onUpdateCard: () => void;
 }) {
   const skin = useSkin();
@@ -90,6 +93,22 @@ export function RenterRentalPanel({
           <Dyn>{rental.plan?.name ?? cycleWords(rental.billing_cycle).rentalTitle}</Dyn>
         </h3>
         {renewal ? <span className={cn('text-[13px]', skin.quiet)}><Dyn>{renewal}</Dyn></span> : null}
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 lg:grid-cols-4">
+        {rentalStats(rental, deposit).map((stat) => (
+          <div key={stat.key} className={cn('border p-3.5', skin.line, skin.card)}>
+            <span className={cn('block text-[10px] font-semibold uppercase tracking-[0.14em]', skin.quiet)}>
+              <Dyn>{stat.label}</Dyn>
+            </span>
+            <b className={cn('mt-1.5 block text-[19px] font-bold leading-none', stat.due ? skin.tone.due : skin.strong)}>
+              {stat.value}
+            </b>
+            <small className={cn('mt-1.5 block text-[11.5px] leading-[1.4]', skin.quiet)}>
+              <Dyn>{stat.note}</Dyn>
+            </small>
+          </div>
+        ))}
       </div>
 
       <ul className={cn('mt-4 divide-y border-y', skin.line)}>

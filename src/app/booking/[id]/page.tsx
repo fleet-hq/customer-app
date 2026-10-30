@@ -195,6 +195,7 @@ export default function BookingPage({ params }: { params: Promise<{ id: string }
         <RenterRentalPanel
           bookingId={id}
           ongoing={booking.rentalModel !== 'daily'}
+          deposit={booking.invoice.deposit || 0}
           onUpdateCard={saveCardOnly}
         />
       }
